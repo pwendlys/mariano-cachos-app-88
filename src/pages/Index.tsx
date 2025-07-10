@@ -3,7 +3,7 @@ import React from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { Header } from '@/components/Header';
-import { MobileLayout } from '@/components/MobileLayout';
+import MobileLayout from '@/components/MobileLayout';
 
 const Index: React.FC = () => {
   const { user, userProfile, loading } = useAuth();
@@ -34,14 +34,14 @@ const Index: React.FC = () => {
             </h1>
             <p className="text-xl text-muted-foreground">
               {userProfile?.user_type === 'admin' && 'Painel de Administração'}
-              {userProfile?.user_type === 'funcionario' && 'Área do Profissional'}
-              {userProfile?.user_type === 'cliente' && 'Sua experiência de beleza começa aqui'}
+              {userProfile?.user_type === 'driver' && 'Área do Profissional'}
+              {userProfile?.user_type === 'patient' && 'Sua experiência de beleza começa aqui'}
             </p>
           </div>
 
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 mt-12">
             {/* Quick Actions based on user type */}
-            {userProfile?.user_type === 'cliente' && (
+            {userProfile?.user_type === 'patient' && (
               <>
                 <div className="bg-white p-6 rounded-lg shadow-sm border hover:shadow-md transition-shadow">
                   <h3 className="font-semibold text-lg mb-2">Agendar Serviço</h3>
@@ -61,7 +61,7 @@ const Index: React.FC = () => {
               </>
             )}
 
-            {userProfile?.user_type === 'funcionario' && (
+            {userProfile?.user_type === 'driver' && (
               <>
                 <div className="bg-white p-6 rounded-lg shadow-sm border hover:shadow-md transition-shadow">
                   <h3 className="font-semibold text-lg mb-2">Minha Agenda</h3>
