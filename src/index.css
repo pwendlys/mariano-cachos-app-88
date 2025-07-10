@@ -1,0 +1,86 @@
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Design system customizado para o salão Marcos Mariano */
+
+@layer base {
+  :root {
+    --background: 20 14% 4%;
+    --foreground: 48 23% 95%;
+
+    --card: 24 10% 8%;
+    --card-foreground: 48 23% 95%;
+
+    --popover: 24 10% 8%;
+    --popover-foreground: 48 23% 95%;
+
+    --primary: 45 100% 51%;
+    --primary-foreground: 20 14% 4%;
+
+    --secondary: 30 15% 20%;
+    --secondary-foreground: 48 23% 95%;
+
+    --muted: 30 8% 15%;
+    --muted-foreground: 48 10% 65%;
+
+    --accent: 271 78% 68%;
+    --accent-foreground: 20 14% 4%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 30 8% 25%;
+    --input: 30 8% 15%;
+    --ring: 45 100% 51%;
+
+    --radius: 0.75rem;
+
+    --sidebar-background: 24 10% 8%;
+    --sidebar-foreground: 48 23% 95%;
+    --sidebar-primary: 45 100% 51%;
+    --sidebar-primary-foreground: 20 14% 4%;
+    --sidebar-accent: 30 15% 20%;
+    --sidebar-accent-foreground: 48 23% 95%;
+    --sidebar-border: 30 8% 25%;
+    --sidebar-ring: 45 100% 51%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-inter;
+    background: linear-gradient(135deg, #1A1A1A 0%, #2D1810 50%, #1A1A1A 100%);
+    min-height: 100vh;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-playfair;
+  }
+}
+
+@layer components {
+  .glass-card {
+    @apply bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl;
+  }
+  
+  .gradient-gold {
+    background: linear-gradient(135deg, #D4AF37 0%, #F7DC6F 50%, #B7950B 100%);
+  }
+  
+  .gradient-purple {
+    background: linear-gradient(135deg, #8B5CF6 0%, #A855F7 50%, #7C3AED 100%);
+  }
+  
+  .text-gradient-gold {
+    background: linear-gradient(135deg, #D4AF37 0%, #F7DC6F 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+}
