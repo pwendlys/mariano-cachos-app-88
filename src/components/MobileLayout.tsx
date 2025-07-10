@@ -2,7 +2,7 @@
 import React from 'react';
 import { useLocation } from 'react-router-dom';
 import BottomNavigation from './BottomNavigation';
-import { Header } from './Header';
+import Header from './Header';
 
 interface MobileLayoutProps {
   children: React.ReactNode;
