@@ -16,14 +16,9 @@ interface UserProfile {
   id: string;
   full_name: string;
   phone: string | null;
-  user_type: 'admin' | 'funcionario' | 'cliente';
-  email_verified: boolean;
-  phone_verified: boolean;
-  last_login: string | null;
-  login_attempts: number;
-  blocked_until: string | null;
-  no_shows: number;
+  user_type: 'admin' | 'driver' | 'patient';
   is_active: boolean;
+  address: string | null;
   created_at: string;
   updated_at: string;
 }

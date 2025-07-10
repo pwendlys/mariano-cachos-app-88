@@ -9,95 +9,25 @@ import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { User, Settings, Calendar, Star, Clock } from 'lucide-react';
-
-interface EmployeeProfile {
-  id: string;
-  user_id: string;
-  specialties: string[];
-  commission_rate: number;
-  work_schedule: any;
-  work_days: number[];
-  monthly_goal: number;
-  is_active: boolean;
-}
-
-interface ClientProfile {
-  id: string;
-  user_id: string;
-  address: string | null;
-  birth_date: string | null;
-  preferences: any;
-  loyalty_points: number;
-  total_spent: number;
-  last_visit: string | null;
-}
+import { User, Settings } from 'lucide-react';
 
 export const UserProfile: React.FC = () => {
   const { userProfile, user, refreshProfile } = useAuth();
   const [loading, setLoading] = useState(false);
-  const [employeeProfile, setEmployeeProfile] = useState<EmployeeProfile | null>(null);
-  const [clientProfile, setClientProfile] = useState<ClientProfile | null>(null);
   const { toast } = useToast();
 
   // Form states
   const [fullName, setFullName] = useState('');
   const [phone, setPhone] = useState('');
   const [address, setAddress] = useState('');
-  const [specialties, setSpecialties] = useState('');
-  const [commissionRate, setCommissionRate] = useState(0);
-  const [monthlyGoal, setMonthlyGoal] = useState(0);
 
   useEffect(() => {
     if (userProfile) {
       setFullName(userProfile.full_name || '');
       setPhone(userProfile.phone || '');
+      setAddress(userProfile.address || '');
     }
   }, [userProfile]);
-
-  useEffect(() => {
-    if (userProfile && user) {
-      fetchSpecificProfile();
-    }
-  }, [userProfile, user]);
-
-  const fetchSpecificProfile = async () => {
-    if (!user || !userProfile) return;
-
-    try {
-      if (userProfile.user_type === 'funcionario') {
-        const { data, error } = await supabase
-          .from('employee_profiles')
-          .select('*')
-          .eq('user_id', user.id)
-          .single();
-
-        if (error && error.code !== 'PGRST116') throw error;
-        setEmployeeProfile(data);
-        
-        if (data) {
-          setSpecialties(data.specialties?.join(', ') || '');
-          setCommissionRate(data.commission_rate || 0);
-          setMonthlyGoal(data.monthly_goal || 0);
-        }
-      } else if (userProfile.user_type === 'cliente') {
-        const { data, error } = await supabase
-          .from('client_profiles')
-          .select('*')
-          .eq('user_id', user.id)
-          .single();
-
-        if (error && error.code !== 'PGRST116') throw error;
-        setClientProfile(data);
-        
-        if (data) {
-          setAddress(data.address || '');
-        }
-      }
-    } catch (error) {
-      console.error('Error fetching specific profile:', error);
-    }
-  };
 
   const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -111,49 +41,11 @@ export const UserProfile: React.FC = () => {
         .update({
           full_name: fullName,
           phone: phone,
+          address: address,
         })
         .eq('id', user.id);
 
       if (profileError) throw profileError;
-
-      // Update specific profile based on user type
-      if (userProfile.user_type === 'funcionario') {
-        const employeeData = {
-          specialties: specialties.split(',').map(s => s.trim()).filter(s => s),
-          commission_rate: commissionRate,
-          monthly_goal: monthlyGoal,
-        };
-
-        if (employeeProfile) {
-          const { error } = await supabase
-            .from('employee_profiles')
-            .update(employeeData)
-            .eq('user_id', user.id);
-          if (error) throw error;
-        } else {
-          const { error } = await supabase
-            .from('employee_profiles')
-            .insert([{ ...employeeData, user_id: user.id }]);
-          if (error) throw error;
-        }
-      } else if (userProfile.user_type === 'cliente') {
-        const clientData = {
-          address: address,
-        };
-
-        if (clientProfile) {
-          const { error } = await supabase
-            .from('client_profiles')
-            .update(clientData)
-            .eq('user_id', user.id);
-          if (error) throw error;
-        } else {
-          const { error } = await supabase
-            .from('client_profiles')
-            .insert([{ ...clientData, user_id: user.id }]);
-          if (error) throw error;
-        }
-      }
 
       await refreshProfile();
       toast({
@@ -178,8 +70,8 @@ export const UserProfile: React.FC = () => {
   const getUserTypeLabel = (type: string) => {
     switch (type) {
       case 'admin': return 'Administrador';
-      case 'funcionario': return 'Funcionário';
-      case 'cliente': return 'Cliente';
+      case 'driver': return 'Motorista';
+      case 'patient': return 'Paciente';
       default: return type;
     }
   };
@@ -187,8 +79,8 @@ export const UserProfile: React.FC = () => {
   const getUserTypeColor = (type: string) => {
     switch (type) {
       case 'admin': return 'bg-red-100 text-red-800';
-      case 'funcionario': return 'bg-blue-100 text-blue-800';
-      case 'cliente': return 'bg-green-100 text-green-800';
+      case 'driver': return 'bg-blue-100 text-blue-800';
+      case 'patient': return 'bg-green-100 text-green-800';
       default: return 'bg-gray-100 text-gray-800';
     }
   };
@@ -233,63 +125,7 @@ export const UserProfile: React.FC = () => {
                   {userProfile.is_active ? "Ativo" : "Inativo"}
                 </Badge>
               </div>
-              <div className="flex justify-between">
-                <span className="text-sm text-muted-foreground">Email verificado:</span>
-                <Badge variant={userProfile.email_verified ? "default" : "secondary"}>
-                  {userProfile.email_verified ? "Sim" : "Não"}
-                </Badge>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-sm text-muted-foreground">Telefone verificado:</span>
-                <Badge variant={userProfile.phone_verified ? "default" : "secondary"}>
-                  {userProfile.phone_verified ? "Sim" : "Não"}
-                </Badge>
-              </div>
             </div>
-
-            {/* Client specific info */}
-            {userProfile.user_type === 'cliente' && clientProfile && (
-              <div className="space-y-3 pt-4 border-t">
-                <div className="flex items-center gap-2 text-sm font-medium">
-                  <Star className="h-4 w-4" />
-                  Informações do Cliente
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">Pontos de fidelidade:</span>
-                  <span className="text-sm font-medium">{clientProfile.loyalty_points}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">Total gasto:</span>
-                  <span className="text-sm font-medium">R$ {clientProfile.total_spent}</span>
-                </div>
-                {clientProfile.last_visit && (
-                  <div className="flex justify-between">
-                    <span className="text-sm text-muted-foreground">Última visita:</span>
-                    <span className="text-sm font-medium">
-                      {new Date(clientProfile.last_visit).toLocaleDateString()}
-                    </span>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Employee specific info */}
-            {userProfile.user_type === 'funcionario' && employeeProfile && (
-              <div className="space-y-3 pt-4 border-t">
-                <div className="flex items-center gap-2 text-sm font-medium">
-                  <Clock className="h-4 w-4" />
-                  Informações do Funcionário
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">Taxa de comissão:</span>
-                  <span className="text-sm font-medium">{employeeProfile.commission_rate}%</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">Meta mensal:</span>
-                  <span className="text-sm font-medium">R$ {employeeProfile.monthly_goal}</span>
-                </div>
-              </div>
-            )}
           </CardContent>
         </Card>
 
@@ -321,60 +157,15 @@ export const UserProfile: React.FC = () => {
                 </div>
               </div>
 
-              {/* Client specific fields */}
-              {userProfile.user_type === 'cliente' && (
-                <div className="space-y-2">
-                  <Label htmlFor="address">Endereço</Label>
-                  <Textarea
-                    id="address"
-                    value={address}
-                    onChange={(e) => setAddress(e.target.value)}
-                    placeholder="Seu endereço completo"
-                  />
-                </div>
-              )}
-
-              {/* Employee specific fields */}
-              {userProfile.user_type === 'funcionario' && (
-                <>
-                  <div className="space-y-2">
-                    <Label htmlFor="specialties">Especialidades</Label>
-                    <Input
-                      id="specialties"
-                      value={specialties}
-                      onChange={(e) => setSpecialties(e.target.value)}
-                      placeholder="Corte, Coloração, Tratamentos (separado por vírgula)"
-                    />
-                  </div>
-                  
-                  <div className="grid gap-4 md:grid-cols-2">
-                    <div className="space-y-2">
-                      <Label htmlFor="commissionRate">Taxa de Comissão (%)</Label>
-                      <Input
-                        id="commissionRate"
-                        type="number"
-                        min="0"
-                        max="100"
-                        step="0.01"
-                        value={commissionRate}
-                        onChange={(e) => setCommissionRate(parseFloat(e.target.value) || 0)}
-                      />
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <Label htmlFor="monthlyGoal">Meta Mensal (R$)</Label>
-                      <Input
-                        id="monthlyGoal"
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        value={monthlyGoal}
-                        onChange={(e) => setMonthlyGoal(parseFloat(e.target.value) || 0)}
-                      />
-                    </div>
-                  </div>
-                </>
-              )}
+              <div className="space-y-2">
+                <Label htmlFor="address">Endereço</Label>
+                <Textarea
+                  id="address"
+                  value={address}
+                  onChange={(e) => setAddress(e.target.value)}
+                  placeholder="Seu endereço completo"
+                />
+              </div>
 
               <Button type="submit" disabled={loading} className="w-full">
                 {loading ? "Salvando..." : "Salvar Alterações"}
