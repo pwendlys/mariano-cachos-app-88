@@ -3,7 +3,6 @@ import React from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { Header } from '@/components/Header';
-import MobileLayout from '@/components/MobileLayout';
 
 const Index: React.FC = () => {
   const { user, userProfile, loading } = useAuth();
@@ -111,8 +110,6 @@ const Index: React.FC = () => {
           </div>
         </div>
       </main>
-      
-      <MobileLayout />
     </div>
   );
 };
