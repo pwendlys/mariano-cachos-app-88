@@ -14,6 +14,90 @@ export type Database = {
   }
   public: {
     Tables: {
+      agendamentos: {
+        Row: {
+          cliente_id: string | null
+          created_at: string | null
+          data: string
+          horario: string
+          id: string
+          observacoes: string | null
+          servico_id: string | null
+          status: Database["public"]["Enums"]["agendamento_status"] | null
+          updated_at: string | null
+          valor: number | null
+        }
+        Insert: {
+          cliente_id?: string | null
+          created_at?: string | null
+          data: string
+          horario: string
+          id?: string
+          observacoes?: string | null
+          servico_id?: string | null
+          status?: Database["public"]["Enums"]["agendamento_status"] | null
+          updated_at?: string | null
+          valor?: number | null
+        }
+        Update: {
+          cliente_id?: string | null
+          created_at?: string | null
+          data?: string
+          horario?: string
+          id?: string
+          observacoes?: string | null
+          servico_id?: string | null
+          status?: Database["public"]["Enums"]["agendamento_status"] | null
+          updated_at?: string | null
+          valor?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agendamentos_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agendamentos_servico_id_fkey"
+            columns: ["servico_id"]
+            isOneToOne: false
+            referencedRelation: "servicos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      clientes: {
+        Row: {
+          created_at: string | null
+          email: string
+          endereco: string | null
+          id: string
+          nome: string
+          telefone: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          email: string
+          endereco?: string | null
+          id?: string
+          nome: string
+          telefone: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          email?: string
+          endereco?: string | null
+          id?: string
+          nome?: string
+          telefone?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       drivers: {
         Row: {
           current_latitude: number | null
@@ -260,6 +344,36 @@ export type Database = {
           },
         ]
       }
+      servicos: {
+        Row: {
+          ativo: boolean | null
+          categoria: Database["public"]["Enums"]["servico_categoria"]
+          created_at: string | null
+          duracao: number
+          id: string
+          nome: string
+          preco: number
+        }
+        Insert: {
+          ativo?: boolean | null
+          categoria?: Database["public"]["Enums"]["servico_categoria"]
+          created_at?: string | null
+          duracao: number
+          id?: string
+          nome: string
+          preco: number
+        }
+        Update: {
+          ativo?: boolean | null
+          categoria?: Database["public"]["Enums"]["servico_categoria"]
+          created_at?: string | null
+          duracao?: number
+          id?: string
+          nome?: string
+          preco?: number
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -268,12 +382,19 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
+      agendamento_status: "livre" | "pendente" | "ocupado" | "cancelado"
       ride_status:
         | "requested"
         | "accepted"
         | "in_progress"
         | "completed"
         | "cancelled"
+      servico_categoria:
+        | "corte"
+        | "coloracao"
+        | "tratamento"
+        | "finalizacao"
+        | "outros"
       user_type: "patient" | "driver" | "admin"
     }
     CompositeTypes: {
@@ -402,12 +523,20 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      agendamento_status: ["livre", "pendente", "ocupado", "cancelado"],
       ride_status: [
         "requested",
         "accepted",
         "in_progress",
         "completed",
         "cancelled",
+      ],
+      servico_categoria: [
+        "corte",
+        "coloracao",
+        "tratamento",
+        "finalizacao",
+        "outros",
       ],
       user_type: ["patient", "driver", "admin"],
     },
