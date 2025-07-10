@@ -163,6 +163,153 @@ export type Database = {
           },
         ]
       }
+      itens_venda: {
+        Row: {
+          created_at: string | null
+          id: string
+          preco_unitario: number
+          produto_id: string | null
+          quantidade: number
+          subtotal: number
+          venda_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          preco_unitario: number
+          produto_id?: string | null
+          quantidade: number
+          subtotal: number
+          venda_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          preco_unitario?: number
+          produto_id?: string | null
+          quantidade?: number
+          subtotal?: number
+          venda_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "itens_venda_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produtos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "itens_venda_venda_id_fkey"
+            columns: ["venda_id"]
+            isOneToOne: false
+            referencedRelation: "vendas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      movimentacao_estoque: {
+        Row: {
+          created_at: string | null
+          id: string
+          motivo: string
+          observacoes: string | null
+          produto_id: string | null
+          quantidade: number
+          tipo: string
+          usuario_id: string | null
+          venda_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          motivo: string
+          observacoes?: string | null
+          produto_id?: string | null
+          quantidade: number
+          tipo: string
+          usuario_id?: string | null
+          venda_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          motivo?: string
+          observacoes?: string | null
+          produto_id?: string | null
+          quantidade?: number
+          tipo?: string
+          usuario_id?: string | null
+          venda_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "movimentacao_estoque_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produtos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "movimentacao_estoque_venda_id_fkey"
+            columns: ["venda_id"]
+            isOneToOne: false
+            referencedRelation: "vendas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      produtos: {
+        Row: {
+          ativo: boolean | null
+          categoria: string
+          codigo_barras: string | null
+          created_at: string | null
+          descricao: string | null
+          estoque: number
+          estoque_minimo: number
+          id: string
+          imagem: string | null
+          marca: string
+          nome: string
+          preco: number
+          preco_custo: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          ativo?: boolean | null
+          categoria: string
+          codigo_barras?: string | null
+          created_at?: string | null
+          descricao?: string | null
+          estoque?: number
+          estoque_minimo?: number
+          id?: string
+          imagem?: string | null
+          marca: string
+          nome: string
+          preco: number
+          preco_custo?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          ativo?: boolean | null
+          categoria?: string
+          codigo_barras?: string | null
+          created_at?: string | null
+          descricao?: string | null
+          estoque?: number
+          estoque_minimo?: number
+          id?: string
+          imagem?: string | null
+          marca?: string
+          nome?: string
+          preco?: number
+          preco_custo?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           address: string | null
@@ -373,6 +520,53 @@ export type Database = {
           preco?: number
         }
         Relationships: []
+      }
+      vendas: {
+        Row: {
+          cliente_id: string | null
+          created_at: string | null
+          desconto: number | null
+          forma_pagamento: string | null
+          id: string
+          observacoes: string | null
+          status: string
+          total: number
+          total_final: number
+          updated_at: string | null
+        }
+        Insert: {
+          cliente_id?: string | null
+          created_at?: string | null
+          desconto?: number | null
+          forma_pagamento?: string | null
+          id?: string
+          observacoes?: string | null
+          status?: string
+          total: number
+          total_final: number
+          updated_at?: string | null
+        }
+        Update: {
+          cliente_id?: string | null
+          created_at?: string | null
+          desconto?: number | null
+          forma_pagamento?: string | null
+          id?: string
+          observacoes?: string | null
+          status?: string
+          total?: number
+          total_final?: number
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vendas_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {

@@ -8,7 +8,9 @@ import { SidebarProvider } from "@/components/ui/sidebar";
 import Index from "./pages/Index";
 import Scheduling from "./pages/Scheduling";
 import Store from "./pages/Store";
+import SupabaseStore from "./pages/SupabaseStore";
 import Cart from "./pages/Cart";
+import SupabaseCart from "./pages/SupabaseCart";
 import Admin from "./pages/Admin";
 import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
@@ -28,8 +30,10 @@ const App = () => (
               <Routes>
                 <Route path="/" element={<Index />} />
                 <Route path="/agendamento" element={<Scheduling />} />
-                <Route path="/loja" element={<Store />} />
-                <Route path="/carrinho" element={<Cart />} />
+                <Route path="/loja" element={<SupabaseStore />} />
+                <Route path="/loja-demo" element={<Store />} />
+                <Route path="/carrinho" element={<SupabaseCart />} />
+                <Route path="/carrinho-demo" element={<Cart />} />
                 <Route path="/admin" element={<Admin />} />
                 <Route path="/perfil" element={<Profile />} />
                 <Route path="*" element={<NotFound />} />
