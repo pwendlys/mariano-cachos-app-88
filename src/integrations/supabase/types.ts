@@ -98,6 +98,148 @@ export type Database = {
         }
         Relationships: []
       }
+      cobrancas: {
+        Row: {
+          created_at: string | null
+          data_entrega: string | null
+          data_envio: string | null
+          data_leitura: string | null
+          divida_id: string | null
+          erro: string | null
+          id: string
+          mensagem: string | null
+          resposta: string | null
+          status: string | null
+          tentativa: number | null
+          tipo: string
+        }
+        Insert: {
+          created_at?: string | null
+          data_entrega?: string | null
+          data_envio?: string | null
+          data_leitura?: string | null
+          divida_id?: string | null
+          erro?: string | null
+          id?: string
+          mensagem?: string | null
+          resposta?: string | null
+          status?: string | null
+          tentativa?: number | null
+          tipo: string
+        }
+        Update: {
+          created_at?: string | null
+          data_entrega?: string | null
+          data_envio?: string | null
+          data_leitura?: string | null
+          divida_id?: string | null
+          erro?: string | null
+          id?: string
+          mensagem?: string | null
+          resposta?: string | null
+          status?: string | null
+          tentativa?: number | null
+          tipo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cobrancas_divida_id_fkey"
+            columns: ["divida_id"]
+            isOneToOne: false
+            referencedRelation: "dividas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      devedores: {
+        Row: {
+          ativo: boolean | null
+          created_at: string | null
+          documento: string | null
+          email: string | null
+          endereco: string | null
+          id: string
+          nome: string
+          observacoes: string | null
+          telefone: string
+          updated_at: string | null
+        }
+        Insert: {
+          ativo?: boolean | null
+          created_at?: string | null
+          documento?: string | null
+          email?: string | null
+          endereco?: string | null
+          id?: string
+          nome: string
+          observacoes?: string | null
+          telefone: string
+          updated_at?: string | null
+        }
+        Update: {
+          ativo?: boolean | null
+          created_at?: string | null
+          documento?: string | null
+          email?: string | null
+          endereco?: string | null
+          id?: string
+          nome?: string
+          observacoes?: string | null
+          telefone?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      dividas: {
+        Row: {
+          created_at: string | null
+          data_inclusao: string | null
+          data_vencimento: string
+          descricao: string
+          devedor_id: string | null
+          id: string
+          observacoes: string | null
+          status: string | null
+          updated_at: string | null
+          valor_atual: number
+          valor_original: number
+        }
+        Insert: {
+          created_at?: string | null
+          data_inclusao?: string | null
+          data_vencimento: string
+          descricao: string
+          devedor_id?: string | null
+          id?: string
+          observacoes?: string | null
+          status?: string | null
+          updated_at?: string | null
+          valor_atual: number
+          valor_original: number
+        }
+        Update: {
+          created_at?: string | null
+          data_inclusao?: string | null
+          data_vencimento?: string
+          descricao?: string
+          devedor_id?: string | null
+          id?: string
+          observacoes?: string | null
+          status?: string | null
+          updated_at?: string | null
+          valor_atual?: number
+          valor_original?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dividas_devedor_id_fkey"
+            columns: ["devedor_id"]
+            isOneToOne: false
+            referencedRelation: "devedores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       drivers: {
         Row: {
           current_latitude: number | null
@@ -207,6 +349,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      lista_negra: {
+        Row: {
+          ativo: boolean | null
+          created_at: string | null
+          data_inclusao: string | null
+          id: string
+          motivo: string | null
+          telefone: string
+        }
+        Insert: {
+          ativo?: boolean | null
+          created_at?: string | null
+          data_inclusao?: string | null
+          id?: string
+          motivo?: string | null
+          telefone: string
+        }
+        Update: {
+          ativo?: boolean | null
+          created_at?: string | null
+          data_inclusao?: string | null
+          id?: string
+          motivo?: string | null
+          telefone?: string
+        }
+        Relationships: []
       }
       movimentacao_estoque: {
         Row: {
@@ -521,6 +690,39 @@ export type Database = {
         }
         Relationships: []
       }
+      templates_mensagem: {
+        Row: {
+          assunto: string | null
+          ativo: boolean | null
+          created_at: string | null
+          id: string
+          mensagem: string
+          nome: string
+          tipo: string
+          updated_at: string | null
+        }
+        Insert: {
+          assunto?: string | null
+          ativo?: boolean | null
+          created_at?: string | null
+          id?: string
+          mensagem: string
+          nome: string
+          tipo: string
+          updated_at?: string | null
+        }
+        Update: {
+          assunto?: string | null
+          ativo?: boolean | null
+          created_at?: string | null
+          id?: string
+          mensagem?: string
+          nome?: string
+          tipo?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       vendas: {
         Row: {
           cliente_id: string | null
@@ -567,6 +769,48 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      whatsapp_config: {
+        Row: {
+          api_key: string | null
+          ativo: boolean | null
+          configuracoes: Json | null
+          created_at: string | null
+          id: string
+          nome: string
+          status: string | null
+          telefone: string
+          ultimo_ping: string | null
+          updated_at: string | null
+          webhook_url: string | null
+        }
+        Insert: {
+          api_key?: string | null
+          ativo?: boolean | null
+          configuracoes?: Json | null
+          created_at?: string | null
+          id?: string
+          nome: string
+          status?: string | null
+          telefone: string
+          ultimo_ping?: string | null
+          updated_at?: string | null
+          webhook_url?: string | null
+        }
+        Update: {
+          api_key?: string | null
+          ativo?: boolean | null
+          configuracoes?: Json | null
+          created_at?: string | null
+          id?: string
+          nome?: string
+          status?: string | null
+          telefone?: string
+          ultimo_ping?: string | null
+          updated_at?: string | null
+          webhook_url?: string | null
+        }
+        Relationships: []
       }
     }
     Views: {

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo } from 'react';
 import { Plus, DollarSign, TrendingUp, TrendingDown, Calendar, Edit, Trash2, CalendarIcon, Package, Scissors } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -13,6 +12,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useSharedServices } from '@/hooks/useSharedServices';
 import { useSharedProducts } from '@/hooks/useSharedProducts';
 import { useProfessionals } from '@/hooks/useProfessionals';
+import { useDebtCollection } from '@/hooks/useDebtCollection';
 import CashFlowFilters from './CashFlowFilters';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
@@ -27,6 +27,7 @@ interface CashFlowEntry {
   client?: string;
   professional?: string;
   professionalId?: string;
+  debtId?: string; // Link para dívidas
 }
 
 interface CashFlowManagementProps {
@@ -39,6 +40,7 @@ const CashFlowManagement: React.FC<CashFlowManagementProps> = ({ entries: extern
   const { services } = useSharedServices();
   const { products } = useSharedProducts();
   const { professionals, getProfessionalById } = useProfessionals();
+  const { dividas, getTotals } = useDebtCollection();
   
   const [internalEntries, setInternalEntries] = useState<CashFlowEntry[]>([
     {
@@ -111,11 +113,12 @@ const CashFlowManagement: React.FC<CashFlowManagementProps> = ({ entries: extern
   });
 
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
-  const [importType, setImportType] = useState<'manual' | 'service' | 'product'>('manual');
+  const [importType, setImportType] = useState<'manual' | 'service' | 'product' | 'debt'>('manual');
   const [selectedServiceId, setSelectedServiceId] = useState<string>('');
   const [selectedProductId, setSelectedProductId] = useState<string>('');
+  const [selectedDebtId, setSelectedDebtId] = useState<string>('');
 
-  const incomeCategories = ['Serviço', 'Produto', 'Outros'];
+  const incomeCategories = ['Serviço', 'Produto', 'Cobrança', 'Outros'];
   const expenseCategories = ['Alimentação', 'Utilidades', 'Produtos', 'Transporte', 'Manutenção', 'Comissões', 'Outros'];
 
   // Função para criar lançamento de comissão automaticamente
@@ -136,6 +139,30 @@ const CashFlowManagement: React.FC<CashFlowManagementProps> = ({ entries: extern
       professionalId: professionalId
     };
   };
+
+  // Criar lançamentos automáticos baseados nas dívidas pagas
+  useEffect(() => {
+    const paidDebts = dividas.filter(d => d.status === 'pago');
+    const existingDebtEntries = entries.filter(e => e.debtId);
+    
+    paidDebts.forEach(debt => {
+      const existingEntry = existingDebtEntries.find(e => e.debtId === debt.id);
+      if (!existingEntry) {
+        const debtEntry: CashFlowEntry = {
+          id: `debt-${debt.id}`,
+          date: new Date().toISOString().split('T')[0],
+          type: 'income',
+          category: 'Cobrança',
+          description: `Cobrança recebida - ${debt.devedor?.nome}`,
+          amount: debt.valor_atual,
+          client: debt.devedor?.nome,
+          debtId: debt.id
+        };
+        
+        setEntries([...entries, debtEntry]);
+      }
+    });
+  }, [dividas]);
 
   // Filtrar entradas com base nos filtros selecionados
   const filteredEntries = useMemo(() => {
@@ -171,6 +198,7 @@ const CashFlowManagement: React.FC<CashFlowManagementProps> = ({ entries: extern
     setImportType('manual');
     setSelectedServiceId('');
     setSelectedProductId('');
+    setSelectedDebtId('');
     setFormData({
       type: 'income',
       category: '',
@@ -190,6 +218,7 @@ const CashFlowManagement: React.FC<CashFlowManagementProps> = ({ entries: extern
     setImportType('manual');
     setSelectedServiceId('');
     setSelectedProductId('');
+    setSelectedDebtId('');
     setFormData({
       type: entry.type,
       category: entry.category,
@@ -203,10 +232,11 @@ const CashFlowManagement: React.FC<CashFlowManagementProps> = ({ entries: extern
     setIsDialogOpen(true);
   };
 
-  const handleImportTypeChange = (type: 'manual' | 'service' | 'product') => {
+  const handleImportTypeChange = (type: 'manual' | 'service' | 'product' | 'debt') => {
     setImportType(type);
     setSelectedServiceId('');
     setSelectedProductId('');
+    setSelectedDebtId('');
     
     if (type === 'manual') {
       setFormData(prev => ({
@@ -239,6 +269,15 @@ const CashFlowManagement: React.FC<CashFlowManagementProps> = ({ entries: extern
         amount: '',
         client: ''
       }));
+    } else if (type === 'debt') {
+      setFormData(prev => ({
+        ...prev,
+        type: 'income',
+        category: 'Cobrança',
+        description: '',
+        amount: '',
+        client: ''
+      }));
     }
   };
 
@@ -262,6 +301,19 @@ const CashFlowManagement: React.FC<CashFlowManagementProps> = ({ entries: extern
         ...prev,
         description: product.name,
         amount: product.price.toString()
+      }));
+    }
+  };
+
+  const handleDebtSelect = (debtId: string) => {
+    setSelectedDebtId(debtId);
+    const debt = dividas.find(d => d.id === debtId);
+    if (debt) {
+      setFormData(prev => ({
+        ...prev,
+        description: `Cobrança - ${debt.descricao}`,
+        amount: debt.valor_atual.toString(),
+        client: debt.devedor?.nome || ''
       }));
     }
   };
@@ -304,7 +356,8 @@ const CashFlowManagement: React.FC<CashFlowManagementProps> = ({ entries: extern
       amount: parseFloat(formData.amount),
       client: formData.client || undefined,
       professional: formData.professional || undefined,
-      professionalId: formData.professionalId || undefined
+      professionalId: formData.professionalId || undefined,
+      debtId: selectedDebtId || undefined
     };
 
     let newEntries = [...entries];
@@ -327,7 +380,7 @@ const CashFlowManagement: React.FC<CashFlowManagementProps> = ({ entries: extern
           newEntries.push(commissionEntry);
           toast({
             title: "Lançamento e comissão adicionados!",
-            description: `Serviço registrado e comissão de ${commissionEntry.amount.toFixed(2)} criada automaticamente.`,
+            description: `Serviço registrado e comissão de R$ ${commissionEntry.amount.toFixed(2)} criada automaticamente.`,
           });
         } else {
           toast({
@@ -426,6 +479,7 @@ const CashFlowManagement: React.FC<CashFlowManagementProps> = ({ entries: extern
                     <SelectItem value="manual">Manual</SelectItem>
                     <SelectItem value="service">Importar Serviço</SelectItem>
                     <SelectItem value="product">Importar Produto</SelectItem>
+                    <SelectItem value="debt">Importar Cobrança</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -472,11 +526,32 @@ const CashFlowManagement: React.FC<CashFlowManagementProps> = ({ entries: extern
                 </div>
               )}
 
+              {importType === 'debt' && (
+                <div>
+                  <Label className="block text-sm font-medium mb-2">Selecionar Dívida</Label>
+                  <Select value={selectedDebtId} onValueChange={handleDebtSelect}>
+                    <SelectTrigger className="glass-card border-salon-gold/30 bg-transparent text-white h-12">
+                      <SelectValue placeholder="Escolha uma dívida paga" />
+                    </SelectTrigger>
+                    <SelectContent className="glass-card border-salon-gold/30">
+                      {dividas.filter(d => d.status === 'pago').map(debt => (
+                        <SelectItem key={debt.id} value={debt.id}>
+                          <div className="flex items-center gap-2">
+                            <DollarSign size={16} />
+                            <span>{debt.devedor?.nome} - R$ {debt.valor_atual.toFixed(2)}</span>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
               <div>
                 <Label className="block text-sm font-medium mb-2">Tipo *</Label>
                 <Select 
                   value={formData.type} 
-                  onValueChange={(value) => setFormData({...formData, type: value, category: importType === 'service' ? 'Serviço' : importType === 'product' ? 'Produto' : ''})}
+                  onValueChange={(value) => setFormData({...formData, type: value, category: importType === 'service' ? 'Serviço' : importType === 'product' ? 'Produto' : importType === 'debt' ? 'Cobrança' : ''})}
                   disabled={importType !== 'manual'}
                 >
                   <SelectTrigger className="glass-card border-salon-gold/30 bg-transparent text-white h-12">
@@ -541,21 +616,23 @@ const CashFlowManagement: React.FC<CashFlowManagementProps> = ({ entries: extern
                     />
                   </div>
 
-                  <div>
-                    <Label className="block text-sm font-medium mb-2">Profissional</Label>
-                    <Select value={formData.professionalId} onValueChange={handleProfessionalSelect}>
-                      <SelectTrigger className="glass-card border-salon-gold/30 bg-transparent text-white h-12">
-                        <SelectValue placeholder="Selecione o profissional" />
-                      </SelectTrigger>
-                      <SelectContent className="glass-card border-salon-gold/30">
-                        {professionals.filter(p => p.isActive).map(prof => (
-                          <SelectItem key={prof.id} value={prof.id}>
-                            {prof.name} ({prof.commissionPercentage}%)
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
+                  {importType !== 'debt' && (
+                    <div>
+                      <Label className="block text-sm font-medium mb-2">Profissional</Label>
+                      <Select value={formData.professionalId} onValueChange={handleProfessionalSelect}>
+                        <SelectTrigger className="glass-card border-salon-gold/30 bg-transparent text-white h-12">
+                          <SelectValue placeholder="Selecione o profissional" />
+                        </SelectTrigger>
+                        <SelectContent className="glass-card border-salon-gold/30">
+                          {professionals.filter(p => p.isActive).map(prof => (
+                            <SelectItem key={prof.id} value={prof.id}>
+                              {prof.name} ({prof.commissionPercentage}%)
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
                 </>
               )}
               
@@ -630,6 +707,51 @@ const CashFlowManagement: React.FC<CashFlowManagementProps> = ({ entries: extern
           <CardContent>
             <div className={`text-2xl font-bold ${todayBalance >= 0 ? 'text-salon-gold' : 'text-red-400'}`}>
               R$ {todayBalance.toFixed(2)}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Resumo de Cobranças */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Card className="glass-card border-orange-500/20">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-orange-400 flex items-center gap-2 text-sm">
+              <DollarSign size={16} />
+              Em Aberto
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-white">
+              R$ {getTotals.totalEmAberto.toFixed(2)}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="glass-card border-green-500/20">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-green-400 flex items-center gap-2 text-sm">
+              <DollarSign size={16} />
+              Recebido
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-white">
+              R$ {getTotals.totalRecebido.toFixed(2)}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="glass-card border-yellow-500/20">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-yellow-400 flex items-center gap-2 text-sm">
+              <DollarSign size={16} />
+              Parcelado
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-white">
+              R$ {getTotals.totalParcelado.toFixed(2)}
             </div>
           </CardContent>
         </Card>
@@ -710,6 +832,9 @@ const CashFlowManagement: React.FC<CashFlowManagementProps> = ({ entries: extern
                     {entry.professional && (
                       <p className="text-xs text-salon-gold">Por: {entry.professional}</p>
                     )}
+                    {entry.debtId && (
+                      <p className="text-xs text-orange-400">Cobrança Recebida</p>
+                    )}
                   </div>
                 </div>
                 <div className="flex items-center space-x-2">
@@ -723,6 +848,7 @@ const CashFlowManagement: React.FC<CashFlowManagementProps> = ({ entries: extern
                     size="icon"
                     onClick={() => handleEdit(entry)}
                     className="border-salon-gold/30 text-salon-gold hover:bg-salon-gold/10 h-10 w-10"
+                    disabled={!!entry.debtId} // Não permitir edição de lançamentos automáticos de cobrança
                   >
                     <Edit size={14} />
                   </Button>
@@ -731,6 +857,7 @@ const CashFlowManagement: React.FC<CashFlowManagementProps> = ({ entries: extern
                     size="icon"
                     onClick={() => handleDelete(entry.id)}
                     className="border-red-400/30 text-red-400 hover:bg-red-400/10 h-10 w-10"
+                    disabled={!!entry.debtId} // Não permitir exclusão de lançamentos automáticos de cobrança
                   >
                     <Trash2 size={14} />
                   </Button>
