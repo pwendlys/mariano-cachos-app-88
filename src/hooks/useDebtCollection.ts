@@ -90,7 +90,14 @@ export const useDebtCollection = () => {
         .order('data_vencimento', { ascending: false });
 
       if (error) throw error;
-      setDividas(data || []);
+      
+      // Type cast the results to match our interface
+      const typedData = (data || []).map(item => ({
+        ...item,
+        status: item.status as Divida['status']
+      })) as Divida[];
+      
+      setDividas(typedData);
     } catch (error) {
       console.error('Erro ao carregar dívidas:', error);
       toast({
@@ -113,7 +120,15 @@ export const useDebtCollection = () => {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setCobrancas(data || []);
+      
+      // Type cast the results to match our interface
+      const typedData = (data || []).map(item => ({
+        ...item,
+        tipo: item.tipo as Cobranca['tipo'],
+        status: item.status as Cobranca['status']
+      })) as Cobranca[];
+      
+      setCobrancas(typedData);
     } catch (error) {
       console.error('Erro ao carregar cobranças:', error);
       toast({
@@ -156,11 +171,14 @@ export const useDebtCollection = () => {
   };
 
   // Criar dívida
-  const createDivida = async (divida: Omit<Divida, 'id' | 'created_at' | 'updated_at' | 'devedor'>) => {
+  const createDivida = async (divida: Omit<Divida, 'id' | 'created_at' | 'updated_at' | 'devedor' | 'data_inclusao'>) => {
     try {
       const { data, error } = await supabase
         .from('dividas')
-        .insert([divida])
+        .insert([{
+          ...divida,
+          data_inclusao: new Date().toISOString().split('T')[0] // Add current date as data_inclusao
+        }])
         .select()
         .single();
 
