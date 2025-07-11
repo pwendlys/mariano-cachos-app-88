@@ -90,7 +90,8 @@ export const useDebtCollection = () => {
         .order('data_vencimento', { ascending: false });
 
       if (error) throw error;
-      setDividas(data || []);
+      // Type assertion to ensure proper types
+      setDividas((data || []) as Divida[]);
     } catch (error) {
       console.error('Erro ao carregar dívidas:', error);
       toast({
@@ -113,7 +114,8 @@ export const useDebtCollection = () => {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setCobrancas(data || []);
+      // Type assertion to ensure proper types
+      setCobrancas((data || []) as Cobranca[]);
     } catch (error) {
       console.error('Erro ao carregar cobranças:', error);
       toast({

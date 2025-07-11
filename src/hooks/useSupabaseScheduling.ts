@@ -55,7 +55,8 @@ export const useSupabaseScheduling = () => {
         .order('nome');
 
       if (error) throw error;
-      setServices(data || []);
+      // Type assertion to ensure proper types
+      setServices((data || []) as Service[]);
     } catch (error) {
       console.error('Error fetching services:', error);
       toast({
@@ -80,7 +81,8 @@ export const useSupabaseScheduling = () => {
         .order('horario', { ascending: true });
 
       if (error) throw error;
-      setAppointments(data || []);
+      // Type assertion to ensure proper types
+      setAppointments((data || []) as Appointment[]);
     } catch (error) {
       console.error('Error fetching appointments:', error);
       toast({
