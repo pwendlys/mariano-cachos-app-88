@@ -67,7 +67,7 @@ const Profile = () => {
           <User size={32} className="text-salon-dark" />
         </div>
         <h1 className="text-2xl font-bold text-salon-gold mb-2 font-playfair">
-          {user?.name || 'Usuário'}
+          {user?.nome || 'Usuário'}
         </h1>
         <p className="text-muted-foreground">
           {user?.email || 'email@exemplo.com'}
@@ -106,7 +106,7 @@ const Profile = () => {
               <CardContent className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium mb-2 text-salon-copper">Nome</label>
-                  <p className="text-white">{user?.name || 'Não informado'}</p>
+                  <p className="text-white">{user?.nome || 'Não informado'}</p>
                 </div>
                 <div>
                   <label className="block text-sm font-medium mb-2 text-salon-copper">E-mail</label>
