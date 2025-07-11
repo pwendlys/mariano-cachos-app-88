@@ -5,7 +5,10 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { SidebarProvider } from "@/components/ui/sidebar";
+import { AuthProvider } from "@/hooks/useAuth";
+import ProtectedRoute from "@/components/ProtectedRoute";
 import Index from "./pages/Index";
+import Auth from "./pages/Auth";
 import Scheduling from "./pages/Scheduling";
 import Store from "./pages/Store";
 import SupabaseStore from "./pages/SupabaseStore";
@@ -24,23 +27,72 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <SidebarProvider>
-          <div className="min-h-screen w-full">
-            <MobileLayout>
+        <AuthProvider>
+          <SidebarProvider>
+            <div className="min-h-screen w-full">
               <Routes>
-                <Route path="/" element={<Index />} />
-                <Route path="/agendamento" element={<Scheduling />} />
-                <Route path="/loja" element={<SupabaseStore />} />
-                <Route path="/loja-demo" element={<Store />} />
-                <Route path="/carrinho" element={<SupabaseCart />} />
-                <Route path="/carrinho-demo" element={<Cart />} />
-                <Route path="/admin" element={<Admin />} />
-                <Route path="/perfil" element={<Profile />} />
+                <Route path="/auth" element={<Auth />} />
+                <Route path="/" element={
+                  <ProtectedRoute>
+                    <MobileLayout>
+                      <Index />
+                    </MobileLayout>
+                  </ProtectedRoute>
+                } />
+                <Route path="/agendamento" element={
+                  <ProtectedRoute>
+                    <MobileLayout>
+                      <Scheduling />
+                    </MobileLayout>
+                  </ProtectedRoute>
+                } />
+                <Route path="/loja" element={
+                  <ProtectedRoute>
+                    <MobileLayout>
+                      <SupabaseStore />
+                    </MobileLayout>
+                  </ProtectedRoute>
+                } />
+                <Route path="/loja-demo" element={
+                  <ProtectedRoute>
+                    <MobileLayout>
+                      <Store />
+                    </MobileLayout>
+                  </ProtectedRoute>
+                } />
+                <Route path="/carrinho" element={
+                  <ProtectedRoute>
+                    <MobileLayout>
+                      <SupabaseCart />
+                    </MobileLayout>
+                  </ProtectedRoute>
+                } />
+                <Route path="/carrinho-demo" element={
+                  <ProtectedRoute>
+                    <MobileLayout>
+                      <Cart />
+                    </MobileLayout>
+                  </ProtectedRoute>
+                } />
+                <Route path="/admin" element={
+                  <ProtectedRoute requireAdmin={true}>
+                    <MobileLayout>
+                      <Admin />
+                    </MobileLayout>
+                  </ProtectedRoute>
+                } />
+                <Route path="/perfil" element={
+                  <ProtectedRoute>
+                    <MobileLayout>
+                      <Profile />
+                    </MobileLayout>
+                  </ProtectedRoute>
+                } />
                 <Route path="*" element={<NotFound />} />
               </Routes>
-            </MobileLayout>
-          </div>
-        </SidebarProvider>
+            </div>
+          </SidebarProvider>
+        </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>

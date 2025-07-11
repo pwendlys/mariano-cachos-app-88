@@ -723,6 +723,42 @@ export type Database = {
         }
         Relationships: []
       }
+      usuarios: {
+        Row: {
+          ativo: boolean | null
+          created_at: string
+          email: string
+          id: string
+          nome: string
+          senha: string
+          tipo: string
+          updated_at: string
+          whatsapp: string | null
+        }
+        Insert: {
+          ativo?: boolean | null
+          created_at?: string
+          email: string
+          id?: string
+          nome: string
+          senha: string
+          tipo?: string
+          updated_at?: string
+          whatsapp?: string | null
+        }
+        Update: {
+          ativo?: boolean | null
+          created_at?: string
+          email?: string
+          id?: string
+          nome?: string
+          senha?: string
+          tipo?: string
+          updated_at?: string
+          whatsapp?: string | null
+        }
+        Relationships: []
+      }
       vendas: {
         Row: {
           cliente_id: string | null

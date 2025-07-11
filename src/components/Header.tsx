@@ -1,15 +1,18 @@
 
 import React from 'react';
-import { Bell, User } from 'lucide-react';
+import { Bell, User, LogOut } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import CartIcon from './CartIcon';
 import { useBannerSettings } from '@/hooks/useBannerSettings';
+import { useAuth } from '@/hooks/useAuth';
 
 const Header = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { bannerSettings } = useBannerSettings();
+  const { user, logout } = useAuth();
 
   // Mock cart count - in real app this would come from state/context
   const cartItemCount = 3;
@@ -26,9 +29,16 @@ const Header = () => {
         return 'Carrinho';
       case '/perfil':
         return 'Perfil';
+      case '/admin':
+        return 'Administração';
       default:
         return 'Marcos Mariano';
     }
+  };
+
+  const handleLogout = () => {
+    logout();
+    navigate('/auth');
   };
 
   return (
@@ -68,14 +78,40 @@ const Header = () => {
           
           <CartIcon itemCount={cartItemCount} />
           
-          <Button 
-            variant="ghost" 
-            size="icon"
-            className="text-salon-gold hover:bg-salon-gold/10 h-12 w-12"
-            onClick={() => navigate('/perfil')}
-          >
-            <User size={24} />
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button 
+                variant="ghost" 
+                size="icon"
+                className="text-salon-gold hover:bg-salon-gold/10 h-12 w-12"
+              >
+                <User size={24} />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56">
+              <div className="px-2 py-1.5">
+                <p className="text-sm font-medium">{user?.nome}</p>
+                <p className="text-xs text-muted-foreground">{user?.email}</p>
+                <p className="text-xs text-salon-gold capitalize">{user?.tipo}</p>
+              </div>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => navigate('/perfil')}>
+                <User className="mr-2 h-4 w-4" />
+                Perfil
+              </DropdownMenuItem>
+              {user?.tipo === 'admin' && (
+                <DropdownMenuItem onClick={() => navigate('/admin')}>
+                  <User className="mr-2 h-4 w-4" />
+                  Administração
+                </DropdownMenuItem>
+              )}
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={handleLogout}>
+                <LogOut className="mr-2 h-4 w-4" />
+                Sair
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
     </header>
