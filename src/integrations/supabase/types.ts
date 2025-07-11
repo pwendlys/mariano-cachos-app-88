@@ -428,6 +428,51 @@ export type Database = {
           },
         ]
       }
+      observacoes_clientes: {
+        Row: {
+          cliente_id: string | null
+          created_at: string | null
+          data_observacao: string | null
+          id: string
+          observacao: string
+          updated_at: string | null
+          usuario_id: string | null
+        }
+        Insert: {
+          cliente_id?: string | null
+          created_at?: string | null
+          data_observacao?: string | null
+          id?: string
+          observacao: string
+          updated_at?: string | null
+          usuario_id?: string | null
+        }
+        Update: {
+          cliente_id?: string | null
+          created_at?: string | null
+          data_observacao?: string | null
+          id?: string
+          observacao?: string
+          updated_at?: string | null
+          usuario_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "observacoes_clientes_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "observacoes_clientes_usuario_id_fkey"
+            columns: ["usuario_id"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       produtos: {
         Row: {
           ativo: boolean | null
