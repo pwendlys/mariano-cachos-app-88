@@ -90,14 +90,7 @@ export const useDebtCollection = () => {
         .order('data_vencimento', { ascending: false });
 
       if (error) throw error;
-      
-      // Type cast the results to match our interface
-      const typedData = (data || []).map(item => ({
-        ...item,
-        status: item.status as Divida['status']
-      })) as Divida[];
-      
-      setDividas(typedData);
+      setDividas(data || []);
     } catch (error) {
       console.error('Erro ao carregar dívidas:', error);
       toast({
@@ -120,15 +113,7 @@ export const useDebtCollection = () => {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      
-      // Type cast the results to match our interface
-      const typedData = (data || []).map(item => ({
-        ...item,
-        tipo: item.tipo as Cobranca['tipo'],
-        status: item.status as Cobranca['status']
-      })) as Cobranca[];
-      
-      setCobrancas(typedData);
+      setCobrancas(data || []);
     } catch (error) {
       console.error('Erro ao carregar cobranças:', error);
       toast({
@@ -177,7 +162,7 @@ export const useDebtCollection = () => {
         .from('dividas')
         .insert([{
           ...divida,
-          data_inclusao: new Date().toISOString().split('T')[0] // Add current date as data_inclusao
+          data_inclusao: new Date().toISOString().split('T')[0]
         }])
         .select()
         .single();

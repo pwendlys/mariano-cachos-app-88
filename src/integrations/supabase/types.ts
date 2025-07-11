@@ -98,6 +98,148 @@ export type Database = {
         }
         Relationships: []
       }
+      cobrancas: {
+        Row: {
+          created_at: string
+          data_entrega: string | null
+          data_envio: string | null
+          data_leitura: string | null
+          divida_id: string
+          erro: string | null
+          id: string
+          mensagem: string | null
+          resposta: string | null
+          status: string
+          tentativa: number
+          tipo: string
+        }
+        Insert: {
+          created_at?: string
+          data_entrega?: string | null
+          data_envio?: string | null
+          data_leitura?: string | null
+          divida_id: string
+          erro?: string | null
+          id?: string
+          mensagem?: string | null
+          resposta?: string | null
+          status?: string
+          tentativa?: number
+          tipo: string
+        }
+        Update: {
+          created_at?: string
+          data_entrega?: string | null
+          data_envio?: string | null
+          data_leitura?: string | null
+          divida_id?: string
+          erro?: string | null
+          id?: string
+          mensagem?: string | null
+          resposta?: string | null
+          status?: string
+          tentativa?: number
+          tipo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cobrancas_divida_id_fkey"
+            columns: ["divida_id"]
+            isOneToOne: false
+            referencedRelation: "dividas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      devedores: {
+        Row: {
+          ativo: boolean | null
+          created_at: string
+          documento: string | null
+          email: string | null
+          endereco: string | null
+          id: string
+          nome: string
+          observacoes: string | null
+          telefone: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean | null
+          created_at?: string
+          documento?: string | null
+          email?: string | null
+          endereco?: string | null
+          id?: string
+          nome: string
+          observacoes?: string | null
+          telefone: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean | null
+          created_at?: string
+          documento?: string | null
+          email?: string | null
+          endereco?: string | null
+          id?: string
+          nome?: string
+          observacoes?: string | null
+          telefone?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      dividas: {
+        Row: {
+          created_at: string
+          data_inclusao: string
+          data_vencimento: string
+          descricao: string
+          devedor_id: string
+          id: string
+          observacoes: string | null
+          status: string
+          updated_at: string
+          valor_atual: number
+          valor_original: number
+        }
+        Insert: {
+          created_at?: string
+          data_inclusao?: string
+          data_vencimento: string
+          descricao: string
+          devedor_id: string
+          id?: string
+          observacoes?: string | null
+          status?: string
+          updated_at?: string
+          valor_atual: number
+          valor_original: number
+        }
+        Update: {
+          created_at?: string
+          data_inclusao?: string
+          data_vencimento?: string
+          descricao?: string
+          devedor_id?: string
+          id?: string
+          observacoes?: string | null
+          status?: string
+          updated_at?: string
+          valor_atual?: number
+          valor_original?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dividas_devedor_id_fkey"
+            columns: ["devedor_id"]
+            isOneToOne: false
+            referencedRelation: "devedores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       itens_venda: {
         Row: {
           created_at: string
