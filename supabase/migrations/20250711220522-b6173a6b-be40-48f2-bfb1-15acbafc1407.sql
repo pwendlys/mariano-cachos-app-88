@@ -1,4 +1,5 @@
 
+
 -- Criar tabela de usuários
 CREATE TABLE IF NOT EXISTS public.usuarios (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
@@ -38,7 +39,7 @@ INSERT INTO public.usuarios (nome, email, senha, tipo, whatsapp)
 VALUES (
   'Administrador', 
   'adm@adm.com', 
-  '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', -- hash de 'adm@2025'
+  'adm@2025',
   'admin',
   '(11) 99999-9999'
 ) ON CONFLICT (email) DO NOTHING;
@@ -56,3 +57,4 @@ CREATE TRIGGER trigger_update_usuarios_updated_at
   BEFORE UPDATE ON public.usuarios
   FOR EACH ROW
   EXECUTE FUNCTION update_updated_at_usuarios();
+

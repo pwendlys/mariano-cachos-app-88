@@ -67,7 +67,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     // Check for existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) {
-        // This will trigger the auth state change listener
         console.log('Existing session found:', session);
       } else {
         setLoading(false);
@@ -93,27 +92,48 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         return { success: false, error: 'Usuário não encontrado ou inativo' };
       }
 
-      // For admin, check simple password (demo purposes)
-      if (email === 'adm@adm.com' && senha === 'adm@2025') {
-        // Sign in with Supabase Auth
-        const { error: signInError } = await supabase.auth.signInWithPassword({
-          email,
-          password: senha,
-        });
-
-        if (signInError) {
-          return { success: false, error: 'Erro ao fazer login' };
-        }
-
-        toast({
-          title: "Login realizado com sucesso!",
-          description: `Bem-vindo, ${userData.nome}!`,
-        });
-
-        return { success: true };
-      } else {
+      // Simple password validation (in production, use proper hashing)
+      if (userData.senha !== senha) {
         return { success: false, error: 'Senha incorreta' };
       }
+
+      // Create a fake session for our custom auth
+      const fakeUser = {
+        id: userData.id,
+        email: userData.email,
+        aud: 'authenticated',
+        role: 'authenticated',
+        created_at: userData.created_at,
+        updated_at: userData.updated_at,
+        app_metadata: {},
+        user_metadata: {}
+      } as User;
+
+      const fakeSession = {
+        access_token: 'fake-token',
+        refresh_token: 'fake-refresh',
+        expires_in: 3600,
+        expires_at: Date.now() + 3600000,
+        token_type: 'bearer',
+        user: fakeUser
+      } as Session;
+
+      // Set our custom session
+      setSession(fakeSession);
+      setUser({
+        id: userData.id,
+        nome: userData.nome,
+        email: userData.email,
+        tipo: userData.tipo as 'cliente' | 'admin',
+        whatsapp: userData.whatsapp
+      });
+
+      toast({
+        title: "Login realizado com sucesso!",
+        description: `Bem-vindo, ${userData.nome}!`,
+      });
+
+      return { success: true };
     } catch (error) {
       console.error('Erro no login:', error);
       return { success: false, error: 'Erro interno do sistema' };
@@ -137,25 +157,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         return { success: false, error: 'E-mail já está em uso' };
       }
 
-      // Sign up with Supabase Auth
-      const redirectUrl = `${window.location.origin}/auth`;
-      const { data: authData, error: signUpError } = await supabase.auth.signUp({
-        email,
-        password: senha,
-        options: {
-          emailRedirectTo: redirectUrl,
-          data: {
-            nome,
-            whatsapp
-          }
-        }
-      });
-
-      if (signUpError) {
-        console.error('Erro ao cadastrar no Supabase Auth:', signUpError);
-        return { success: false, error: 'Erro ao cadastrar usuário' };
-      }
-
       // Insert user into usuarios table
       const { error: insertError } = await supabase
         .from('usuarios')
@@ -174,7 +175,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       toast({
         title: "Cadastro realizado com sucesso!",
-        description: "Verifique seu email para confirmar sua conta antes de fazer login.",
+        description: "Você pode fazer login agora com suas credenciais.",
       });
 
       return { success: true };
@@ -187,7 +188,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const logout = () => {
-    supabase.auth.signOut();
     setUser(null);
     setSession(null);
     toast({
