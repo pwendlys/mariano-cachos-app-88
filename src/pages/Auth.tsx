@@ -169,12 +169,6 @@ const Auth = () => {
                 <Button type="submit" className="w-full" disabled={loading}>
                   {loading ? 'Entrando...' : 'Entrar'}
                 </Button>
-
-                <div className="text-center text-sm text-muted-foreground">
-                  <p>Teste com:</p>
-                  <p>E-mail: adm@adm.com</p>
-                  <p>Senha: adm@2025</p>
-                </div>
               </form>
             </TabsContent>
 
@@ -272,6 +266,10 @@ const Auth = () => {
                 <Button type="submit" className="w-full" disabled={loading}>
                   {loading ? 'Cadastrando...' : 'Cadastrar'}
                 </Button>
+
+                <div className="text-center text-sm text-muted-foreground">
+                  <p>Após o cadastro, você receberá um email de confirmação.</p>
+                </div>
               </form>
             </TabsContent>
           </Tabs>

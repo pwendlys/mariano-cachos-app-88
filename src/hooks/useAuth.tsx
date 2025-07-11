@@ -2,8 +2,9 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { User, Session } from '@supabase/supabase-js';
 
-interface User {
+interface AuthUser {
   id: string;
   nome: string;
   email: string;
@@ -12,7 +13,8 @@ interface User {
 }
 
 interface AuthContextType {
-  user: User | null;
+  user: AuthUser | null;
+  session: Session | null;
   login: (email: string, senha: string) => Promise<{ success: boolean; error?: string }>;
   register: (nome: string, email: string, whatsapp: string, senha: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => void;
@@ -22,58 +24,96 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<AuthUser | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
   useEffect(() => {
-    // Check if user is already logged in
-    const savedUser = localStorage.getItem('user');
-    if (savedUser) {
-      setUser(JSON.parse(savedUser));
-    }
-    setLoading(false);
+    // Set up auth state listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        console.log('Auth state changed:', event, session);
+        setSession(session);
+        
+        if (session?.user) {
+          // Fetch user data from usuarios table
+          const { data: userData, error } = await supabase
+            .from('usuarios')
+            .select('*')
+            .eq('email', session.user.email)
+            .eq('ativo', true)
+            .single();
+
+          if (userData && !error) {
+            const authUser: AuthUser = {
+              id: userData.id,
+              nome: userData.nome,
+              email: userData.email,
+              tipo: userData.tipo as 'cliente' | 'admin',
+              whatsapp: userData.whatsapp
+            };
+            setUser(authUser);
+          } else {
+            setUser(null);
+          }
+        } else {
+          setUser(null);
+        }
+        setLoading(false);
+      }
+    );
+
+    // Check for existing session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) {
+        // This will trigger the auth state change listener
+        console.log('Existing session found:', session);
+      } else {
+        setLoading(false);
+      }
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
   const login = async (email: string, senha: string) => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
+      
+      // Check if user exists in usuarios table first
+      const { data: userData, error: userError } = await supabase
         .from('usuarios')
         .select('*')
         .eq('email', email)
         .eq('ativo', true)
         .single();
 
-      if (error || !data) {
+      if (userError || !userData) {
         return { success: false, error: 'Usuário não encontrado ou inativo' };
       }
 
-      // For demo purposes, we'll use a simple password check
-      // In production, you should use proper password hashing comparison
-      const isValidPassword = senha === 'adm@2025' && data.email === 'adm@adm.com';
-      
-      if (!isValidPassword) {
+      // For admin, check simple password (demo purposes)
+      if (email === 'adm@adm.com' && senha === 'adm@2025') {
+        // Sign in with Supabase Auth
+        const { error: signInError } = await supabase.auth.signInWithPassword({
+          email,
+          password: senha,
+        });
+
+        if (signInError) {
+          return { success: false, error: 'Erro ao fazer login' };
+        }
+
+        toast({
+          title: "Login realizado com sucesso!",
+          description: `Bem-vindo, ${userData.nome}!`,
+        });
+
+        return { success: true };
+      } else {
         return { success: false, error: 'Senha incorreta' };
       }
-
-      const userData: User = {
-        id: data.id,
-        nome: data.nome,
-        email: data.email,
-        tipo: data.tipo as 'cliente' | 'admin',
-        whatsapp: data.whatsapp
-      };
-
-      setUser(userData);
-      localStorage.setItem('user', JSON.stringify(userData));
-      
-      toast({
-        title: "Login realizado com sucesso!",
-        description: `Bem-vindo, ${userData.nome}!`,
-      });
-
-      return { success: true };
     } catch (error) {
       console.error('Erro no login:', error);
       return { success: false, error: 'Erro interno do sistema' };
@@ -86,7 +126,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       setLoading(true);
       
-      // Check if user already exists
+      // Check if user already exists in usuarios table
       const { data: existingUser } = await supabase
         .from('usuarios')
         .select('id')
@@ -97,27 +137,44 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         return { success: false, error: 'E-mail já está em uso' };
       }
 
-      // Insert new user (in production, hash the password)
-      const { data, error } = await supabase
+      // Sign up with Supabase Auth
+      const redirectUrl = `${window.location.origin}/auth`;
+      const { data: authData, error: signUpError } = await supabase.auth.signUp({
+        email,
+        password: senha,
+        options: {
+          emailRedirectTo: redirectUrl,
+          data: {
+            nome,
+            whatsapp
+          }
+        }
+      });
+
+      if (signUpError) {
+        console.error('Erro ao cadastrar no Supabase Auth:', signUpError);
+        return { success: false, error: 'Erro ao cadastrar usuário' };
+      }
+
+      // Insert user into usuarios table
+      const { error: insertError } = await supabase
         .from('usuarios')
         .insert({
           nome,
           email,
           whatsapp,
-          senha, // In production, hash this password
+          senha, // In production, this should be hashed
           tipo: 'cliente'
-        })
-        .select()
-        .single();
+        });
 
-      if (error) {
-        console.error('Erro ao cadastrar:', error);
+      if (insertError) {
+        console.error('Erro ao inserir na tabela usuarios:', insertError);
         return { success: false, error: 'Erro ao cadastrar usuário' };
       }
 
       toast({
         title: "Cadastro realizado com sucesso!",
-        description: "Você pode fazer login agora.",
+        description: "Verifique seu email para confirmar sua conta antes de fazer login.",
       });
 
       return { success: true };
@@ -130,8 +187,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const logout = () => {
+    supabase.auth.signOut();
     setUser(null);
-    localStorage.removeItem('user');
+    setSession(null);
     toast({
       title: "Logout realizado",
       description: "Você foi desconectado com sucesso.",
@@ -139,7 +197,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, register, logout, loading }}>
+    <AuthContext.Provider value={{ user, session, login, register, logout, loading }}>
       {children}
     </AuthContext.Provider>
   );
