@@ -37,15 +37,26 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setSession(session);
         
         if (session?.user) {
-          // Map Supabase user to our AuthUser format
-          const authUser: AuthUser = {
-            id: session.user.id,
-            nome: session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || 'Usuário',
-            email: session.user.email || '',
-            tipo: session.user.user_metadata?.user_type === 'admin' ? 'admin' : 'cliente',
-            whatsapp: session.user.user_metadata?.phone
-          };
-          setUser(authUser);
+          // Fetch user data from usuarios table
+          const { data: userData, error } = await supabase
+            .from('usuarios')
+            .select('*')
+            .eq('email', session.user.email)
+            .eq('ativo', true)
+            .single();
+
+          if (userData && !error) {
+            const authUser: AuthUser = {
+              id: userData.id,
+              nome: userData.nome,
+              email: userData.email,
+              tipo: userData.tipo as 'cliente' | 'admin',
+              whatsapp: userData.whatsapp
+            };
+            setUser(authUser);
+          } else {
+            setUser(null);
+          }
         } else {
           setUser(null);
         }
@@ -69,25 +80,60 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       setLoading(true);
       
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password: senha,
+      // Check if user exists in usuarios table first
+      const { data: userData, error: userError } = await supabase
+        .from('usuarios')
+        .select('*')
+        .eq('email', email)
+        .eq('ativo', true)
+        .single();
+
+      if (userError || !userData) {
+        return { success: false, error: 'Usuário não encontrado ou inativo' };
+      }
+
+      // Simple password validation (in production, use proper hashing)
+      if (userData.senha !== senha) {
+        return { success: false, error: 'Senha incorreta' };
+      }
+
+      // Create a fake session for our custom auth
+      const fakeUser = {
+        id: userData.id,
+        email: userData.email,
+        aud: 'authenticated',
+        role: 'authenticated',
+        created_at: userData.created_at,
+        updated_at: userData.updated_at,
+        app_metadata: {},
+        user_metadata: {}
+      } as User;
+
+      const fakeSession = {
+        access_token: 'fake-token',
+        refresh_token: 'fake-refresh',
+        expires_in: 3600,
+        expires_at: Date.now() + 3600000,
+        token_type: 'bearer',
+        user: fakeUser
+      } as Session;
+
+      // Set our custom session
+      setSession(fakeSession);
+      setUser({
+        id: userData.id,
+        nome: userData.nome,
+        email: userData.email,
+        tipo: userData.tipo as 'cliente' | 'admin',
+        whatsapp: userData.whatsapp
       });
 
-      if (error) {
-        console.error('Login error:', error);
-        return { success: false, error: error.message };
-      }
+      toast({
+        title: "Login realizado com sucesso!",
+        description: `Bem-vindo, ${userData.nome}!`,
+      });
 
-      if (data.user) {
-        toast({
-          title: "Login realizado com sucesso!",
-          description: `Bem-vindo!`,
-        });
-        return { success: true };
-      }
-
-      return { success: false, error: 'Erro desconhecido no login' };
+      return { success: true };
     } catch (error) {
       console.error('Erro no login:', error);
       return { success: false, error: 'Erro interno do sistema' };
@@ -100,33 +146,39 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       setLoading(true);
       
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password: senha,
-        options: {
-          emailRedirectTo: `${window.location.origin}/`,
-          data: {
-            full_name: nome,
-            phone: whatsapp,
-            user_type: 'cliente'
-          }
-        }
+      // Check if user already exists in usuarios table
+      const { data: existingUser } = await supabase
+        .from('usuarios')
+        .select('id')
+        .eq('email', email)
+        .single();
+
+      if (existingUser) {
+        return { success: false, error: 'E-mail já está em uso' };
+      }
+
+      // Insert user into usuarios table
+      const { error: insertError } = await supabase
+        .from('usuarios')
+        .insert({
+          nome,
+          email,
+          whatsapp,
+          senha, // In production, this should be hashed
+          tipo: 'cliente'
+        });
+
+      if (insertError) {
+        console.error('Erro ao inserir na tabela usuarios:', insertError);
+        return { success: false, error: 'Erro ao cadastrar usuário' };
+      }
+
+      toast({
+        title: "Cadastro realizado com sucesso!",
+        description: "Você pode fazer login agora com suas credenciais.",
       });
 
-      if (error) {
-        console.error('Registro error:', error);
-        return { success: false, error: error.message };
-      }
-
-      if (data.user) {
-        toast({
-          title: "Cadastro realizado com sucesso!",
-          description: "Verifique seu email para confirmar a conta.",
-        });
-        return { success: true };
-      }
-
-      return { success: false, error: 'Erro desconhecido no cadastro' };
+      return { success: true };
     } catch (error) {
       console.error('Erro no cadastro:', error);
       return { success: false, error: 'Erro interno do sistema' };
@@ -135,8 +187,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const logout = async () => {
-    await supabase.auth.signOut();
+  const logout = () => {
     setUser(null);
     setSession(null);
     toast({
