@@ -50,6 +50,61 @@ export const useSupabaseProducts = () => {
 
   useEffect(() => {
     fetchProducts();
+
+    // Set up real-time subscription for product changes
+    const channel = supabase
+      .channel('produtos-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'produtos'
+        },
+        (payload) => {
+          console.log('Produto alterado em tempo real:', payload);
+          
+          if (payload.eventType === 'INSERT') {
+            const newProduct = payload.new as SupabaseProduct;
+            if (newProduct.ativo) {
+              setProducts(prev => [...prev, newProduct].sort((a, b) => a.nome.localeCompare(b.nome)));
+              toast({
+                title: "Novo produto adicionado! 🎉",
+                description: `${newProduct.nome} foi adicionado ao catálogo.`,
+              });
+            }
+          } else if (payload.eventType === 'UPDATE') {
+            const updatedProduct = payload.new as SupabaseProduct;
+            setProducts(prev => {
+              const filtered = prev.filter(p => p.id !== updatedProduct.id);
+              if (updatedProduct.ativo) {
+                return [...filtered, updatedProduct].sort((a, b) => a.nome.localeCompare(b.nome));
+              }
+              return filtered;
+            });
+            
+            if (updatedProduct.ativo) {
+              toast({
+                title: "Produto atualizado! ✨",
+                description: `${updatedProduct.nome} foi atualizado.`,
+              });
+            }
+          } else if (payload.eventType === 'DELETE') {
+            const deletedProduct = payload.old as SupabaseProduct;
+            setProducts(prev => prev.filter(p => p.id !== deletedProduct.id));
+            toast({
+              title: "Produto removido",
+              description: `${deletedProduct.nome} foi removido do catálogo.`,
+            });
+          }
+        }
+      )
+      .subscribe();
+
+    // Cleanup subscription on unmount
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   const updateProductStock = async (productId: string, newStock: number) => {
@@ -71,7 +126,6 @@ export const useSupabaseProducts = () => {
           motivo: 'Ajuste de estoque',
         });
 
-      await fetchProducts();
       toast({
         title: "Estoque atualizado!",
         description: "O estoque do produto foi atualizado com sucesso.",
