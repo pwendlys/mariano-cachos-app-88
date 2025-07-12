@@ -55,6 +55,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             };
             setUser(authUser);
           } else {
+            console.log('User not found in usuarios table or inactive');
             setUser(null);
           }
         } else {
@@ -66,9 +67,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     // Check for existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) {
-        console.log('Existing session found:', session);
-      } else {
+      console.log('Initial session check:', session);
+      if (!session) {
         setLoading(false);
       }
     });
@@ -79,8 +79,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const login = async (email: string, senha: string) => {
     try {
       setLoading(true);
+      console.log('Attempting login for:', email);
       
-      // Check if user exists in usuarios table first
+      // First check if user exists in usuarios table and get their info
       const { data: userData, error: userError } = await supabase
         .from('usuarios')
         .select('*')
@@ -89,62 +90,81 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         .single();
 
       if (userError || !userData) {
+        console.log('User lookup error:', userError);
+        setLoading(false);
         return { success: false, error: 'Usuário não encontrado ou inativo' };
       }
 
-      // Simple password validation (in production, use proper hashing)
+      // Check password (in production, use proper hashing)
       if (userData.senha !== senha) {
+        console.log('Password mismatch');
+        setLoading(false);
         return { success: false, error: 'Senha incorreta' };
       }
 
-      // Create a fake session for our custom auth
-      const fakeUser = {
-        id: userData.id,
-        email: userData.email,
-        aud: 'authenticated',
-        role: 'authenticated',
-        created_at: userData.created_at,
-        updated_at: userData.updated_at,
-        app_metadata: {},
-        user_metadata: {}
-      } as User;
+      console.log('Credentials valid, signing in user:', userData.nome);
 
-      const fakeSession = {
-        access_token: 'fake-token',
-        refresh_token: 'fake-refresh',
-        expires_in: 3600,
-        expires_at: Date.now() + 3600000,
-        token_type: 'bearer',
-        user: fakeUser
-      } as Session;
-
-      // Set our custom session
-      setSession(fakeSession);
-      setUser({
-        id: userData.id,
-        nome: userData.nome,
-        email: userData.email,
-        tipo: userData.tipo as 'cliente' | 'admin',
-        whatsapp: userData.whatsapp
+      // Sign in with Supabase Auth using a dummy password
+      // This creates a proper Supabase session
+      const { data: authData, error: signInError } = await supabase.auth.signInWithPassword({
+        email: email,
+        password: 'dummy-password-for-session'
       });
 
-      toast({
-        title: "Login realizado com sucesso!",
-        description: `Bem-vindo, ${userData.nome}!`,
-      });
+      // If the user doesn't exist in Supabase Auth, create them
+      if (signInError && signInError.message.includes('Invalid login credentials')) {
+        console.log('Creating new auth user');
+        const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+          email: email,
+          password: 'dummy-password-for-session',
+          options: {
+            emailRedirectTo: `${window.location.origin}/`
+          }
+        });
 
-      return { success: true };
-    } catch (error) {
-      console.error('Erro no login:', error);
-      return { success: false, error: 'Erro interno do sistema' };
-    } finally {
+        if (signUpError) {
+          console.error('Error creating auth user:', signUpError);
+          setLoading(false);
+          return { success: false, error: 'Erro ao criar sessão de autenticação' };
+        }
+
+        // If sign up was successful, the session will be handled by onAuthStateChange
+        if (signUpData.user) {
+          toast({
+            title: "Login realizado com sucesso!",
+            description: `Bem-vindo, ${userData.nome}!`,
+          });
+          return { success: true };
+        }
+      } else if (signInError) {
+        console.error('Sign in error:', signInError);
+        setLoading(false);
+        return { success: false, error: 'Erro de autenticação' };
+      }
+
+      // If sign in was successful, the session will be handled by onAuthStateChange
+      if (authData.user) {
+        toast({
+          title: "Login realizado com sucesso!",
+          description: `Bem-vindo, ${userData.nome}!`,
+        });
+        return { success: true };
+      }
+
       setLoading(false);
+      return { success: false, error: 'Erro desconhecido' };
+
+    } catch (error) {
+      console.error('Login error:', error);
+      setLoading(false);
+      return { success: false, error: 'Erro interno do sistema' };
     }
   };
 
   const register = async (nome: string, email: string, whatsapp: string, senha: string) => {
     try {
       setLoading(true);
+      console.log('Attempting registration for:', email);
       
       // Check if user already exists in usuarios table
       const { data: existingUser } = await supabase
@@ -154,6 +174,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         .single();
 
       if (existingUser) {
+        setLoading(false);
         return { success: false, error: 'E-mail já está em uso' };
       }
 
@@ -169,8 +190,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         });
 
       if (insertError) {
-        console.error('Erro ao inserir na tabela usuarios:', insertError);
+        console.error('Error inserting into usuarios table:', insertError);
+        setLoading(false);
         return { success: false, error: 'Erro ao cadastrar usuário' };
+      }
+
+      // Create Supabase Auth user
+      const { error: authError } = await supabase.auth.signUp({
+        email: email,
+        password: 'dummy-password-for-session',
+        options: {
+          emailRedirectTo: `${window.location.origin}/`
+        }
+      });
+
+      if (authError) {
+        console.error('Error creating auth user:', authError);
+        // Don't fail registration if auth creation fails
       }
 
       toast({
@@ -178,16 +214,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         description: "Você pode fazer login agora com suas credenciais.",
       });
 
+      setLoading(false);
       return { success: true };
     } catch (error) {
-      console.error('Erro no cadastro:', error);
-      return { success: false, error: 'Erro interno do sistema' };
-    } finally {
+      console.error('Registration error:', error);
       setLoading(false);
+      return { success: false, error: 'Erro interno do sistema' };
     }
   };
 
-  const logout = () => {
+  const logout = async () => {
+    console.log('Logging out');
+    await supabase.auth.signOut();
     setUser(null);
     setSession(null);
     toast({
