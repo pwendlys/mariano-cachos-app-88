@@ -37,7 +37,7 @@ const Store = () => {
     return matchesSearch && matchesCategory;
   });
 
-  const recommendedProducts = filteredProducts.slice(0, 4); // Primeiros 4 produtos como recomendados
+  const recommendedProducts = filteredProducts.slice(0, 4);
 
   const getProductQuantity = (productId: string) => {
     return quantities[productId] || 1;
@@ -181,7 +181,6 @@ const Store = () => {
                 </div>
 
                 <div className={`${viewMode === 'list' ? 'flex items-center space-x-2' : 'space-y-2'}`}>
-                  {/* Quantity Selector */}
                   {!isOutOfStock && (
                     <div className="flex items-center space-x-1 bg-salon-dark/50 rounded-lg p-1">
                       <Button
@@ -246,10 +245,10 @@ const Store = () => {
     <div className="px-4 space-y-6 animate-fade-in">
       <div className="text-center mb-6">
         <h1 className="text-2xl font-bold text-gradient-gold mb-2 font-playfair">
-          Produtos Especializados
+          Produtos do Estoque
         </h1>
         <p className="text-muted-foreground">
-          Cuide dos seus cachos com produtos de qualidade
+          Produtos disponíveis em tempo real do nosso estoque
         </p>
       </div>
 
@@ -318,7 +317,7 @@ const Store = () => {
         <div className="space-y-4">
           <h2 className="text-lg font-semibold text-salon-gold flex items-center gap-2">
             <Star className="text-salon-gold fill-current" size={20} />
-            Produtos que combinam com você
+            Produtos em destaque
           </h2>
           
           <div className={viewMode === 'grid' ? 'grid grid-cols-2 gap-4' : 'space-y-4'}>
