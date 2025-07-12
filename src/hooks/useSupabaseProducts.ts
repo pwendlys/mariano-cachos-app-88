@@ -105,7 +105,7 @@ export const useSupabaseProducts = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [toast]);
 
   const updateProductStock = async (productId: string, newStock: number) => {
     try {
