@@ -79,7 +79,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const login = async (email: string, senha: string) => {
     try {
       setLoading(true);
-      console.log('Attempting login for:', email);
+      console.log('🔐 Attempting login for:', email);
+      console.log('🔐 Current Supabase client:', supabase);
       
       // First check if user exists in usuarios table and get their info
       const { data: userData, error: userError } = await supabase
