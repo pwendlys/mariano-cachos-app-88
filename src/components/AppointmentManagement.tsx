@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Calendar } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -6,7 +7,7 @@ import AppointmentCard from '@/components/AppointmentCard';
 import { useAppointments } from '@/hooks/useAppointments';
 
 const AppointmentManagement: React.FC = () => {
-  const { appointments, loading, fetchAppointments, handleStatusChange } = useAppointments();
+  const { appointments, loading, fetchAppointments, handleStatusChange, handleDateTimeUpdate } = useAppointments();
 
   if (loading) {
     return (
@@ -45,6 +46,7 @@ const AppointmentManagement: React.FC = () => {
               key={appointment.id}
               appointment={appointment}
               onStatusChange={handleStatusChange}
+              onDateTimeUpdate={handleDateTimeUpdate}
             />
           ))}
         </div>

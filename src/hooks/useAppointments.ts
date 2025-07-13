@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -87,6 +88,35 @@ export const useAppointments = () => {
     }
   };
 
+  const handleDateTimeUpdate = async (appointmentId: string, newDate: string, newTime: string) => {
+    try {
+      const { error } = await supabase
+        .from('agendamentos')
+        .update({ 
+          data: newDate,
+          horario: newTime,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', appointmentId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Agendamento atualizado",
+        description: `Data e horário alterados com sucesso`,
+      });
+      
+      fetchAppointments();
+    } catch (error) {
+      console.error('Erro ao atualizar data/horário:', error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível atualizar a data e horário do agendamento",
+        variant: "destructive",
+      });
+    }
+  };
+
   useEffect(() => {
     fetchAppointments();
   }, []);
@@ -95,6 +125,7 @@ export const useAppointments = () => {
     appointments,
     loading,
     fetchAppointments,
-    handleStatusChange
+    handleStatusChange,
+    handleDateTimeUpdate
   };
 };

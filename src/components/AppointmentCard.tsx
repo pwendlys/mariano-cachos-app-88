@@ -1,8 +1,10 @@
-import React from 'react';
-import { Calendar, Clock, User, DollarSign, Eye } from 'lucide-react';
+
+import React, { useState } from 'react';
+import { Calendar, Clock, User, DollarSign, Eye, Edit, Save, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
 import StatusBadge from '@/components/StatusBadge';
 import { formatDate, getStatusBadge, getPaymentStatusBadge } from '@/lib/appointmentUtils';
 
@@ -30,9 +32,31 @@ interface Appointment {
 interface AppointmentCardProps {
   appointment: Appointment;
   onStatusChange: (appointmentId: string, newStatus: string) => void;
+  onDateTimeUpdate: (appointmentId: string, newDate: string, newTime: string) => void;
 }
 
-const AppointmentCard: React.FC<AppointmentCardProps> = ({ appointment, onStatusChange }) => {
+const AppointmentCard: React.FC<AppointmentCardProps> = ({ 
+  appointment, 
+  onStatusChange, 
+  onDateTimeUpdate 
+}) => {
+  const [isEditing, setIsEditing] = useState(false);
+  const [editDate, setEditDate] = useState(appointment.data);
+  const [editTime, setEditTime] = useState(appointment.horario);
+
+  const handleSaveDateTime = () => {
+    if (editDate && editTime) {
+      onDateTimeUpdate(appointment.id, editDate, editTime);
+      setIsEditing(false);
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setEditDate(appointment.data);
+    setEditTime(appointment.horario);
+    setIsEditing(false);
+  };
+
   return (
     <Card className="glass-card border-salon-gold/20">
       <CardHeader>
@@ -55,14 +79,64 @@ const AppointmentCard: React.FC<AppointmentCardProps> = ({ appointment, onStatus
       <CardContent className="space-y-4">
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
-            <div className="flex items-center gap-2 text-white">
-              <Calendar size={16} />
-              <span>{formatDate(appointment.data)}</span>
-            </div>
-            <div className="flex items-center gap-2 text-white">
-              <Clock size={16} />
-              <span>{appointment.horario}</span>
-            </div>
+            {isEditing ? (
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <Calendar size={16} className="text-salon-gold" />
+                  <Input
+                    type="date"
+                    value={editDate}
+                    onChange={(e) => setEditDate(e.target.value)}
+                    className="glass-card border-salon-gold/30 bg-transparent text-white text-sm h-8"
+                  />
+                </div>
+                <div className="flex items-center gap-2">
+                  <Clock size={16} className="text-salon-copper" />
+                  <Input
+                    type="time"
+                    value={editTime}
+                    onChange={(e) => setEditTime(e.target.value)}
+                    className="glass-card border-salon-gold/30 bg-transparent text-white text-sm h-8"
+                  />
+                </div>
+                <div className="flex gap-1">
+                  <Button
+                    onClick={handleSaveDateTime}
+                    size="sm"
+                    className="bg-green-600 hover:bg-green-700 text-white h-7 px-3 text-xs"
+                  >
+                    <Save size={12} />
+                  </Button>
+                  <Button
+                    onClick={handleCancelEdit}
+                    variant="outline"
+                    size="sm"
+                    className="border-red-400/30 text-red-400 hover:bg-red-400/10 h-7 px-3 text-xs"
+                  >
+                    <X size={12} />
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 text-white">
+                  <Calendar size={16} />
+                  <span>{formatDate(appointment.data)}</span>
+                  <Button
+                    onClick={() => setIsEditing(true)}
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 w-6 p-0 text-salon-gold hover:bg-salon-gold/10 ml-2"
+                  >
+                    <Edit size={12} />
+                  </Button>
+                </div>
+                <div className="flex items-center gap-2 text-white">
+                  <Clock size={16} />
+                  <span>{appointment.horario}</span>
+                </div>
+              </div>
+            )}
           </div>
           <div className="space-y-2">
             <div className="text-white">
