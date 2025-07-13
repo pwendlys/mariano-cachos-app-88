@@ -28,7 +28,11 @@ serve(async (req) => {
 
     console.log('API key found, making request to Abacate Pay')
 
-    // Create PIX QR Code with Abacate Pay - using correct endpoint
+    // Convert amount from reais to centavos (multiply by 100)
+    const amountInCentavos = Math.round(amount * 100)
+    console.log('Amount in centavos:', amountInCentavos)
+
+    // Create PIX QR Code with Abacate Pay - using correct format from API docs
     const abacateResponse = await fetch('https://api.abacatepay.com/v1/pixQrCode/create', {
       method: 'POST',
       headers: {
@@ -36,14 +40,14 @@ serve(async (req) => {
         'Authorization': `Bearer ${apiKey}`
       },
       body: JSON.stringify({
-        amount: amount,
+        amount: amountInCentavos,
         expiresIn: 3600, // 1 hour expiration
         description: description,
         customer: {
           name: customerName,
           cellphone: customerPhone,
           email: customerEmail,
-          taxId: customerCPF || "000.000.000-00" // Use provided CPF or default
+          taxId: customerCPF || "000.000.000-00"
         }
       })
     })

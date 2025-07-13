@@ -50,7 +50,12 @@ const PIXPaymentPopup: React.FC<PIXPaymentPopupProps> = ({
 
   const formatPhone = (value: string) => {
     const numbers = value.replace(/\D/g, '');
-    return numbers.replace(/(\d{2})(\d{5})(\d{4})/, '($1) $2-$3');
+    if (numbers.length === 11) {
+      return numbers.replace(/(\d{2})(\d{5})(\d{4})/, '($1) $2-$3');
+    } else if (numbers.length === 10) {
+      return numbers.replace(/(\d{2})(\d{4})(\d{4})/, '($1) $2-$3');
+    }
+    return value;
   };
 
   const handleInputChange = (field: string, value: string) => {
@@ -124,20 +129,34 @@ const PIXPaymentPopup: React.FC<PIXPaymentPopupProps> = ({
     
     setLoading(true);
     try {
+      console.log('Sending data to edge function:', {
+        amount: amount,
+        description: `Sinal para agendamento - ${serviceName}`,
+        customerName: formData.nome,
+        customerEmail: formData.email,
+        customerPhone: formData.telefone.replace(/\D/g, ''),
+        customerCPF: formData.cpf.replace(/\D/g, '')
+      });
+
       const { data, error } = await supabase.functions.invoke('create-pix-payment', {
         body: {
           amount: amount,
           description: `Sinal para agendamento - ${serviceName}`,
           customerName: formData.nome,
           customerEmail: formData.email,
-          customerPhone: formData.telefone.replace(/\D/g, ''), // Remove formatação
-          customerCPF: formData.cpf.replace(/\D/g, '') // Remove formatação
+          customerPhone: formData.telefone.replace(/\D/g, ''),
+          customerCPF: formData.cpf.replace(/\D/g, '')
         }
       });
 
-      if (error) throw error;
+      console.log('Response from edge function:', { data, error });
 
-      if (data.success) {
+      if (error) {
+        console.error('Supabase function error:', error);
+        throw new Error(error.message || 'Erro ao chamar função do Supabase');
+      }
+
+      if (data && data.success) {
         setQrCodeData(data.qrCodeData);
         setTransactionId(data.transactionId);
         setPixKey(data.pixKey);
@@ -147,7 +166,7 @@ const PIXPaymentPopup: React.FC<PIXPaymentPopupProps> = ({
           description: "Use o código PIX para realizar o pagamento.",
         });
       } else {
-        throw new Error(data.error || 'Erro ao gerar QR Code');
+        throw new Error(data?.error || 'Erro desconhecido ao gerar QR Code');
       }
     } catch (error: any) {
       console.error('Error generating QR code:', error);
