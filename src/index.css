@@ -57,16 +57,42 @@
     @apply bg-background text-foreground font-inter;
     background: linear-gradient(135deg, #1A1A1A 0%, #2D1810 50%, #1A1A1A 100%);
     min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    /* Previne zoom no iOS quando focalizando inputs */
+    -webkit-text-size-adjust: 100%;
+  }
+
+  /* Melhora a performance de scroll em dispositivos mobile */
+  html {
+    scroll-behavior: smooth;
+  }
+
+  /* Otimizações para touch devices */
+  * {
+    -webkit-tap-highlight-color: transparent;
   }
 
   h1, h2, h3, h4, h5, h6 {
     @apply font-playfair;
+  }
+
+  /* Previne seleção de texto em elementos interativos */
+  button, .btn, [role="button"] {
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
   }
 }
 
 @layer components {
   .glass-card {
     @apply bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl;
+    /* Otimização para performance em mobile */
+    transform: translateZ(0);
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
   }
   
   .gradient-gold {
@@ -82,5 +108,53 @@
     -webkit-background-clip: text;
     background-clip: text;
     -webkit-text-fill-color: transparent;
+  }
+
+  /* Classe para safe area em dispositivos com notch */
+  .safe-area-pb {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  .safe-area-pt {
+    padding-top: env(safe-area-inset-top);
+  }
+
+  /* Otimização para scrolling em mobile */
+  .scroll-smooth {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+  }
+
+  /* Classe para elementos que devem ter touch targets maiores */
+  .touch-target {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}
+
+/* Media queries para otimizações mobile específicas */
+@media (max-width: 768px) {
+  .glass-card {
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+}
+
+/* Otimizações para dispositivos com tela muito pequena */
+@media (max-width: 480px) {
+  body {
+    font-size: 14px;
+  }
+  
+  .glass-card {
+    border-radius: 1rem;
+  }
+}
+
+/* Otimizações para dispositivos em landscape mode */
+@media (max-height: 600px) and (orientation: landscape) {
+  .mobile-landscape-compact {
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
   }
 }
