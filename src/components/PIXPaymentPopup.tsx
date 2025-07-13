@@ -30,6 +30,12 @@ const PIXPaymentPopup: React.FC<PIXPaymentPopupProps> = ({
   customerPhone,
   onPaymentConfirm
 }) => {
+  const [formData, setFormData] = useState({
+    nome: customerName,
+    email: customerEmail,
+    telefone: customerPhone,
+    cpf: ''
+  });
   const [pixKey, setPixKey] = useState('');
   const [qrCodeData, setQrCodeData] = useState('');
   const [transactionId, setTransactionId] = useState('');
@@ -37,16 +43,95 @@ const PIXPaymentPopup: React.FC<PIXPaymentPopupProps> = ({
   const [qrCodeGenerated, setQrCodeGenerated] = useState(false);
   const { toast } = useToast();
 
+  const formatCPF = (value: string) => {
+    const numbers = value.replace(/\D/g, '');
+    return numbers.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
+  };
+
+  const formatPhone = (value: string) => {
+    const numbers = value.replace(/\D/g, '');
+    return numbers.replace(/(\d{2})(\d{5})(\d{4})/, '($1) $2-$3');
+  };
+
+  const handleInputChange = (field: string, value: string) => {
+    let formattedValue = value;
+    
+    if (field === 'cpf') {
+      formattedValue = formatCPF(value);
+    } else if (field === 'telefone') {
+      formattedValue = formatPhone(value);
+    }
+    
+    setFormData(prev => ({
+      ...prev,
+      [field]: formattedValue
+    }));
+  };
+
+  const validateForm = () => {
+    if (!formData.nome.trim()) {
+      toast({
+        title: "Nome obrigatório",
+        description: "Por favor, informe seu nome completo.",
+        variant: "destructive",
+      });
+      return false;
+    }
+    
+    if (!formData.email.trim()) {
+      toast({
+        title: "Email obrigatório",
+        description: "Por favor, informe seu email.",
+        variant: "destructive",
+      });
+      return false;
+    }
+    
+    if (!formData.telefone.trim()) {
+      toast({
+        title: "Telefone obrigatório",
+        description: "Por favor, informe seu telefone.",
+        variant: "destructive",
+      });
+      return false;
+    }
+    
+    if (!formData.cpf.trim()) {
+      toast({
+        title: "CPF obrigatório",
+        description: "Por favor, informe seu CPF.",
+        variant: "destructive",
+      });
+      return false;
+    }
+    
+    // Validação básica de CPF (11 dígitos)
+    const cpfNumbers = formData.cpf.replace(/\D/g, '');
+    if (cpfNumbers.length !== 11) {
+      toast({
+        title: "CPF inválido",
+        description: "Por favor, informe um CPF válido com 11 dígitos.",
+        variant: "destructive",
+      });
+      return false;
+    }
+    
+    return true;
+  };
+
   const handleGenerateQRCode = async () => {
+    if (!validateForm()) return;
+    
     setLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke('create-pix-payment', {
         body: {
           amount: amount,
           description: `Sinal para agendamento - ${serviceName}`,
-          customerName,
-          customerEmail,
-          customerPhone
+          customerName: formData.nome,
+          customerEmail: formData.email,
+          customerPhone: formData.telefone.replace(/\D/g, ''), // Remove formatação
+          customerCPF: formData.cpf.replace(/\D/g, '') // Remove formatação
         }
       });
 
@@ -79,7 +164,7 @@ const PIXPaymentPopup: React.FC<PIXPaymentPopupProps> = ({
   const handleConfirmPayment = async () => {
     if (!pixKey.trim()) {
       toast({
-        title: "Chave PIX obrigatória",
+        title: "QR Code não gerado",
         description: "Por favor, gere o QR Code primeiro.",
         variant: "destructive",
       });
@@ -92,6 +177,12 @@ const PIXPaymentPopup: React.FC<PIXPaymentPopupProps> = ({
       if (success) {
         onClose();
         // Reset form
+        setFormData({
+          nome: customerName,
+          email: customerEmail,
+          telefone: customerPhone,
+          cpf: ''
+        });
         setPixKey('');
         setQrCodeData('');
         setTransactionId('');
@@ -131,15 +222,58 @@ const PIXPaymentPopup: React.FC<PIXPaymentPopupProps> = ({
             </CardContent>
           </Card>
 
-          {/* Customer Info */}
+          {/* Customer Form */}
           <Card className="glass-card border-salon-gold/20">
             <CardHeader>
-              <CardTitle className="text-salon-gold text-sm">Dados do Cliente</CardTitle>
+              <CardTitle className="text-salon-gold text-sm">Dados para Pagamento</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-2 text-sm">
-              <div><span className="text-salon-copper">Nome:</span> <span className="text-white">{customerName}</span></div>
-              <div><span className="text-salon-copper">Email:</span> <span className="text-white">{customerEmail}</span></div>
-              <div><span className="text-salon-copper">Telefone:</span> <span className="text-white">{customerPhone}</span></div>
+            <CardContent className="space-y-4">
+              <div>
+                <Label htmlFor="nome" className="text-white">Nome Completo *</Label>
+                <Input
+                  id="nome"
+                  value={formData.nome}
+                  onChange={(e) => handleInputChange('nome', e.target.value)}
+                  placeholder="Seu nome completo"
+                  className="glass-card border-salon-gold/30 bg-transparent text-white h-12 mt-2"
+                />
+              </div>
+              
+              <div>
+                <Label htmlFor="email" className="text-white">Email *</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) => handleInputChange('email', e.target.value)}
+                  placeholder="seu@email.com"
+                  className="glass-card border-salon-gold/30 bg-transparent text-white h-12 mt-2"
+                />
+              </div>
+              
+              <div>
+                <Label htmlFor="telefone" className="text-white">Telefone *</Label>
+                <Input
+                  id="telefone"
+                  value={formData.telefone}
+                  onChange={(e) => handleInputChange('telefone', e.target.value)}
+                  placeholder="(11) 99999-9999"
+                  maxLength={15}
+                  className="glass-card border-salon-gold/30 bg-transparent text-white h-12 mt-2"
+                />
+              </div>
+              
+              <div>
+                <Label htmlFor="cpf" className="text-white">CPF *</Label>
+                <Input
+                  id="cpf"
+                  value={formData.cpf}
+                  onChange={(e) => handleInputChange('cpf', e.target.value)}
+                  placeholder="000.000.000-00"
+                  maxLength={14}
+                  className="glass-card border-salon-gold/30 bg-transparent text-white h-12 mt-2"
+                />
+              </div>
             </CardContent>
           </Card>
 
@@ -194,13 +328,14 @@ const PIXPaymentPopup: React.FC<PIXPaymentPopupProps> = ({
           {pixKey && (
             <div>
               <Label htmlFor="pix-key" className="text-white">
-                Chave PIX gerada
+                Código PIX Copia e Cola
               </Label>
               <Input
                 id="pix-key"
                 value={pixKey}
                 readOnly
-                className="glass-card border-salon-gold/30 bg-transparent text-white h-12 mt-2"
+                className="glass-card border-salon-gold/30 bg-transparent text-white h-12 mt-2 text-xs"
+                onClick={(e) => e.currentTarget.select()}
               />
             </div>
           )}
@@ -211,8 +346,9 @@ const PIXPaymentPopup: React.FC<PIXPaymentPopupProps> = ({
               <div className="space-y-3 text-sm text-salon-copper">
                 <h4 className="font-semibold text-white">Instruções:</h4>
                 <ul className="space-y-2 list-disc list-inside">
+                  <li>Preencha todos os dados obrigatórios</li>
                   <li>Clique em "Gerar QR Code PIX" para criar o código</li>
-                  <li>Realize o pagamento usando o QR Code</li>
+                  <li>Realize o pagamento usando o QR Code ou código copia e cola</li>
                   <li>O valor de R$ {amount.toFixed(2)} será descontado no dia do atendimento</li>
                   <li>Aguarde a confirmação do pagamento</li>
                 </ul>

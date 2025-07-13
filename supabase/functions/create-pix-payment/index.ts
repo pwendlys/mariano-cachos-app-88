@@ -14,9 +14,9 @@ serve(async (req) => {
 
   try {
     console.log('PIX Payment request received')
-    const { amount, description, customerName, customerEmail, customerPhone } = await req.json()
+    const { amount, description, customerName, customerEmail, customerPhone, customerCPF } = await req.json()
 
-    console.log('Request data:', { amount, description, customerName, customerEmail, customerPhone })
+    console.log('Request data:', { amount, description, customerName, customerEmail, customerPhone, customerCPF })
 
     // Get Abacate Pay API key from environment
     const apiKey = Deno.env.get('ABACATE_PAY_API_KEY')
@@ -43,7 +43,7 @@ serve(async (req) => {
           name: customerName,
           cellphone: customerPhone,
           email: customerEmail,
-          taxId: "000.000.000-00" // Default tax ID - you may want to collect this from the user
+          taxId: customerCPF || "000.000.000-00" // Use provided CPF or default
         }
       })
     })
