@@ -1,6 +1,5 @@
-
 import React, { useState } from 'react';
-import { Plus, DollarSign, AlertTriangle, CheckCircle, Clock, Users, Phone, Mail } from 'lucide-react';
+import { Plus, DollarSign, AlertTriangle, CheckCircle, Clock, Users, Phone, Mail, UserCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -11,6 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useDebtCollection, Devedor, Divida } from '@/hooks/useDebtCollection';
+import CustomerProfileManagement from '@/components/CustomerProfileManagement';
 import { format } from 'date-fns';
 
 const DebtCollectionManagement = () => {
@@ -359,13 +359,18 @@ const DebtCollectionManagement = () => {
         </Card>
       </div>
 
-      {/* Tabs */}
-      <Tabs defaultValue="dividas" className="space-y-4">
+      {/* Tabs with new Customer Profiles tab */}
+      <Tabs defaultValue="perfis" className="space-y-4">
         <TabsList className="glass-card">
+          <TabsTrigger value="perfis">Perfis de Clientes</TabsTrigger>
           <TabsTrigger value="dividas">Dívidas</TabsTrigger>
           <TabsTrigger value="devedores">Devedores</TabsTrigger>
           <TabsTrigger value="cobrancas">Cobranças</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="perfis">
+          <CustomerProfileManagement />
+        </TabsContent>
 
         <TabsContent value="dividas">
           <Card className="glass-card border-salon-gold/20">

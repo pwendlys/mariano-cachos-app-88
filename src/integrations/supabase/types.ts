@@ -282,6 +282,66 @@ export type Database = {
           },
         ]
       }
+      historico_atendimentos: {
+        Row: {
+          agendamento_id: string | null
+          cliente_id: string | null
+          created_at: string
+          data_atendimento: string | null
+          id: string
+          observacoes: string | null
+          produtos_vendidos: Json | null
+          servicos_extras: Json | null
+          status: string | null
+          updated_at: string
+          valor_produtos: number | null
+          valor_servicos_extras: number | null
+        }
+        Insert: {
+          agendamento_id?: string | null
+          cliente_id?: string | null
+          created_at?: string
+          data_atendimento?: string | null
+          id?: string
+          observacoes?: string | null
+          produtos_vendidos?: Json | null
+          servicos_extras?: Json | null
+          status?: string | null
+          updated_at?: string
+          valor_produtos?: number | null
+          valor_servicos_extras?: number | null
+        }
+        Update: {
+          agendamento_id?: string | null
+          cliente_id?: string | null
+          created_at?: string
+          data_atendimento?: string | null
+          id?: string
+          observacoes?: string | null
+          produtos_vendidos?: Json | null
+          servicos_extras?: Json | null
+          status?: string | null
+          updated_at?: string
+          valor_produtos?: number | null
+          valor_servicos_extras?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "historico_atendimentos_agendamento_id_fkey"
+            columns: ["agendamento_id"]
+            isOneToOne: false
+            referencedRelation: "agendamentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "historico_atendimentos_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       itens_venda: {
         Row: {
           created_at: string
@@ -412,6 +472,50 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      saldos_clientes: {
+        Row: {
+          cliente_id: string | null
+          created_at: string
+          id: string
+          saldo_devedor: number | null
+          total_pago: number | null
+          total_produtos: number | null
+          total_servicos: number | null
+          ultima_atualizacao: string | null
+          updated_at: string
+        }
+        Insert: {
+          cliente_id?: string | null
+          created_at?: string
+          id?: string
+          saldo_devedor?: number | null
+          total_pago?: number | null
+          total_produtos?: number | null
+          total_servicos?: number | null
+          ultima_atualizacao?: string | null
+          updated_at?: string
+        }
+        Update: {
+          cliente_id?: string | null
+          created_at?: string
+          id?: string
+          saldo_devedor?: number | null
+          total_pago?: number | null
+          total_produtos?: number | null
+          total_servicos?: number | null
+          ultima_atualizacao?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "saldos_clientes_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: true
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       servicos: {
         Row: {
