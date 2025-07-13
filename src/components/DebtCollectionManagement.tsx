@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Plus, DollarSign, AlertTriangle, CheckCircle, Clock, Users, Phone, Mail, UserCheck } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Plus, DollarSign, AlertTriangle, CheckCircle, Clock, Users, Phone, Mail, UserCheck, FileText, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -10,6 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useDebtCollection, Devedor, Divida } from '@/hooks/useDebtCollection';
+import { useCustomerProfiles } from '@/hooks/useCustomerProfiles';
 import CustomerProfileManagement from '@/components/CustomerProfileManagement';
 import { format } from 'date-fns';
 
@@ -26,10 +27,13 @@ const DebtCollectionManagement = () => {
     getTotals 
   } = useDebtCollection();
 
+  const { saldosClientes, syncCustomerData } = useCustomerProfiles();
+
   const [isDevedorDialogOpen, setIsDevedorDialogOpen] = useState(false);
   const [isDividaDialogOpen, setIsDividaDialogOpen] = useState(false);
   const [isCobrancaDialogOpen, setIsCobrancaDialogOpen] = useState(false);
   const [selectedDivida, setSelectedDivida] = useState<Divida | null>(null);
+  const [showReport, setShowReport] = useState<'aberto' | 'recebido' | null>(null);
 
   const [devedorForm, setDevedorForm] = useState({
     nome: '',
@@ -130,6 +134,133 @@ const DebtCollectionManagement = () => {
 
   const isOverdue = (dataVencimento: string) => {
     return new Date(dataVencimento) < new Date();
+  };
+
+  // Sincronizar dados automaticamente ao carregar o componente
+  useEffect(() => {
+    syncCustomerData();
+  }, []);
+
+  // Renderizar relatório de clientes em aberto
+  const renderRelatorioAberto = () => {
+    const clientesEmAberto = saldosClientes.filter(cliente => cliente.saldo_devedor > 0);
+    
+    return (
+      <Dialog open={showReport === 'aberto'} onOpenChange={() => setShowReport(null)}>
+        <DialogContent className="glass-card border-salon-gold/30 text-white max-w-4xl">
+          <DialogHeader>
+            <DialogTitle className="text-salon-gold flex items-center gap-2">
+              <FileText size={20} />
+              Relatório - Clientes com Valores em Aberto
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 max-h-96 overflow-y-auto">
+            {clientesEmAberto.length === 0 ? (
+              <p className="text-muted-foreground text-center py-8">
+                Nenhum cliente com valor em aberto
+              </p>
+            ) : (
+              clientesEmAberto.map((saldo) => (
+                <div key={saldo.id} className="flex items-center justify-between p-4 glass-card rounded-lg border border-red-500/20">
+                  <div className="flex-1">
+                    <p className="text-white font-medium">{saldo.cliente?.nome}</p>
+                    <p className="text-sm text-salon-copper">{saldo.cliente?.telefone}</p>
+                    <p className="text-xs text-muted-foreground">{saldo.cliente?.email}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-red-400 font-bold text-lg">R$ {saldo.saldo_devedor.toFixed(2)}</p>
+                    <p className="text-xs text-muted-foreground">
+                      Total Serviços: R$ {saldo.total_servicos.toFixed(2)}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Total Produtos: R$ {saldo.total_produtos.toFixed(2)}
+                    </p>
+                    <p className="text-xs text-green-400">
+                      Pago: R$ {saldo.total_pago.toFixed(2)}
+                    </p>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+          <div className="flex justify-between items-center pt-4 border-t border-salon-gold/30">
+            <div className="text-salon-gold font-bold">
+              Total em Aberto: R$ {clientesEmAberto.reduce((sum, cliente) => sum + cliente.saldo_devedor, 0).toFixed(2)}
+            </div>
+            <Button
+              onClick={() => setShowReport(null)}
+              variant="outline"
+              className="border-salon-gold/30 text-salon-gold"
+            >
+              <X size={16} className="mr-2" />
+              Fechar
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  };
+
+  // Renderizar relatório de clientes com valores recebidos
+  const renderRelatorioRecebido = () => {
+    const clientesComPagamentos = saldosClientes.filter(cliente => cliente.total_pago > 0);
+    
+    return (
+      <Dialog open={showReport === 'recebido'} onOpenChange={() => setShowReport(null)}>
+        <DialogContent className="glass-card border-salon-gold/30 text-white max-w-4xl">
+          <DialogHeader>
+            <DialogTitle className="text-salon-gold flex items-center gap-2">
+              <FileText size={20} />
+              Relatório - Clientes com Valores Recebidos
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 max-h-96 overflow-y-auto">
+            {clientesComPagamentos.length === 0 ? (
+              <p className="text-muted-foreground text-center py-8">
+                Nenhum cliente com valores recebidos
+              </p>
+            ) : (
+              clientesComPagamentos.map((saldo) => (
+                <div key={saldo.id} className="flex items-center justify-between p-4 glass-card rounded-lg border border-green-500/20">
+                  <div className="flex-1">
+                    <p className="text-white font-medium">{saldo.cliente?.nome}</p>
+                    <p className="text-sm text-salon-copper">{saldo.cliente?.telefone}</p>
+                    <p className="text-xs text-muted-foreground">{saldo.cliente?.email}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-green-400 font-bold text-lg">R$ {saldo.total_pago.toFixed(2)}</p>
+                    <p className="text-xs text-muted-foreground">
+                      Total Serviços: R$ {saldo.total_servicos.toFixed(2)}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Total Produtos: R$ {saldo.total_produtos.toFixed(2)}
+                    </p>
+                    {saldo.saldo_devedor > 0 && (
+                      <p className="text-xs text-red-400">
+                        Pendente: R$ {saldo.saldo_devedor.toFixed(2)}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+          <div className="flex justify-between items-center pt-4 border-t border-salon-gold/30">
+            <div className="text-salon-gold font-bold">
+              Total Recebido: R$ {clientesComPagamentos.reduce((sum, cliente) => sum + cliente.total_pago, 0).toFixed(2)}
+            </div>
+            <Button
+              onClick={() => setShowReport(null)}
+              variant="outline"
+              className="border-salon-gold/30 text-salon-gold"
+            >
+              <X size={16} className="mr-2" />
+              Fechar
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
   };
 
   return (
@@ -302,7 +433,10 @@ const DebtCollectionManagement = () => {
 
       {/* Cards de Resumo */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card className="glass-card border-red-500/20">
+        <Card 
+          className="glass-card border-red-500/20 cursor-pointer hover:border-red-500/40 transition-colors"
+          onClick={() => setShowReport('aberto')}
+        >
           <CardHeader className="pb-3">
             <CardTitle className="text-red-400 flex items-center gap-2 text-sm">
               <AlertTriangle size={16} />
@@ -311,12 +445,16 @@ const DebtCollectionManagement = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-white">
-              R$ {getTotals.totalEmAberto.toFixed(2)}
+              R$ {saldosClientes.reduce((sum, cliente) => sum + cliente.saldo_devedor, 0).toFixed(2)}
             </div>
+            <p className="text-xs text-muted-foreground mt-1">Clique para ver relatório</p>
           </CardContent>
         </Card>
 
-        <Card className="glass-card border-green-500/20">
+        <Card 
+          className="glass-card border-green-500/20 cursor-pointer hover:border-green-500/40 transition-colors"
+          onClick={() => setShowReport('recebido')}
+        >
           <CardHeader className="pb-3">
             <CardTitle className="text-green-400 flex items-center gap-2 text-sm">
               <CheckCircle size={16} />
@@ -325,8 +463,9 @@ const DebtCollectionManagement = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-white">
-              R$ {getTotals.totalRecebido.toFixed(2)}
+              R$ {saldosClientes.reduce((sum, cliente) => sum + cliente.total_pago, 0).toFixed(2)}
             </div>
+            <p className="text-xs text-muted-foreground mt-1">Clique para ver relatório</p>
           </CardContent>
         </Card>
 
@@ -572,6 +711,10 @@ const DebtCollectionManagement = () => {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Renderizar relatórios */}
+      {renderRelatorioAberto()}
+      {renderRelatorioRecebido()}
     </div>
   );
 };
