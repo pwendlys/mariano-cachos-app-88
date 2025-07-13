@@ -28,8 +28,8 @@ serve(async (req) => {
 
     console.log('API key found, making request to Abacate Pay')
 
-    // Create PIX payment with Abacate Pay
-    const abacateResponse = await fetch('https://api.abacatepay.com/v1/billing/pix', {
+    // Create PIX QR Code with Abacate Pay - using correct endpoint
+    const abacateResponse = await fetch('https://api.abacatepay.com/v1/pixQrCode/create', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -37,15 +37,13 @@ serve(async (req) => {
       },
       body: JSON.stringify({
         amount: amount,
+        expiresIn: 3600, // 1 hour expiration
         description: description,
         customer: {
           name: customerName,
+          cellphone: customerPhone,
           email: customerEmail,
-          phone: customerPhone
-        },
-        methods: ['PIX'],
-        metadata: {
-          source: 'salon-booking'
+          taxId: "000.000.000-00" // Default tax ID - you may want to collect this from the user
         }
       })
     })
@@ -58,17 +56,25 @@ serve(async (req) => {
       throw new Error(`Abacate Pay API error: ${abacateResponse.status} - ${errorData}`)
     }
 
-    const paymentData = await abacateResponse.json()
-    console.log('Payment data received:', paymentData)
+    const response = await abacateResponse.json()
+    console.log('Payment data received:', response)
+    
+    // Check if response has the expected structure
+    if (!response.data) {
+      console.error('Unexpected response structure:', response)
+      throw new Error('Unexpected response from Abacate Pay API')
+    }
+
+    const paymentData = response.data
     
     return new Response(
       JSON.stringify({
         success: true,
-        qrCode: paymentData.qr_code,
-        qrCodeData: paymentData.qr_code_data,
+        qrCode: paymentData.brCode,
+        qrCodeData: paymentData.brCodeBase64?.replace('data:image/png;base64,', '') || '',
         transactionId: paymentData.id,
-        pixKey: paymentData.pix_key || '',
-        expiresAt: paymentData.expires_at
+        pixKey: paymentData.brCode || '',
+        expiresAt: paymentData.expiresAt
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
