@@ -36,7 +36,8 @@ serve(async (req) => {
 
       console.log('Checking payment status for transaction:', transactionId)
 
-      const checkResponse = await fetch(`https://api.abacatepay.com/v1/pixQrCode/check?transactionId=${transactionId}`, {
+      // Use 'id' parameter instead of 'transactionId' as required by Abacate Pay API
+      const checkResponse = await fetch(`https://api.abacatepay.com/v1/pixQrCode/check?id=${transactionId}`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${apiKey}`,
