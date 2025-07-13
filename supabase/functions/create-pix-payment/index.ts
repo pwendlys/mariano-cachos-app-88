@@ -13,10 +13,8 @@ serve(async (req) => {
   }
 
   try {
-    console.log('PIX Payment request received')
-    const { amount, description, customerName, customerEmail, customerPhone, customerCPF } = await req.json()
-
-    console.log('Request data:', { amount, description, customerName, customerEmail, customerPhone, customerCPF })
+    const url = new URL(req.url)
+    const action = url.searchParams.get('action')
 
     // Get Abacate Pay API key from environment
     const apiKey = Deno.env.get('ABACATE_PAY_API_KEY')
@@ -25,6 +23,55 @@ serve(async (req) => {
       console.error('Abacate Pay API key not found in environment variables')
       throw new Error('Abacate Pay API key not configured')
     }
+
+    // Handle payment status check
+    if (action === 'check') {
+      console.log('Checking payment status')
+      const { transactionId } = await req.json()
+
+      if (!transactionId) {
+        throw new Error('Transaction ID is required for payment check')
+      }
+
+      console.log('Checking payment status for transaction:', transactionId)
+
+      const checkResponse = await fetch(`https://api.abacatepay.com/v1/pixQrCode/check?transactionId=${transactionId}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${apiKey}`
+        }
+      })
+
+      console.log('Payment check response status:', checkResponse.status)
+
+      if (!checkResponse.ok) {
+        const errorData = await checkResponse.text()
+        console.error('Abacate Pay check API Error:', errorData)
+        throw new Error(`Abacate Pay check API error: ${checkResponse.status} - ${errorData}`)
+      }
+
+      const checkData = await checkResponse.json()
+      console.log('Payment check data received:', checkData)
+
+      return new Response(
+        JSON.stringify({
+          success: true,
+          status: checkData.data?.status || 'UNKNOWN',
+          expiresAt: checkData.data?.expiresAt,
+          isPaid: checkData.data?.status === 'PAID'
+        }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 200,
+        }
+      )
+    }
+
+    // Handle payment creation (existing code)
+    console.log('PIX Payment creation request received')
+    const { amount, description, customerName, customerEmail, customerPhone, customerCPF } = await req.json()
+
+    console.log('Request data:', { amount, description, customerName, customerEmail, customerPhone, customerCPF })
 
     console.log('API key found, making request to Abacate Pay')
 
@@ -87,7 +134,7 @@ serve(async (req) => {
     )
 
   } catch (error) {
-    console.error('Error creating PIX payment:', error)
+    console.error('Error in PIX payment function:', error)
     return new Response(
       JSON.stringify({
         success: false,

@@ -1,6 +1,5 @@
-
 import React, { useState } from 'react';
-import { QrCode, CreditCard, X, Loader2 } from 'lucide-react';
+import { QrCode, CreditCard, X, Loader2, CheckCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -41,6 +40,7 @@ const PIXPaymentPopup: React.FC<PIXPaymentPopupProps> = ({
   const [transactionId, setTransactionId] = useState('');
   const [loading, setLoading] = useState(false);
   const [qrCodeGenerated, setQrCodeGenerated] = useState(false);
+  const [paymentConfirmed, setPaymentConfirmed] = useState(false);
   const { toast } = useToast();
 
   const formatCPF = (value: string) => {
@@ -180,6 +180,63 @@ const PIXPaymentPopup: React.FC<PIXPaymentPopupProps> = ({
     }
   };
 
+  const checkPaymentStatus = async () => {
+    if (!transactionId) {
+      toast({
+        title: "Erro na verificação",
+        description: "ID da transação não encontrado.",
+        variant: "destructive",
+      });
+      return false;
+    }
+
+    try {
+      console.log('Checking payment status for transaction:', transactionId);
+
+      const { data, error } = await supabase.functions.invoke('create-pix-payment', {
+        body: { transactionId },
+        url: new URL('?action=check', window.location.href)
+      });
+
+      console.log('Payment check response:', { data, error });
+
+      if (error) {
+        console.error('Payment check error:', error);
+        throw new Error(error.message || 'Erro ao verificar pagamento');
+      }
+
+      if (data && data.success) {
+        if (data.isPaid) {
+          return true;
+        } else if (data.status === 'PENDING') {
+          toast({
+            title: "Pagamento pendente",
+            description: "O pagamento ainda não foi confirmado. Aguarde alguns instantes e tente novamente.",
+            variant: "destructive",
+          });
+          return false;
+        } else {
+          toast({
+            title: "Status desconhecido",
+            description: `Status do pagamento: ${data.status}`,
+            variant: "destructive",
+          });
+          return false;
+        }
+      } else {
+        throw new Error('Resposta inválida da verificação de pagamento');
+      }
+    } catch (error: any) {
+      console.error('Error checking payment status:', error);
+      toast({
+        title: "Erro na verificação",
+        description: error.message || "Não foi possível verificar o status do pagamento.",
+        variant: "destructive",
+      });
+      return false;
+    }
+  };
+
   const handleConfirmPayment = async () => {
     if (!pixKey.trim()) {
       toast({
@@ -192,30 +249,94 @@ const PIXPaymentPopup: React.FC<PIXPaymentPopupProps> = ({
 
     setLoading(true);
     try {
+      // First check if payment was made
+      const isPaid = await checkPaymentStatus();
+      
+      if (!isPaid) {
+        setLoading(false);
+        return;
+      }
+
+      // Payment confirmed, proceed with booking
       const success = await onPaymentConfirm(pixKey, qrCodeData, transactionId);
       if (success) {
-        onClose();
-        // Reset form
-        setFormData({
-          nome: customerName,
-          email: customerEmail,
-          telefone: customerPhone,
-          cpf: ''
+        setPaymentConfirmed(true);
+        toast({
+          title: "Pagamento confirmado! ✅",
+          description: "Seu agendamento foi criado com sucesso.",
         });
-        setPixKey('');
-        setQrCodeData('');
-        setTransactionId('');
-        setQrCodeGenerated(false);
       }
     } catch (error) {
       console.error('Error confirming payment:', error);
+      toast({
+        title: "Erro na confirmação",
+        description: "Houve um erro ao processar seu agendamento.",
+        variant: "destructive",
+      });
     } finally {
       setLoading(false);
     }
   };
 
+  const handleClose = () => {
+    onClose();
+    // Reset all states
+    setFormData({
+      nome: customerName,
+      email: customerEmail,
+      telefone: customerPhone,
+      cpf: ''
+    });
+    setPixKey('');
+    setQrCodeData('');
+    setTransactionId('');
+    setQrCodeGenerated(false);
+    setPaymentConfirmed(false);
+  };
+
+  // Payment confirmation screen
+  if (paymentConfirmed) {
+    return (
+      <Dialog open={isOpen} onOpenChange={handleClose}>
+        <DialogContent className="max-w-md bg-salon-dark border-salon-gold/20">
+          <DialogHeader>
+            <DialogTitle className="text-salon-gold flex items-center gap-2 justify-center">
+              <CheckCircle size={24} />
+              Pagamento Confirmado
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="text-center space-y-6 py-8">
+            <div className="mx-auto w-20 h-20 bg-green-500/20 rounded-full flex items-center justify-center">
+              <CheckCircle size={40} className="text-green-500" />
+            </div>
+            
+            <div className="space-y-4">
+              <h3 className="text-xl font-semibold text-white">
+                Obrigado pelo seu pagamento!
+              </h3>
+              <p className="text-salon-copper text-center">
+                Agora só esperar nosso especialista aprovar seu agendamento!
+              </p>
+              <p className="text-sm text-salon-copper">
+                Você receberá uma confirmação em breve.
+              </p>
+            </div>
+
+            <Button
+              onClick={handleClose}
+              className="w-full bg-salon-gold hover:bg-salon-copper text-salon-dark font-medium h-12"
+            >
+              Fechar
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto bg-salon-dark border-salon-gold/20">
         <DialogHeader>
           <DialogTitle className="text-salon-gold flex items-center gap-2">
@@ -369,7 +490,7 @@ const PIXPaymentPopup: React.FC<PIXPaymentPopupProps> = ({
                   <li>Clique em "Gerar QR Code PIX" para criar o código</li>
                   <li>Realize o pagamento usando o QR Code ou código copia e cola</li>
                   <li>O valor de R$ {amount.toFixed(2)} será descontado no dia do atendimento</li>
-                  <li>Aguarde a confirmação do pagamento</li>
+                  <li>Clique em "Confirmar Pagamento" após realizar o PIX</li>
                 </ul>
               </div>
             </CardContent>
@@ -379,7 +500,7 @@ const PIXPaymentPopup: React.FC<PIXPaymentPopupProps> = ({
           <div className="flex gap-3">
             <Button
               variant="outline"
-              onClick={onClose}
+              onClick={handleClose}
               className="flex-1 border-salon-gold/30 text-salon-gold hover:bg-salon-gold/10"
               disabled={loading}
             >
@@ -394,7 +515,7 @@ const PIXPaymentPopup: React.FC<PIXPaymentPopupProps> = ({
               {loading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Confirmando...
+                  Verificando...
                 </>
               ) : (
                 'Confirmar Pagamento'
