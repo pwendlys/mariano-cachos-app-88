@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -33,6 +33,7 @@ const CustomerProfileManagement = () => {
   const [isHistoricoDialogOpen, setIsHistoricoDialogOpen] = useState(false);
   const [selectedHistorico, setSelectedHistorico] = useState<any>(null);
   const [isUpdating, setIsUpdating] = useState(false);
+  const [selectedAgendamento, setSelectedAgendamento] = useState<any>(null);
 
   const [historicoForm, setHistoricoForm] = useState({
     cliente_id: '',
@@ -45,6 +46,16 @@ const CustomerProfileManagement = () => {
     observacoes: '',
     status: 'pendente' as const
   });
+
+  // Atualizar agendamento selecionado quando o agendamento_id mudar
+  useEffect(() => {
+    if (historicoForm.agendamento_id) {
+      const agendamento = appointments.find(a => a.id === historicoForm.agendamento_id);
+      setSelectedAgendamento(agendamento);
+    } else {
+      setSelectedAgendamento(null);
+    }
+  }, [historicoForm.agendamento_id, appointments]);
 
   const handleSyncCustomerData = async () => {
     setIsUpdating(true);
@@ -93,6 +104,22 @@ const CustomerProfileManagement = () => {
     return totalProdutos + valorExtra;
   };
 
+  // Calcular valor do sinal pago (se o agendamento foi pago)
+  const calcularSinalPago = () => {
+    if (selectedAgendamento && selectedAgendamento.status_pagamento === 'pago' && selectedAgendamento.valor) {
+      return selectedAgendamento.valor;
+    }
+    return 0;
+  };
+
+  // Calcular total geral considerando o sinal
+  const calcularTotalComSinal = () => {
+    const totalServicos = calcularTotalServicos();
+    const totalProdutos = calcularTotalProdutos();
+    const sinalPago = calcularSinalPago();
+    return Math.max(0, (totalServicos + totalProdutos) - sinalPago);
+  };
+
   const handleCreateHistorico = async () => {
     try {
       const servicosSelecionados = services.filter(s => 
@@ -103,14 +130,37 @@ const CustomerProfileManagement = () => {
         historicoForm.produtos_selecionados.includes(p.id)
       ).map(p => ({ id: p.id, nome: p.name, preco: p.price }));
 
+      // Incluir o serviço do agendamento se existir
+      const servicosExtras = [...servicosSelecionados];
+      if (selectedAgendamento && selectedAgendamento.servico) {
+        servicosExtras.push({
+          id: selectedAgendamento.servico.id,
+          nome: selectedAgendamento.servico.nome,
+          preco: selectedAgendamento.servico.preco
+        });
+      }
+
+      let observacoesCompletas = historicoForm.observacoes;
+      
+      // Adicionar informação do sinal se foi pago
+      const sinalPago = calcularSinalPago();
+      if (sinalPago > 0) {
+        observacoesCompletas += `\nSinal pago: R$ ${sinalPago.toFixed(2)}`;
+      }
+      
+      // Adicionar valor pendente se houver
+      if (historicoForm.valor_pendente) {
+        observacoesCompletas += `\nValor pendente: R$ ${historicoForm.valor_pendente}`;
+      }
+
       await createHistoricoAtendimento({
         ...historicoForm,
-        servicos_extras: servicosSelecionados,
+        servicos_extras: servicosExtras,
         produtos_vendidos: produtosSelecionados,
-        valor_servicos_extras: calcularTotalServicos(),
+        valor_servicos_extras: calcularTotalServicos() + (selectedAgendamento?.servico?.preco || 0),
         valor_produtos: calcularTotalProdutos(),
         data_atendimento: new Date().toISOString(),
-        observacoes: `${historicoForm.observacoes}${historicoForm.valor_pendente ? `\nValor pendente: R$ ${historicoForm.valor_pendente}` : ''}`
+        observacoes: observacoesCompletas
       });
       
       setHistoricoForm({
@@ -124,6 +174,7 @@ const CustomerProfileManagement = () => {
         observacoes: '',
         status: 'pendente'
       });
+      setSelectedAgendamento(null);
       setIsHistoricoDialogOpen(false);
     } catch (error) {
       console.error('Erro ao criar histórico:', error);
@@ -193,9 +244,25 @@ const CustomerProfileManagement = () => {
                   </Select>
                 </div>
 
+                {/* Mostrar serviço do agendamento se selecionado */}
+                {selectedAgendamento && (
+                  <div className="p-4 bg-salon-gold/10 rounded-lg border border-salon-gold/30">
+                    <h4 className="text-salon-gold font-bold mb-2">Serviço do Agendamento</h4>
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <p className="text-white font-medium">{selectedAgendamento.servico?.nome}</p>
+                        <p className="text-sm text-salon-copper">R$ {selectedAgendamento.servico?.preco?.toFixed(2)}</p>
+                        {selectedAgendamento.status_pagamento === 'pago' && (
+                          <p className="text-xs text-green-400">✓ Sinal pago: R$ {selectedAgendamento.valor?.toFixed(2)}</p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 {/* Seção Serviços */}
                 <div>
-                  <Label className="text-salon-gold text-lg">Serviços Realizados</Label>
+                  <Label className="text-salon-gold text-lg">Serviços Extras Realizados</Label>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3">
                     {services.map(servico => (
                       <div key={servico.id} className="flex items-center space-x-3 p-3 glass-card rounded border border-salon-gold/20">
@@ -226,7 +293,7 @@ const CustomerProfileManagement = () => {
                   
                   <div className="mt-2 p-3 bg-salon-gold/10 rounded">
                     <p className="text-salon-gold font-bold">
-                      Total Serviços: R$ {calcularTotalServicos().toFixed(2)}
+                      Total Serviços Extras: R$ {calcularTotalServicos().toFixed(2)}
                     </p>
                   </div>
                 </div>
@@ -315,14 +382,31 @@ const CustomerProfileManagement = () => {
                 <div className="p-4 bg-salon-gold/20 rounded-lg border border-salon-gold/30">
                   <h4 className="text-salon-gold font-bold mb-2">Resumo Financeiro</h4>
                   <div className="space-y-1 text-sm">
+                    {/* Mostrar serviço do agendamento */}
+                    {selectedAgendamento && selectedAgendamento.servico && (
+                      <div className="flex justify-between">
+                        <span>{selectedAgendamento.servico.nome}:</span>
+                        <span className="text-salon-gold">R$ {selectedAgendamento.servico.preco.toFixed(2)}</span>
+                      </div>
+                    )}
+                    
                     <div className="flex justify-between">
-                      <span>Total Serviços:</span>
+                      <span>Total Serviços Extras:</span>
                       <span className="text-salon-gold">R$ {calcularTotalServicos().toFixed(2)}</span>
                     </div>
                     <div className="flex justify-between">
                       <span>Total Produtos:</span>
                       <span className="text-salon-gold">R$ {calcularTotalProdutos().toFixed(2)}</span>
                     </div>
+                    
+                    {/* Mostrar sinal pago se existir */}
+                    {calcularSinalPago() > 0 && (
+                      <div className="flex justify-between text-green-400">
+                        <span>Sinal Pago:</span>
+                        <span>- R$ {calcularSinalPago().toFixed(2)}</span>
+                      </div>
+                    )}
+                    
                     {historicoForm.valor_pendente && (
                       <div className="flex justify-between text-red-400">
                         <span>Valor Pendente:</span>
@@ -330,9 +414,9 @@ const CustomerProfileManagement = () => {
                       </div>
                     )}
                     <div className="flex justify-between border-t border-salon-gold/30 pt-2 font-bold">
-                      <span>Total Geral:</span>
+                      <span>Total a Pagar:</span>
                       <span className="text-salon-gold">
-                        R$ {(calcularTotalServicos() + calcularTotalProdutos()).toFixed(2)}
+                        R$ {calcularTotalComSinal().toFixed(2)}
                       </span>
                     </div>
                   </div>
