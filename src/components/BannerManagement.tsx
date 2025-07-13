@@ -248,9 +248,11 @@ const BannerManagement = () => {
                         className="w-16 h-16 object-contain rounded-full"
                       />
                     ) : (
-                      <span className="text-3xl font-bold text-salon-gold font-playfair">
-                        {formData.title.split(' ').map(word => word[0]).join('').slice(0, 2)}
-                      </span>
+                      <img 
+                        src="/lovable-uploads/6c513fb2-7005-451a-bfba-cb471f2086a3.png" 
+                        alt="Marcos Mariano Logo" 
+                        className="w-16 h-16 object-contain rounded-full"
+                      />
                     )}
                   </div>
                 </div>

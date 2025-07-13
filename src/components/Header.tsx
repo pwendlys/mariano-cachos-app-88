@@ -53,7 +53,11 @@ const Header = () => {
                 className="w-10 h-10 object-contain rounded-full"
               />
             ) : (
-              <span className="text-salon-dark font-bold text-lg font-playfair">MM</span>
+              <img 
+                src="/lovable-uploads/6c513fb2-7005-451a-bfba-cb471f2086a3.png" 
+                alt="Marcos Mariano Logo" 
+                className="w-10 h-10 object-contain rounded-full"
+              />
             )}
           </div>
           <div>
