@@ -34,6 +34,11 @@ const SupabaseScheduling = () => {
     }
   }, [user]);
 
+  // Log services when they change
+  useEffect(() => {
+    console.log('Services updated:', services);
+  }, [services]);
+
   const baseAvailableTimes = [
     '09:00', '09:30', '10:00', '10:30', '11:00', '11:30',
     '14:00', '14:30', '15:00', '15:30', '16:00', '16:30', '17:00'
@@ -140,6 +145,21 @@ const SupabaseScheduling = () => {
     return success;
   };
 
+  if (loading && services.length === 0) {
+    return (
+      <div className="px-4 space-y-6 animate-fade-in">
+        <div className="text-center mb-6">
+          <h1 className="text-2xl font-bold text-gradient-gold mb-2 font-playfair">
+            Agende Seu Horário
+          </h1>
+          <p className="text-muted-foreground">
+            Carregando serviços...
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="px-4 space-y-6 animate-fade-in">
       <div className="text-center mb-6">
@@ -181,36 +201,43 @@ const SupabaseScheduling = () => {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            {services.map((service) => (
-              <div
-                key={service.id}
-                className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${
-                  selectedService === service.id
-                    ? 'border-salon-gold bg-salon-gold/10'
-                    : 'border-salon-gold/20 hover:border-salon-gold/40'
-                }`}
-                onClick={() => setSelectedService(service.id)}
-              >
-                <div className="flex items-center justify-between mb-2">
-                  <h3 className="font-semibold text-white text-lg">{service.nome}</h3>
-                  {selectedService === service.id ? (
-                    <Check className="text-salon-gold" size={20} />
-                  ) : (
-                    <Plus className="text-salon-gold/60" size={20} />
-                  )}
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-salon-gold font-bold text-lg">R$ {service.preco.toFixed(2)}</span>
-                  <div className="flex items-center space-x-1 text-salon-copper">
-                    <Clock size={16} />
-                    <span className="text-sm">{formatDuration(service.duracao)}</span>
+            {services.length === 0 ? (
+              <div className="text-center p-8 text-muted-foreground">
+                <p>Nenhum serviço disponível no momento.</p>
+                <p className="text-sm mt-2">Entre em contato com o administrador.</p>
+              </div>
+            ) : (
+              services.map((service) => (
+                <div
+                  key={service.id}
+                  className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${
+                    selectedService === service.id
+                      ? 'border-salon-gold bg-salon-gold/10'
+                      : 'border-salon-gold/20 hover:border-salon-gold/40'
+                  }`}
+                  onClick={() => setSelectedService(service.id)}
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <h3 className="font-semibold text-white text-lg">{service.nome}</h3>
+                    {selectedService === service.id ? (
+                      <Check className="text-salon-gold" size={20} />
+                    ) : (
+                      <Plus className="text-salon-gold/60" size={20} />
+                    )}
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-salon-gold font-bold text-lg">R$ {service.preco.toFixed(2)}</span>
+                    <div className="flex items-center space-x-1 text-salon-copper">
+                      <Clock size={16} />
+                      <span className="text-sm">{formatDuration(service.duracao)}</span>
+                    </div>
+                  </div>
+                  <div className="mt-2">
+                    <span className="text-xs text-salon-copper capitalize">{service.categoria}</span>
                   </div>
                 </div>
-                <div className="mt-2">
-                  <span className="text-xs text-salon-copper capitalize">{service.categoria}</span>
-                </div>
-              </div>
-            ))}
+              ))
+            )}
           </CardContent>
         </Card>
       )}

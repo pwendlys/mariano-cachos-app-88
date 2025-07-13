@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -50,19 +51,25 @@ export const useSupabaseScheduling = () => {
 
   const fetchServices = async () => {
     try {
+      console.log('Fetching services from Supabase...');
       const { data, error } = await supabase
         .from('servicos')
         .select('*')
         .eq('ativo', true)
         .order('nome');
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching services:', error);
+        throw error;
+      }
+      
+      console.log('Services fetched:', data);
       setServices((data || []) as Service[]);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error fetching services:', error);
       toast({
         title: "Erro ao carregar serviços",
-        description: "Não foi possível carregar a lista de serviços.",
+        description: error.message || "Não foi possível carregar a lista de serviços.",
         variant: "destructive",
       });
     }
@@ -70,6 +77,7 @@ export const useSupabaseScheduling = () => {
 
   const fetchAppointments = async () => {
     try {
+      console.log('Fetching appointments from Supabase...');
       const { data, error } = await supabase
         .from('agendamentos')
         .select(`
@@ -80,13 +88,18 @@ export const useSupabaseScheduling = () => {
         .order('data', { ascending: true })
         .order('horario', { ascending: true });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching appointments:', error);
+        throw error;
+      }
+      
+      console.log('Appointments fetched:', data);
       setAppointments((data || []) as Appointment[]);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error fetching appointments:', error);
       toast({
         title: "Erro ao carregar agendamentos",
-        description: "Não foi possível carregar os agendamentos.",
+        description: error.message || "Não foi possível carregar os agendamentos.",
         variant: "destructive",
       });
     }
@@ -94,25 +107,35 @@ export const useSupabaseScheduling = () => {
 
   const createOrGetClient = async (clientData: Omit<Client, 'id'>): Promise<string | null> => {
     try {
+      console.log('Creating or getting client:', clientData);
+      
+      // First, try to find existing client
       const { data: existingClient } = await supabase
         .from('clientes')
         .select('id')
         .eq('email', clientData.email)
-        .single();
+        .maybeSingle();
 
       if (existingClient) {
+        console.log('Found existing client:', existingClient.id);
         return existingClient.id;
       }
 
+      // Create new client
       const { data, error } = await supabase
         .from('clientes')
         .insert([clientData])
         .select('id')
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error creating client:', error);
+        throw error;
+      }
+      
+      console.log('Created new client:', data?.id);
       return data?.id || null;
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error creating/getting client:', error);
       return null;
     }
@@ -134,6 +157,8 @@ export const useSupabaseScheduling = () => {
   }): Promise<boolean> => {
     setLoading(true);
     try {
+      console.log('Creating appointment with data:', appointmentData);
+      
       const clientId = await createOrGetClient({
         nome: appointmentData.clientName,
         email: appointmentData.clientEmail,
@@ -148,6 +173,8 @@ export const useSupabaseScheduling = () => {
       if (!service) {
         throw new Error('Serviço não encontrado');
       }
+
+      console.log('Creating appointment for client:', clientId, 'service:', service.id);
 
       const { error } = await supabase
         .from('agendamentos')
@@ -167,8 +194,12 @@ export const useSupabaseScheduling = () => {
           comprovante_pix: appointmentData.comprovante_pix
         }]);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error creating appointment:', error);
+        throw error;
+      }
 
+      console.log('Appointment created successfully');
       await fetchAppointments();
       
       toast({
@@ -238,6 +269,7 @@ export const useSupabaseScheduling = () => {
   };
 
   useEffect(() => {
+    console.log('useSupabaseScheduling hook initialized, fetching data...');
     fetchServices();
     fetchAppointments();
   }, []);
