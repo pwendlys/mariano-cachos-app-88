@@ -131,6 +131,8 @@ export const useSupabaseScheduling = () => {
     clientEmail: string;
     clientPhone: string;
     observacoes?: string;
+    chave_pix?: string;
+    comprovante_pix?: string;
   }): Promise<boolean> => {
     setLoading(true);
     try {
@@ -161,7 +163,10 @@ export const useSupabaseScheduling = () => {
           horario: appointmentData.horario,
           valor: service.preco,
           observacoes: appointmentData.observacoes,
-          status: 'pendente'
+          status: 'pendente',
+          status_pagamento: appointmentData.chave_pix ? 'pago' : 'pendente',
+          chave_pix: appointmentData.chave_pix,
+          comprovante_pix: appointmentData.comprovante_pix
         }]);
 
       if (error) throw error;

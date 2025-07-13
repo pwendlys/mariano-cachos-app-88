@@ -1,14 +1,17 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Calendar, Clock, User, MessageSquare, Check, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { useSupabaseScheduling } from '@/hooks/useSupabaseScheduling';
+import { useAuth } from '@/hooks/useAuth';
+import PIXPaymentStep from '@/components/PIXPaymentStep';
 
 const SupabaseScheduling = () => {
   const { services, createAppointment, isSlotAvailable, loading } = useSupabaseScheduling();
+  const { user } = useAuth();
   
   const [currentStep, setCurrentStep] = useState(1);
   const [selectedService, setSelectedService] = useState('');
@@ -18,6 +21,15 @@ const SupabaseScheduling = () => {
   const [clientEmail, setClientEmail] = useState('');
   const [clientPhone, setClientPhone] = useState('');
   const [observations, setObservations] = useState('');
+
+  // Pre-fill user data if logged in
+  useEffect(() => {
+    if (user) {
+      setClientName(user.nome);
+      setClientEmail(user.email);
+      setClientPhone(user.whatsapp || '');
+    }
+  }, [user]);
 
   const baseAvailableTimes = [
     '09:00', '09:30', '10:00', '10:30', '11:00', '11:30',
@@ -51,7 +63,7 @@ const SupabaseScheduling = () => {
   };
 
   const handleNextStep = () => {
-    if (currentStep < 4) {
+    if (currentStep < 5) {
       setCurrentStep(currentStep + 1);
     }
   };
@@ -62,9 +74,15 @@ const SupabaseScheduling = () => {
     }
   };
 
-  const handleConfirmBooking = async () => {
+  const handlePaymentConfirm = async (pixKey: string, proofFile?: File): Promise<boolean> => {
     if (!selectedService || !selectedDate || !selectedTime || !clientName || !clientEmail || !clientPhone) {
-      return;
+      return false;
+    }
+
+    // Convert file to base64 if provided (simplified for this example)
+    let proofData = undefined;
+    if (proofFile) {
+      proofData = proofFile.name; // In a real app, you'd upload to storage
     }
 
     const success = await createAppointment({
@@ -74,7 +92,9 @@ const SupabaseScheduling = () => {
       clientName,
       clientEmail,
       clientPhone,
-      observacoes: observations
+      observacoes: observations,
+      chave_pix: pixKey,
+      comprovante_pix: proofData
     });
 
     if (success) {
@@ -83,11 +103,15 @@ const SupabaseScheduling = () => {
       setSelectedService('');
       setSelectedDate('');
       setSelectedTime('');
-      setClientName('');
-      setClientEmail('');
-      setClientPhone('');
+      if (!user) {
+        setClientName('');
+        setClientEmail('');
+        setClientPhone('');
+      }
       setObservations('');
     }
+
+    return success;
   };
 
   return (
@@ -104,7 +128,7 @@ const SupabaseScheduling = () => {
       {/* Progress Indicator */}
       <div className="flex justify-center mb-8">
         <div className="flex items-center space-x-2">
-          {[1, 2, 3, 4].map((step) => (
+          {[1, 2, 3, 4, 5].map((step) => (
             <div
               key={step}
               className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold transition-all ${
@@ -226,7 +250,7 @@ const SupabaseScheduling = () => {
         </Card>
       )}
 
-      {/* Step 4: Contact Info and Confirmation */}
+      {/* Step 4: Contact Info */}
       {currentStep === 4 && (
         <div className="space-y-6">
           <Card className="glass-card border-salon-gold/20">
@@ -237,36 +261,51 @@ const SupabaseScheduling = () => {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium mb-2 text-white">Nome Completo *</label>
-                <Input
-                  value={clientName}
-                  onChange={(e) => setClientName(e.target.value)}
-                  placeholder="Seu nome completo"
-                  className="glass-card border-salon-gold/30 bg-transparent text-white h-12"
-                />
-              </div>
+              {!user && (
+                <>
+                  <div>
+                    <label className="block text-sm font-medium mb-2 text-white">Nome Completo *</label>
+                    <Input
+                      value={clientName}
+                      onChange={(e) => setClientName(e.target.value)}
+                      placeholder="Seu nome completo"
+                      className="glass-card border-salon-gold/30 bg-transparent text-white h-12"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium mb-2 text-white">Email *</label>
+                    <Input
+                      type="email"
+                      value={clientEmail}
+                      onChange={(e) => setClientEmail(e.target.value)}
+                      placeholder="seu@email.com"
+                      className="glass-card border-salon-gold/30 bg-transparent text-white h-12"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium mb-2 text-white">WhatsApp *</label>
+                    <Input
+                      value={clientPhone}
+                      onChange={(e) => setClientPhone(e.target.value)}
+                      placeholder="(11) 99999-9999"
+                      className="glass-card border-salon-gold/30 bg-transparent text-white h-12"
+                    />
+                  </div>
+                </>
+              )}
               
-              <div>
-                <label className="block text-sm font-medium mb-2 text-white">Email *</label>
-                <Input
-                  type="email"
-                  value={clientEmail}
-                  onChange={(e) => setClientEmail(e.target.value)}
-                  placeholder="seu@email.com"
-                  className="glass-card border-salon-gold/30 bg-transparent text-white h-12"
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium mb-2 text-white">WhatsApp *</label>
-                <Input
-                  value={clientPhone}
-                  onChange={(e) => setClientPhone(e.target.value)}
-                  placeholder="(11) 99999-9999"
-                  className="glass-card border-salon-gold/30 bg-transparent text-white h-12"
-                />
-              </div>
+              {user && (
+                <div className="space-y-4 p-4 bg-salon-gold/10 rounded-lg border border-salon-gold/30">
+                  <h4 className="text-white font-medium">Seus dados:</h4>
+                  <div className="grid grid-cols-1 gap-2 text-sm">
+                    <div><span className="text-salon-copper">Nome:</span> <span className="text-white">{user.nome}</span></div>
+                    <div><span className="text-salon-copper">Email:</span> <span className="text-white">{user.email}</span></div>
+                    {user.whatsapp && <div><span className="text-salon-copper">WhatsApp:</span> <span className="text-white">{user.whatsapp}</span></div>}
+                  </div>
+                </div>
+              )}
               
               <div>
                 <label className="block text-sm font-medium mb-2 text-white">Observações</label>
@@ -318,6 +357,16 @@ const SupabaseScheduling = () => {
         </div>
       )}
 
+      {/* Step 5: PIX Payment */}
+      {currentStep === 5 && getSelectedService() && (
+        <PIXPaymentStep
+          amount={getSelectedService()!.preco}
+          serviceName={getSelectedService()!.nome}
+          onPaymentConfirm={handlePaymentConfirm}
+          loading={loading}
+        />
+      )}
+
       {/* Navigation Buttons */}
       <div className="flex justify-between space-x-4 pb-8">
         {currentStep > 1 && (
@@ -331,7 +380,7 @@ const SupabaseScheduling = () => {
           </Button>
         )}
         
-        {currentStep < 4 && (
+        {currentStep < 5 && currentStep !== 4 && (
           <Button
             onClick={handleNextStep}
             disabled={
@@ -348,11 +397,14 @@ const SupabaseScheduling = () => {
         
         {currentStep === 4 && (
           <Button
-            onClick={handleConfirmBooking}
-            disabled={!clientName || !clientEmail || !clientPhone || loading}
+            onClick={handleNextStep}
+            disabled={
+              (!user && (!clientName || !clientEmail || !clientPhone)) ||
+              loading
+            }
             className="flex-1 bg-salon-gold hover:bg-salon-copper text-salon-dark font-medium h-14"
           >
-            {loading ? 'Agendando...' : 'Confirmar Agendamento'}
+            Prosseguir para Pagamento
           </Button>
         )}
       </div>

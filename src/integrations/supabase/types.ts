@@ -16,7 +16,9 @@ export type Database = {
     Tables: {
       agendamentos: {
         Row: {
+          chave_pix: string | null
           cliente_id: string
+          comprovante_pix: string | null
           created_at: string
           data: string
           horario: string
@@ -24,11 +26,14 @@ export type Database = {
           observacoes: string | null
           servico_id: string
           status: string
+          status_pagamento: string | null
           updated_at: string
           valor: number | null
         }
         Insert: {
+          chave_pix?: string | null
           cliente_id: string
+          comprovante_pix?: string | null
           created_at?: string
           data: string
           horario: string
@@ -36,11 +41,14 @@ export type Database = {
           observacoes?: string | null
           servico_id: string
           status?: string
+          status_pagamento?: string | null
           updated_at?: string
           valor?: number | null
         }
         Update: {
+          chave_pix?: string | null
           cliente_id?: string
+          comprovante_pix?: string | null
           created_at?: string
           data?: string
           horario?: string
@@ -48,6 +56,7 @@ export type Database = {
           observacoes?: string | null
           servico_id?: string
           status?: string
+          status_pagamento?: string | null
           updated_at?: string
           valor?: number | null
         }

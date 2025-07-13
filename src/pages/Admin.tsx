@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Settings, Users, Scissors, Package, Calendar, DollarSign, AlertTriangle } from 'lucide-react';
+import { Settings, Users, Scissors, Package, Calendar, DollarSign, AlertTriangle, CheckCircle } from 'lucide-react';
 import MobileLayout from '@/components/MobileLayout';
 import ServiceManagement from '@/components/ServiceManagement';
 import ProductManagement from '@/components/ProductManagement';
@@ -10,6 +10,7 @@ import TimeBlockingManagement from '@/components/TimeBlockingManagement';
 import CashFlowManagement from '@/components/CashFlowManagement';
 import DebtCollectionManagement from '@/components/DebtCollectionManagement';
 import BannerManagement from '@/components/BannerManagement';
+import AppointmentManagement from '@/components/AppointmentManagement';
 
 const Admin = () => {
   const [activeTab, setActiveTab] = useState('services');
@@ -24,7 +25,7 @@ const Admin = () => {
           </div>
 
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-3 md:grid-cols-7 glass-card mb-6">
+            <TabsList className="grid w-full grid-cols-4 md:grid-cols-8 glass-card mb-6">
               <TabsTrigger value="services" className="data-[state=active]:bg-salon-gold/20 data-[state=active]:text-salon-gold">
                 <Scissors className="w-4 h-4 mr-2" />
                 <span className="hidden md:inline">Serviços</span>
@@ -32,6 +33,10 @@ const Admin = () => {
               <TabsTrigger value="products" className="data-[state=active]:bg-salon-gold/20 data-[state=active]:text-salon-gold">
                 <Package className="w-4 h-4 mr-2" />
                 <span className="hidden md:inline">Produtos</span>
+              </TabsTrigger>
+              <TabsTrigger value="appointments" className="data-[state=active]:bg-salon-gold/20 data-[state=active]:text-salon-gold">
+                <CheckCircle className="w-4 h-4 mr-2" />
+                <span className="hidden md:inline">Agendamentos</span>
               </TabsTrigger>
               <TabsTrigger value="professionals" className="data-[state=active]:bg-salon-gold/20 data-[state=active]:text-salon-gold">
                 <Users className="w-4 h-4 mr-2" />
@@ -61,6 +66,10 @@ const Admin = () => {
 
             <TabsContent value="products">
               <ProductManagement />
+            </TabsContent>
+
+            <TabsContent value="appointments">
+              <AppointmentManagement />
             </TabsContent>
 
             <TabsContent value="professionals">
