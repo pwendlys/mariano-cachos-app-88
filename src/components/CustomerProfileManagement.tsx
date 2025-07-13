@@ -133,6 +133,13 @@ const CustomerProfileManagement = () => {
     return Math.max(0, totalGeral - sinalPago);
   };
 
+  // Calcular total a pagar (total - valor recebido)
+  const calcularTotalAPagar = () => {
+    const totalDevido = calcularTotalComSinal();
+    const valorRecebido = parseFloat(historicoForm.valor_recebido) || 0;
+    return Math.max(0, totalDevido - valorRecebido);
+  };
+
   // Calcular valor restante (total - valor recebido)
   const calcularValorRestante = () => {
     const totalDevido = calcularTotalComSinal();
@@ -467,7 +474,7 @@ const CustomerProfileManagement = () => {
                     <div className="flex justify-between border-t border-salon-gold/30 pt-2 font-bold">
                       <span>Total a Pagar:</span>
                       <span className="text-salon-gold">
-                        R$ {calcularTotalComSinal().toFixed(2)}
+                        R$ {calcularTotalAPagar().toFixed(2)}
                       </span>
                     </div>
                   </div>
