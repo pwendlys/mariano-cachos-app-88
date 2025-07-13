@@ -6,13 +6,13 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { useSharedServices } from '@/hooks/useSharedServices';
+import { useSupabaseScheduling } from '@/hooks/useSupabaseScheduling';
 import { useScheduling } from '@/hooks/useScheduling';
 import { useProfessionals } from '@/hooks/useProfessionals';
 
 const Scheduling = () => {
   const { toast } = useToast();
-  const { services } = useSharedServices();
+  const { services, loading } = useSupabaseScheduling();
   const { addAppointment, isSlotAvailable } = useScheduling();
   const { getActiveProfessionals } = useProfessionals();
   
@@ -36,14 +36,14 @@ const Scheduling = () => {
   const getTotalDuration = () => {
     return selectedServices.reduce((total, serviceId) => {
       const service = services.find(s => s.id === serviceId);
-      return total + (service?.duration || 0);
+      return total + (service?.duracao || 0);
     }, 0);
   };
 
   const getTotalPrice = () => {
     return selectedServices.reduce((total, serviceId) => {
       const service = services.find(s => s.id === serviceId);
-      return total + (service?.price || 0);
+      return total + (service?.preco || 0);
     }, 0);
   };
 
@@ -129,6 +129,21 @@ const Scheduling = () => {
     return activeProfessionals.find(p => p.id === selectedProfessional);
   };
 
+  if (loading && services.length === 0) {
+    return (
+      <div className="px-4 space-y-6 animate-fade-in">
+        <div className="text-center mb-6">
+          <h1 className="text-2xl font-bold text-gradient-gold mb-2 font-playfair">
+            Agende Seu Horário
+          </h1>
+          <p className="text-muted-foreground">
+            Carregando serviços...
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="px-4 space-y-6 animate-fade-in">
       <div className="text-center mb-6">
@@ -175,48 +190,43 @@ const Scheduling = () => {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            {services.map((service) => (
-              <div
-                key={service.id}
-                className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${
-                  selectedServices.includes(service.id)
-                    ? 'border-salon-gold bg-salon-gold/10'
-                    : 'border-salon-gold/20 hover:border-salon-gold/40'
-                }`}
-                onClick={() => handleServiceToggle(service.id)}
-              >
-                <div className="flex items-start space-x-4">
-                  {service.image && (
-                    <div className="flex-shrink-0">
-                      <img 
-                        src={service.image} 
-                        alt={service.name}
-                        className="w-16 h-16 object-cover rounded-lg"
-                      />
-                    </div>
-                  )}
-                  
-                  <div className="flex-1">
-                    <div className="flex items-center justify-between mb-1">
-                      <h3 className="font-semibold text-white text-lg">{service.name}</h3>
-                      {selectedServices.includes(service.id) ? (
-                        <Check className="text-salon-gold" size={20} />
-                      ) : (
-                        <Plus className="text-salon-gold/60" size={20} />
-                      )}
-                    </div>
-                    <p className="text-sm text-muted-foreground mb-2">{service.description}</p>
-                    <div className="flex items-center justify-between">
-                      <span className="text-salon-gold font-bold text-lg">R$ {service.price.toFixed(2)}</span>
-                      <div className="flex items-center space-x-1 text-salon-copper">
-                        <Clock size={16} />
-                        <span className="text-sm">{formatDuration(service.duration)}</span>
-                      </div>
+            {services.length === 0 ? (
+              <div className="text-center p-8 text-muted-foreground">
+                <p>Nenhum serviço disponível no momento.</p>
+                <p className="text-sm mt-2">Entre em contato com o administrador.</p>
+              </div>
+            ) : (
+              services.map((service) => (
+                <div
+                  key={service.id}
+                  className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${
+                    selectedServices.includes(service.id)
+                      ? 'border-salon-gold bg-salon-gold/10'
+                      : 'border-salon-gold/20 hover:border-salon-gold/40'
+                  }`}
+                  onClick={() => handleServiceToggle(service.id)}
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <h3 className="font-semibold text-white text-lg">{service.nome}</h3>
+                    {selectedServices.includes(service.id) ? (
+                      <Check className="text-salon-gold" size={20} />
+                    ) : (
+                      <Plus className="text-salon-gold/60" size={20} />
+                    )}
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-salon-gold font-bold text-lg">R$ {service.preco.toFixed(2)}</span>
+                    <div className="flex items-center space-x-1 text-salon-copper">
+                      <Clock size={16} />
+                      <span className="text-sm">{formatDuration(service.duracao)}</span>
                     </div>
                   </div>
+                  <div className="mt-2">
+                    <span className="text-xs text-salon-copper capitalize">{service.categoria}</span>
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))
+            )}
             
             {selectedServices.length > 0 && (
               <div className="mt-6 p-4 bg-salon-gold/10 rounded-lg border border-salon-gold/30">
@@ -224,8 +234,8 @@ const Scheduling = () => {
                 <div className="space-y-1 text-sm">
                   {getSelectedServicesDetails().map(service => (
                     <div key={service.id} className="flex justify-between text-white">
-                      <span>{service.name}</span>
-                      <span>R$ {service.price.toFixed(2)}</span>
+                      <span>{service.nome}</span>
+                      <span>R$ {service.preco.toFixed(2)}</span>
                     </div>
                   ))}
                 </div>
@@ -412,8 +422,8 @@ const Scheduling = () => {
                 <div className="mt-1 space-y-1">
                   {getSelectedServicesDetails().map(service => (
                     <div key={service.id} className="flex justify-between text-white text-sm">
-                      <span>{service.name}</span>
-                      <span>R$ {service.price.toFixed(2)}</span>
+                      <span>{service.nome}</span>
+                      <span>R$ {service.preco.toFixed(2)}</span>
                     </div>
                   ))}
                 </div>
@@ -452,6 +462,7 @@ const Scheduling = () => {
             variant="outline"
             onClick={handlePreviousStep}
             className="flex-1 border-salon-gold/30 text-salon-gold hover:bg-salon-gold/10 h-14"
+            disabled={loading}
           >
             Voltar
           </Button>
@@ -464,7 +475,8 @@ const Scheduling = () => {
               (currentStep === 1 && selectedServices.length === 0) ||
               (currentStep === 2 && !selectedProfessional) ||
               (currentStep === 3 && !selectedDate) ||
-              (currentStep === 4 && !selectedTime)
+              (currentStep === 4 && !selectedTime) ||
+              loading
             }
             className={`${currentStep === 1 ? 'w-full' : 'flex-1'} bg-salon-gold hover:bg-salon-copper text-salon-dark font-medium h-14`}
           >
@@ -475,7 +487,7 @@ const Scheduling = () => {
         {currentStep === 5 && (
           <Button
             onClick={handleConfirmBooking}
-            disabled={!clientName || !clientPhone}
+            disabled={!clientName || !clientPhone || loading}
             className="flex-1 bg-salon-gold hover:bg-salon-copper text-salon-dark font-medium h-14"
           >
             Confirmar Agendamento
