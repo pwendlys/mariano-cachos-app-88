@@ -9,7 +9,7 @@ import { AuthProvider } from "@/hooks/useAuth";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
-import Scheduling from "./pages/Scheduling";
+import SupabaseScheduling from "./pages/SupabaseScheduling";
 import Store from "./pages/Store";
 import SupabaseStore from "./pages/SupabaseStore";
 import Cart from "./pages/Cart";
@@ -42,7 +42,7 @@ const App = () => (
                 <Route path="/agendamento" element={
                   <ProtectedRoute>
                     <MobileLayout>
-                      <Scheduling />
+                      <SupabaseScheduling />
                     </MobileLayout>
                   </ProtectedRoute>
                 } />

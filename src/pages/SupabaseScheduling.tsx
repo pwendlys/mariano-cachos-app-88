@@ -10,7 +10,7 @@ import { useAuth } from '@/hooks/useAuth';
 import PIXPaymentStep from '@/components/PIXPaymentStep';
 
 const SupabaseScheduling = () => {
-  const { services, createAppointment, isSlotAvailable, loading } = useSupabaseScheduling();
+  const { services, createAppointment, isSlotAvailable, getSlotStatus, loading } = useSupabaseScheduling();
   const { user } = useAuth();
   
   const [currentStep, setCurrentStep] = useState(1);
@@ -40,17 +40,41 @@ const SupabaseScheduling = () => {
     return services.find(s => s.id === selectedService);
   };
 
+  // Sempre retorna todos os horários disponíveis
   const getAvailableTimes = () => {
-    if (!selectedDate || !selectedService) {
-      return baseAvailableTimes;
+    return baseAvailableTimes;
+  };
+
+  // Função para obter a cor do botão baseada no status
+  const getTimeButtonClass = (time: string) => {
+    if (!selectedDate) {
+      return 'border-salon-gold/30 text-salon-gold hover:bg-salon-gold/10';
     }
 
-    const service = getSelectedService();
-    if (!service) return baseAvailableTimes;
+    const status = getSlotStatus(selectedDate, time);
+    
+    if (selectedTime === time) {
+      return 'bg-salon-gold text-salon-dark hover:bg-salon-copper';
+    }
+    
+    switch (status) {
+      case 'ocupado':
+        return 'bg-red-600/20 border-red-600/50 text-red-400 hover:bg-red-600/30';
+      case 'pendente':
+        return 'bg-yellow-600/20 border-yellow-600/50 text-yellow-400 hover:bg-yellow-600/30';
+      default: // 'livre'
+        return 'border-salon-gold/30 text-salon-gold hover:bg-salon-gold/10';
+    }
+  };
 
-    return baseAvailableTimes.filter(time => 
-      isSlotAvailable(selectedDate, time, service.duracao)
-    );
+  // Função para verificar se um horário pode ser selecionado
+  const canSelectTime = (time: string) => {
+    if (!selectedDate || !selectedService) return false;
+    
+    const service = getSelectedService();
+    if (!service) return false;
+    
+    return isSlotAvailable(selectedDate, time, service.duracao);
   };
 
   const formatDuration = (minutes: number) => {
@@ -223,28 +247,41 @@ const SupabaseScheduling = () => {
                 </span>
               )}
             </CardTitle>
+            <div className="text-sm text-salon-copper mt-2">
+              <div className="flex gap-4 flex-wrap">
+                <div className="flex items-center gap-1">
+                  <div className="w-3 h-3 bg-salon-gold/30 border border-salon-gold/50 rounded"></div>
+                  <span>Livre</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <div className="w-3 h-3 bg-yellow-600/30 border border-yellow-600/50 rounded"></div>
+                  <span>Aguardando Aprovação</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <div className="w-3 h-3 bg-red-600/30 border border-red-600/50 rounded"></div>
+                  <span>Ocupado</span>
+                </div>
+              </div>
+            </div>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-3 gap-3">
-              {getAvailableTimes().map((time) => (
-                <Button
-                  key={time}
-                  variant={selectedTime === time ? "default" : "outline"}
-                  className={`h-14 text-lg ${
-                    selectedTime === time
-                      ? 'bg-salon-gold text-salon-dark hover:bg-salon-copper'
-                      : 'border-salon-gold/30 text-salon-gold hover:bg-salon-gold/10'
-                  }`}
-                  onClick={() => setSelectedTime(time)}
-                >
-                  {time}
-                </Button>
-              ))}
-              {getAvailableTimes().length === 0 && (
-                <div className="col-span-3 text-center p-4 text-muted-foreground">
-                  Não há horários disponíveis para esta data. Tente outra data.
-                </div>
-              )}
+              {getAvailableTimes().map((time) => {
+                const canSelect = canSelectTime(time);
+                const buttonClass = getTimeButtonClass(time);
+                
+                return (
+                  <Button
+                    key={time}
+                    variant="outline"
+                    className={`h-14 text-lg transition-all ${buttonClass}`}
+                    onClick={() => canSelect ? setSelectedTime(time) : null}
+                    disabled={!canSelect}
+                  >
+                    {time}
+                  </Button>
+                );
+              })}
             </div>
           </CardContent>
         </Card>

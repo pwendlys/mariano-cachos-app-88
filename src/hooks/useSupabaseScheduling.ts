@@ -29,7 +29,7 @@ export interface Appointment {
   servico_id: string;
   data: string;
   horario: string;
-  status: 'livre' | 'pendente' | 'ocupado' | 'cancelado';
+  status: 'pendente' | 'confirmado' | 'concluido' | 'rejeitado';
   valor?: number;
   observacoes?: string;
   created_at?: string;
@@ -175,8 +175,8 @@ export const useSupabaseScheduling = () => {
       await fetchAppointments();
       
       toast({
-        title: "Agendamento criado! ✨",
-        description: "Seu agendamento foi confirmado com sucesso.",
+        title: "Agendamento enviado! ✨",
+        description: "Seu agendamento foi enviado e aguarda aprovação do administrador.",
       });
 
       return true;
@@ -193,14 +193,17 @@ export const useSupabaseScheduling = () => {
     }
   };
 
-  // Check if slot is available
+  // Check if slot is available (just check for overlapping appointments, regardless of status)
   const isSlotAvailable = (date: string, time: string, serviceDuration: number): boolean => {
     const [startHour, startMinute] = time.split(':').map(Number);
     const startTimeInMinutes = startHour * 60 + startMinute;
     const endTimeInMinutes = startTimeInMinutes + serviceDuration;
 
-    // Check if any appointment overlaps with this time slot
-    const dayAppointments = appointments.filter(apt => apt.data === date);
+    // Check if any appointment (regardless of status) overlaps with this time slot
+    const dayAppointments = appointments.filter(apt => 
+      apt.data === date && 
+      (apt.status === 'confirmado' || apt.status === 'pendente') // Only confirmed or pending appointments block slots
+    );
 
     for (const appointment of dayAppointments) {
       const [aptHour, aptMinute] = appointment.horario.split(':').map(Number);
@@ -218,6 +221,28 @@ export const useSupabaseScheduling = () => {
 
     return true;
   };
+  // Get appointment status for a specific time slot (for coloring)
+  const getSlotStatus = (date: string, time: string): 'livre' | 'ocupado' | 'pendente' => {
+    const [startHour, startMinute] = time.split(':').map(Number);
+    const startTimeInMinutes = startHour * 60 + startMinute;
+
+    // Find appointment that starts at this exact time
+    const appointment = appointments.find(apt => {
+      if (apt.data !== date) return false;
+      
+      const [aptHour, aptMinute] = apt.horario.split(':').map(Number);
+      const aptStartTime = aptHour * 60 + aptMinute;
+      
+      return aptStartTime === startTimeInMinutes;
+    });
+
+    if (!appointment) return 'livre';
+    
+    if (appointment.status === 'confirmado') return 'ocupado';
+    if (appointment.status === 'pendente') return 'pendente';
+    
+    return 'livre';
+  };
 
   // Initialize data
   useEffect(() => {
@@ -231,6 +256,7 @@ export const useSupabaseScheduling = () => {
     loading,
     createAppointment,
     isSlotAvailable,
+    getSlotStatus,
     fetchServices,
     fetchAppointments,
   };
