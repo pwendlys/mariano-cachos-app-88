@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plus, User, DollarSign, History, AlertTriangle, CheckCircle } from 'lucide-react';
+import { Plus, User, DollarSign, History, AlertTriangle, CheckCircle, RefreshCw } from 'lucide-react';
 import { useCustomerProfiles } from '@/hooks/useCustomerProfiles';
 import { useSupabaseScheduling } from '@/hooks/useSupabaseScheduling';
 import { format } from 'date-fns';
@@ -21,13 +21,15 @@ const CustomerProfileManagement = () => {
     loading, 
     createHistoricoAtendimento,
     updateHistoricoAtendimento,
-    linkAgendamentoToHistorico
+    linkAgendamentoToHistorico,
+    syncCustomerData
   } = useCustomerProfiles();
   
   const { appointments, services } = useSupabaseScheduling();
 
   const [isHistoricoDialogOpen, setIsHistoricoDialogOpen] = useState(false);
   const [selectedHistorico, setSelectedHistorico] = useState<any>(null);
+  const [isUpdating, setIsUpdating] = useState(false);
 
   const [historicoForm, setHistoricoForm] = useState({
     cliente_id: '',
@@ -39,6 +41,17 @@ const CustomerProfileManagement = () => {
     observacoes: '',
     status: 'pendente' as const
   });
+
+  const handleSyncCustomerData = async () => {
+    setIsUpdating(true);
+    try {
+      await syncCustomerData();
+    } catch (error) {
+      console.error('Erro ao sincronizar dados:', error);
+    } finally {
+      setIsUpdating(false);
+    }
+  };
 
   const handleCreateHistorico = async () => {
     try {
@@ -85,6 +98,15 @@ const CustomerProfileManagement = () => {
       <div className="flex justify-between items-center">
         <h2 className="text-xl font-semibold text-salon-gold">Perfis de Clientes</h2>
         <div className="flex gap-2">
+          <Button 
+            onClick={handleSyncCustomerData}
+            disabled={isUpdating}
+            variant="outline"
+            className="border-salon-gold/30 text-salon-gold hover:bg-salon-gold/10"
+          >
+            <RefreshCw className={`mr-2 ${isUpdating ? 'animate-spin' : ''}`} size={16} />
+            {isUpdating ? 'Atualizando...' : 'Atualizar Dados'}
+          </Button>
           <Dialog open={isHistoricoDialogOpen} onOpenChange={setIsHistoricoDialogOpen}>
             <DialogTrigger asChild>
               <Button className="bg-salon-gold hover:bg-salon-copper text-salon-dark">

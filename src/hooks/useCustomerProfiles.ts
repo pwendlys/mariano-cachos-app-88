@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -38,6 +37,84 @@ export const useCustomerProfiles = () => {
   const [saldosClientes, setSaldosClientes] = useState<SaldoCliente[]>([]);
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
+
+  // Sincronizar dados dos clientes e agendamentos
+  const syncCustomerData = async () => {
+    setLoading(true);
+    try {
+      // Buscar todos os clientes
+      const { data: clientes, error: clientesError } = await supabase
+        .from('clientes')
+        .select('*');
+
+      if (clientesError) throw clientesError;
+
+      // Para cada cliente, calcular e atualizar o saldo
+      for (const cliente of clientes || []) {
+        await updateSaldoCliente(cliente.id);
+      }
+
+      // Buscar agendamentos confirmados e pagos para criar histórico automático
+      const { data: agendamentos, error: agendamentosError } = await supabase
+        .from('agendamentos')
+        .select(`
+          *,
+          cliente:clientes(*),
+          servico:servicos(*)
+        `)
+        .in('status', ['confirmado', 'concluido'])
+        .not('valor', 'is', null);
+
+      if (agendamentosError) throw agendamentosError;
+
+      // Para cada agendamento, verificar se já existe histórico
+      for (const agendamento of agendamentos || []) {
+        const { data: historicoExistente } = await supabase
+          .from('historico_atendimentos')
+          .select('id')
+          .eq('agendamento_id', agendamento.id)
+          .single();
+
+        // Se não existe histórico, criar baseado no agendamento
+        if (!historicoExistente) {
+          const statusHistorico = agendamento.status_pagamento === 'pago' ? 'concluido' : 'pendente';
+          
+          await supabase
+            .from('historico_atendimentos')
+            .insert({
+              cliente_id: agendamento.cliente_id,
+              agendamento_id: agendamento.id,
+              data_atendimento: `${agendamento.data}T${agendamento.horario}`,
+              servicos_extras: [],
+              produtos_vendidos: [],
+              valor_servicos_extras: agendamento.valor || 0,
+              valor_produtos: 0,
+              status: statusHistorico,
+              observacoes: `Serviço: ${agendamento.servico?.nome} - Sincronizado automaticamente`
+            });
+        }
+      }
+
+      // Recarregar dados após sincronização
+      await fetchHistoricoAtendimentos();
+      await fetchSaldosClientes();
+
+      toast({
+        title: "Sucesso",
+        description: "Dados dos clientes sincronizados com sucesso."
+      });
+
+    } catch (error) {
+      console.error('Erro ao sincronizar dados:', error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível sincronizar os dados dos clientes.",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Carregar histórico de atendimentos
   const fetchHistoricoAtendimentos = async () => {
@@ -251,6 +328,7 @@ export const useCustomerProfiles = () => {
     updateSaldoCliente,
     linkAgendamentoToHistorico,
     fetchHistoricoAtendimentos,
-    fetchSaldosClientes
+    fetchSaldosClientes,
+    syncCustomerData
   };
 };
