@@ -17,7 +17,7 @@ interface AuthContextType {
   session: Session | null;
   login: (email: string, senha: string) => Promise<{ success: boolean; error?: string }>;
   register: (nome: string, email: string, whatsapp: string, senha: string) => Promise<{ success: boolean; error?: string }>;
-  logout: () => void;
+  logout: () => Promise<void>;
   loading: boolean;
 }
 
@@ -30,57 +30,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const { toast } = useToast();
 
   useEffect(() => {
-    // Set up auth state listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        console.log('Auth state changed:', event, session);
-        setSession(session);
-        
-        if (session?.user) {
-          // Fetch user data from usuarios table
-          const { data: userData, error } = await supabase
-            .from('usuarios')
-            .select('*')
-            .eq('email', session.user.email)
-            .eq('ativo', true)
-            .single();
-
-          if (userData && !error) {
-            const authUser: AuthUser = {
-              id: userData.id,
-              nome: userData.nome,
-              email: userData.email,
-              tipo: userData.tipo as 'cliente' | 'admin',
-              whatsapp: userData.whatsapp
-            };
-            setUser(authUser);
-          } else {
-            setUser(null);
-          }
-        } else {
-          setUser(null);
-        }
-        setLoading(false);
-      }
-    );
-
-    // Check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) {
-        console.log('Existing session found:', session);
-      } else {
-        setLoading(false);
-      }
-    });
-
-    return () => subscription.unsubscribe();
+    // Since we're using a custom auth system, just set loading to false
+    setLoading(false);
   }, []);
 
   const login = async (email: string, senha: string) => {
     try {
       setLoading(true);
       
-      // Check if user exists in usuarios table first
+      // Check if user exists in usuarios table
       const { data: userData, error: userError } = await supabase
         .from('usuarios')
         .select('*')
@@ -106,7 +64,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         created_at: userData.created_at,
         updated_at: userData.updated_at,
         app_metadata: {},
-        user_metadata: {}
+        user_metadata: {
+          nome: userData.nome,
+          tipo: userData.tipo,
+          whatsapp: userData.whatsapp
+        }
       } as User;
 
       const fakeSession = {
@@ -187,7 +149,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const logout = () => {
+  const logout = async () => {
     setUser(null);
     setSession(null);
     toast({

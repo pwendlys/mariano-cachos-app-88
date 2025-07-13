@@ -51,12 +51,8 @@ const Profile = () => {
     }
   ];
 
-  const handleLogout = () => {
-    logout();
-    toast({
-      title: "Logout realizado!",
-      description: "Você foi desconectado com sucesso.",
-    });
+  const handleLogout = async () => {
+    await logout();
     navigate('/auth');
   };
 
