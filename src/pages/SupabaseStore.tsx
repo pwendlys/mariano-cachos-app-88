@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { useSharedCart } from '@/hooks/useSharedCart';
-import { useSupabaseProducts } from '@/hooks/useSupabaseProducts';
+import { useSupabaseProducts, Product } from '@/hooks/useSupabaseProducts';
 import { useNavigate } from 'react-router-dom';
 
 const SupabaseStore = () => {
@@ -23,17 +23,17 @@ const SupabaseStore = () => {
 
   const categories = [
     { id: 'all', name: 'Todos', count: products.length },
-    { id: 'shampoo', name: 'Shampoos', count: products.filter(p => p.categoria === 'shampoo').length },
-    { id: 'mascara', name: 'Máscaras', count: products.filter(p => p.categoria === 'mascara').length },
-    { id: 'oleo', name: 'Óleos', count: products.filter(p => p.categoria === 'oleo').length },
-    { id: 'creme', name: 'Cremes', count: products.filter(p => p.categoria === 'creme').length },
-    { id: 'condicionador', name: 'Condicionadores', count: products.filter(p => p.categoria === 'condicionador').length },
+    { id: 'shampoo', name: 'Shampoos', count: products.filter(p => p.category === 'shampoo').length },
+    { id: 'mascara', name: 'Máscaras', count: products.filter(p => p.category === 'mascara').length },
+    { id: 'oleo', name: 'Óleos', count: products.filter(p => p.category === 'oleo').length },
+    { id: 'creme', name: 'Cremes', count: products.filter(p => p.category === 'creme').length },
+    { id: 'condicionador', name: 'Condicionadores', count: products.filter(p => p.category === 'condicionador').length },
   ];
 
   const filteredProducts = products.filter(product => {
-    const matchesSearch = product.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         product.marca.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = selectedCategory === 'all' || product.categoria === selectedCategory;
+    const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         product.brand.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesCategory = selectedCategory === 'all' || product.category === selectedCategory;
     return matchesSearch && matchesCategory;
   });
 
@@ -50,13 +50,13 @@ const SupabaseStore = () => {
     }));
   };
 
-  const handleAddToCart = (product: typeof products[0]) => {
+  const handleAddToCart = (product: Product) => {
     const quantity = getProductQuantity(product.id);
     
-    if (product.estoque < quantity) {
+    if (product.stock < quantity) {
       toast({
         title: "Estoque insuficiente",
-        description: `Apenas ${product.estoque} unidades disponíveis.`,
+        description: `Apenas ${product.stock} unidades disponíveis.`,
         variant: "destructive",
       });
       return;
@@ -64,15 +64,15 @@ const SupabaseStore = () => {
 
     addToCart({
       id: product.id,
-      name: product.nome,
-      brand: product.marca,
-      price: product.preco,
-      image: product.imagem
+      name: product.name,
+      brand: product.brand,
+      price: product.price,
+      image: product.image
     }, quantity);
     
     toast({
       title: "Produto adicionado! 🛒",
-      description: `${quantity}x ${product.nome} adicionado ao carrinho.`,
+      description: `${quantity}x ${product.name} adicionado ao carrinho.`,
     });
   };
 
@@ -92,9 +92,9 @@ const SupabaseStore = () => {
     }
   };
 
-  const ProductCard = ({ product }: { product: typeof products[0] }) => {
-    const isLowStock = product.estoque <= product.estoque_minimo;
-    const isOutOfStock = product.estoque === 0;
+  const ProductCard = ({ product }: { product: Product }) => {
+    const isLowStock = product.stock <= product.minStock;
+    const isOutOfStock = product.stock === 0;
 
     return (
       <Card className={`glass-card border-salon-gold/20 hover:border-salon-gold/40 transition-all duration-300 group ${
@@ -104,10 +104,10 @@ const SupabaseStore = () => {
           <div className={`${viewMode === 'list' ? 'flex items-center space-x-4' : 'space-y-3'}`}>
             <div className={`relative ${viewMode === 'list' ? 'w-20 h-20 flex-shrink-0' : 'mb-3'}`}>
               <div className={`${viewMode === 'list' ? 'w-20 h-20' : 'aspect-square'} bg-gradient-to-br from-salon-gold/20 to-salon-copper/20 rounded-lg overflow-hidden`}>
-                {product.imagem ? (
+                {product.image ? (
                   <img 
-                    src={product.imagem} 
-                    alt={product.nome}
+                    src={product.image} 
+                    alt={product.name}
                     className="w-full h-full object-cover"
                   />
                 ) : (
@@ -140,14 +140,14 @@ const SupabaseStore = () => {
               <div className={viewMode === 'list' ? 'flex items-start justify-between' : 'space-y-2'}>
                 <div className={viewMode === 'list' ? 'flex-1 pr-4' : ''}>
                   <h3 className={`font-semibold text-white ${viewMode === 'list' ? 'text-base' : 'text-sm'} line-clamp-2`}>
-                    {product.nome}
+                    {product.name}
                   </h3>
                   <p className={`${viewMode === 'list' ? 'text-sm' : 'text-xs'} text-salon-copper`}>
-                    {product.marca}
+                    {product.brand}
                   </p>
                   
                   <div className="flex items-center space-x-2 mt-1">
-                    <span className="text-salon-gold font-bold">R$ {product.preco.toFixed(2)}</span>
+                    <span className="text-salon-gold font-bold">R$ {product.price.toFixed(2)}</span>
                     {isLowStock && !isOutOfStock && (
                       <Badge variant="secondary" className="bg-orange-500/20 text-orange-300 text-xs">
                         <AlertTriangle size={10} className="mr-1" />
@@ -159,13 +159,13 @@ const SupabaseStore = () => {
                   <div className="flex items-center space-x-1 mt-1">
                     <Package size={12} className="text-salon-gold" />
                     <span className="text-xs text-muted-foreground">
-                      Estoque: {product.estoque}
+                      Estoque: {product.stock}
                     </span>
                   </div>
 
-                  {viewMode === 'list' && product.descricao && (
+                  {viewMode === 'list' && product.description && (
                     <p className="text-sm text-muted-foreground mt-2 line-clamp-2">
-                      {product.descricao}
+                      {product.description}
                     </p>
                   )}
                 </div>
@@ -192,7 +192,7 @@ const SupabaseStore = () => {
                       size="icon"
                       className="h-6 w-6 text-salon-gold hover:bg-salon-gold/20"
                       onClick={() => updateQuantity(product.id, 1)}
-                      disabled={getProductQuantity(product.id) >= product.estoque}
+                      disabled={getProductQuantity(product.id) >= product.stock}
                     >
                       <Plus size={12} />
                     </Button>
@@ -211,8 +211,8 @@ const SupabaseStore = () => {
                 </div>
               </div>
 
-              {viewMode === 'grid' && product.descricao && (
-                <p className="text-xs text-muted-foreground line-clamp-2">{product.descricao}</p>
+              {viewMode === 'grid' && product.description && (
+                <p className="text-xs text-muted-foreground line-clamp-2">{product.description}</p>
               )}
             </div>
           </div>

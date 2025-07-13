@@ -20,10 +20,54 @@ export interface SupabaseProduct {
   updated_at?: string;
 }
 
+// Interface compatible with the original Product from useSharedProducts
+export interface Product {
+  id: string;
+  name: string;
+  brand: string;
+  description: string;
+  price: number;
+  stock: number;
+  minStock: number;
+  category: string;
+  image?: string;
+  costPrice?: number;
+}
+
+// Helper functions to convert between interfaces
+const convertToProduct = (supabaseProduct: SupabaseProduct): Product => ({
+  id: supabaseProduct.id,
+  name: supabaseProduct.nome,
+  brand: supabaseProduct.marca,
+  description: supabaseProduct.descricao || '',
+  price: supabaseProduct.preco,
+  stock: supabaseProduct.estoque,
+  minStock: supabaseProduct.estoque_minimo,
+  category: supabaseProduct.categoria,
+  image: supabaseProduct.imagem,
+  costPrice: supabaseProduct.preco_custo,
+});
+
+const convertFromProduct = (product: Product): Omit<SupabaseProduct, 'id' | 'created_at' | 'updated_at' | 'ativo'> => ({
+  nome: product.name,
+  marca: product.brand,
+  descricao: product.description,
+  preco: product.price,
+  estoque: product.stock,
+  estoque_minimo: product.minStock,
+  categoria: product.category,
+  imagem: product.image,
+  preco_custo: product.costPrice,
+  codigo_barras: '',
+});
+
 export const useSupabaseProducts = () => {
-  const [products, setProducts] = useState<SupabaseProduct[]>([]);
+  const [supabaseProducts, setSupabaseProducts] = useState<SupabaseProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
+
+  // Convert Supabase products to the expected Product interface
+  const products: Product[] = supabaseProducts.map(convertToProduct);
 
   const fetchProducts = async () => {
     try {
@@ -35,7 +79,7 @@ export const useSupabaseProducts = () => {
         .order('nome');
 
       if (error) throw error;
-      setProducts(data || []);
+      setSupabaseProducts(data || []);
     } catch (error) {
       console.error('Erro ao buscar produtos:', error);
       toast({
@@ -52,24 +96,93 @@ export const useSupabaseProducts = () => {
     fetchProducts();
   }, []);
 
-  const updateProductStock = async (productId: string, newStock: number) => {
+  const addProduct = async (product: Product) => {
+    try {
+      const productData = convertFromProduct(product);
+      const { error } = await supabase
+        .from('produtos')
+        .insert([{ ...productData, ativo: true }]);
+
+      if (error) throw error;
+      await fetchProducts();
+    } catch (error) {
+      console.error('Erro ao adicionar produto:', error);
+      toast({
+        title: "Erro ao adicionar produto",
+        description: "Não foi possível adicionar o produto.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const updateProduct = async (productId: string, updatedProduct: Product) => {
+    try {
+      const productData = convertFromProduct(updatedProduct);
+      const { error } = await supabase
+        .from('produtos')
+        .update(productData)
+        .eq('id', productId);
+
+      if (error) throw error;
+      await fetchProducts();
+    } catch (error) {
+      console.error('Erro ao atualizar produto:', error);
+      toast({
+        title: "Erro ao atualizar produto",
+        description: "Não foi possível atualizar o produto.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const deleteProduct = async (productId: string) => {
     try {
       const { error } = await supabase
         .from('produtos')
-        .update({ estoque: newStock })
+        .update({ ativo: false })
+        .eq('id', productId);
+
+      if (error) throw error;
+      await fetchProducts();
+    } catch (error) {
+      console.error('Erro ao deletar produto:', error);
+      toast({
+        title: "Erro ao deletar produto",
+        description: "Não foi possível deletar o produto.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const updateProductStock = async (productId: string, newStock: number, newCostPrice?: number) => {
+    try {
+      const updateData: any = { estoque: newStock };
+      if (newCostPrice !== undefined) {
+        updateData.preco_custo = newCostPrice;
+      }
+
+      const { error } = await supabase
+        .from('produtos')
+        .update(updateData)
         .eq('id', productId);
 
       if (error) throw error;
 
       // Registrar movimentação de estoque
-      await supabase
-        .from('movimentacao_estoque')
-        .insert({
-          produto_id: productId,
-          tipo: 'entrada',
-          quantidade: newStock,
-          motivo: 'Ajuste de estoque',
-        });
+      const product = supabaseProducts.find(p => p.id === productId);
+      if (product) {
+        const quantityDiff = newStock - product.estoque;
+        if (quantityDiff !== 0) {
+          await supabase
+            .from('movimentacao_estoque')
+            .insert({
+              produto_id: productId,
+              tipo: quantityDiff > 0 ? 'entrada' : 'saida',
+              quantidade: Math.abs(quantityDiff),
+              motivo: quantityDiff > 0 ? 'Entrada de estoque' : 'Ajuste de estoque',
+            });
+        }
+      }
 
       await fetchProducts();
       toast({
@@ -90,6 +203,9 @@ export const useSupabaseProducts = () => {
     products,
     loading,
     fetchProducts,
+    addProduct,
+    updateProduct,
+    deleteProduct,
     updateProductStock,
   };
 };

@@ -7,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
-import { useSupabaseProducts } from '@/hooks/useSupabaseProducts';
+import { useSupabaseProducts, Product } from '@/hooks/useSupabaseProducts';
 
 const Profile = () => {
   const { toast } = useToast();
@@ -205,11 +205,11 @@ const Profile = () => {
                   <Card key={product.id} className="glass-card border-salon-gold/20">
                     <CardContent className="p-4">
                       <div className="flex items-start space-x-4">
-                        {product.imagem && (
+                        {product.image && (
                           <div className="flex-shrink-0">
                             <img 
-                              src={product.imagem} 
-                              alt={product.nome}
+                              src={product.image} 
+                              alt={product.name}
                               className="w-20 h-20 object-cover rounded-lg"
                               onError={(e) => {
                                 e.currentTarget.style.display = 'none';
@@ -219,23 +219,23 @@ const Profile = () => {
                         )}
                         
                         <div className="flex-1">
-                          <h3 className="font-semibold text-white text-lg">{product.nome}</h3>
-                          <p className="text-sm text-salon-copper">{product.marca}</p>
-                          <p className="text-sm text-muted-foreground mt-1">{product.descricao}</p>
+                          <h3 className="font-semibold text-white text-lg">{product.name}</h3>
+                          <p className="text-sm text-salon-copper">{product.brand}</p>
+                          <p className="text-sm text-muted-foreground mt-1">{product.description}</p>
                           
                           <div className="flex items-center space-x-4 mt-3">
                             <span className="text-salon-gold font-bold text-lg">
-                              R$ {product.preco.toFixed(2)}
+                              R$ {product.price.toFixed(2)}
                             </span>
                             <span className={`text-sm px-2 py-1 rounded ${
-                              product.estoque > 0
+                              product.stock > 0
                                 ? 'bg-green-500/20 text-green-400' 
                                 : 'bg-red-500/20 text-red-400'
                             }`}>
-                              {product.estoque > 0 ? `${product.estoque} disponível` : 'Esgotado'}
+                              {product.stock > 0 ? `${product.stock} disponível` : 'Esgotado'}
                             </span>
                             <span className="text-xs text-muted-foreground capitalize">
-                              {product.categoria}
+                              {product.category}
                             </span>
                           </div>
                         </div>
@@ -243,7 +243,7 @@ const Profile = () => {
                         <div className="flex flex-col space-y-2">
                           <Button
                             size="sm"
-                            disabled={product.estoque === 0}
+                            disabled={product.stock === 0}
                             className="bg-salon-gold hover:bg-salon-copper text-salon-dark font-medium h-10"
                             onClick={() => navigate('/loja')}
                           >

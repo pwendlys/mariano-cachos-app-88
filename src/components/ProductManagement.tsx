@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
-import { useSharedProducts, Product } from '@/hooks/useSharedProducts';
+import { useSupabaseProducts, Product } from '@/hooks/useSupabaseProducts';
 
 interface ProductManagementProps {
   onStockEntry?: (productName: string, quantity: number, unitCost: number) => void;
@@ -14,7 +14,7 @@ interface ProductManagementProps {
 
 const ProductManagement: React.FC<ProductManagementProps> = ({ onStockEntry }) => {
   const { toast } = useToast();
-  const { products, addProduct, updateProduct, deleteProduct, updateProductStock } = useSharedProducts();
+  const { products, loading, addProduct, updateProduct, deleteProduct, updateProductStock } = useSupabaseProducts();
 
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
