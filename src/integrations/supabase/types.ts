@@ -14,9 +14,34 @@ export type Database = {
   }
   public: {
     Tables: {
+      abacate_config: {
+        Row: {
+          api_key: string
+          created_at: string | null
+          id: string
+          updated_at: string | null
+          webhook_url: string | null
+        }
+        Insert: {
+          api_key: string
+          created_at?: string | null
+          id?: string
+          updated_at?: string | null
+          webhook_url?: string | null
+        }
+        Update: {
+          api_key?: string
+          created_at?: string | null
+          id?: string
+          updated_at?: string | null
+          webhook_url?: string | null
+        }
+        Relationships: []
+      }
       agendamentos: {
         Row: {
           chave_pix: string | null
+          chave_pix_abacate: string | null
           cliente_id: string
           comprovante_pix: string | null
           created_at: string
@@ -24,14 +49,17 @@ export type Database = {
           horario: string
           id: string
           observacoes: string | null
+          qr_code_data: string | null
           servico_id: string
           status: string
           status_pagamento: string | null
+          transaction_id: string | null
           updated_at: string
           valor: number | null
         }
         Insert: {
           chave_pix?: string | null
+          chave_pix_abacate?: string | null
           cliente_id: string
           comprovante_pix?: string | null
           created_at?: string
@@ -39,14 +67,17 @@ export type Database = {
           horario: string
           id?: string
           observacoes?: string | null
+          qr_code_data?: string | null
           servico_id: string
           status?: string
           status_pagamento?: string | null
+          transaction_id?: string | null
           updated_at?: string
           valor?: number | null
         }
         Update: {
           chave_pix?: string | null
+          chave_pix_abacate?: string | null
           cliente_id?: string
           comprovante_pix?: string | null
           created_at?: string
@@ -54,9 +85,11 @@ export type Database = {
           horario?: string
           id?: string
           observacoes?: string | null
+          qr_code_data?: string | null
           servico_id?: string
           status?: string
           status_pagamento?: string | null
+          transaction_id?: string | null
           updated_at?: string
           valor?: number | null
         }

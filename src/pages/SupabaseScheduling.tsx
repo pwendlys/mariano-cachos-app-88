@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Calendar, Clock, User, MessageSquare, Check, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -7,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { useSupabaseScheduling } from '@/hooks/useSupabaseScheduling';
 import { useAuth } from '@/hooks/useAuth';
-import PIXPaymentStep from '@/components/PIXPaymentStep';
+import PIXPaymentPopup from '@/components/PIXPaymentPopup';
 
 const SupabaseScheduling = () => {
   const { services, createAppointment, isSlotAvailable, getSlotStatus, loading } = useSupabaseScheduling();
@@ -21,6 +20,10 @@ const SupabaseScheduling = () => {
   const [clientEmail, setClientEmail] = useState('');
   const [clientPhone, setClientPhone] = useState('');
   const [observations, setObservations] = useState('');
+  const [showPixPopup, setShowPixPopup] = useState(false);
+
+  // Fixed deposit amount of 50 reais
+  const DEPOSIT_AMOUNT = 50.00;
 
   // Pre-fill user data if logged in
   useEffect(() => {
@@ -40,12 +43,10 @@ const SupabaseScheduling = () => {
     return services.find(s => s.id === selectedService);
   };
 
-  // Sempre retorna todos os horários disponíveis
   const getAvailableTimes = () => {
     return baseAvailableTimes;
   };
 
-  // Função para obter a cor do botão baseada no status
   const getTimeButtonClass = (time: string) => {
     if (!selectedDate) {
       return 'border-salon-gold/30 text-salon-gold hover:bg-salon-gold/10';
@@ -62,12 +63,11 @@ const SupabaseScheduling = () => {
         return 'bg-red-600/20 border-red-600/50 text-red-400 hover:bg-red-600/30';
       case 'pendente':
         return 'bg-yellow-600/20 border-yellow-600/50 text-yellow-400 hover:bg-yellow-600/30';
-      default: // 'livre'
+      default:
         return 'border-salon-gold/30 text-salon-gold hover:bg-salon-gold/10';
     }
   };
 
-  // Função para verificar se um horário pode ser selecionado
   const canSelectTime = (time: string) => {
     if (!selectedDate || !selectedService) return false;
     
@@ -87,7 +87,7 @@ const SupabaseScheduling = () => {
   };
 
   const handleNextStep = () => {
-    if (currentStep < 5) {
+    if (currentStep < 4) {
       setCurrentStep(currentStep + 1);
     }
   };
@@ -98,15 +98,13 @@ const SupabaseScheduling = () => {
     }
   };
 
-  const handlePaymentConfirm = async (pixKey: string, proofFile?: File): Promise<boolean> => {
+  const handleProceedToPayment = () => {
+    setShowPixPopup(true);
+  };
+
+  const handlePaymentConfirm = async (pixKey: string, qrCodeData?: string, transactionId?: string): Promise<boolean> => {
     if (!selectedService || !selectedDate || !selectedTime || !clientName || !clientEmail || !clientPhone) {
       return false;
-    }
-
-    // Convert file to base64 if provided (simplified for this example)
-    let proofData = undefined;
-    if (proofFile) {
-      proofData = proofFile.name; // In a real app, you'd upload to storage
     }
 
     const success = await createAppointment({
@@ -118,7 +116,10 @@ const SupabaseScheduling = () => {
       clientPhone,
       observacoes: observations,
       chave_pix: pixKey,
-      comprovante_pix: proofData
+      chave_pix_abacate: pixKey,
+      qr_code_data: qrCodeData,
+      transaction_id: transactionId,
+      comprovante_pix: undefined
     });
 
     if (success) {
@@ -133,6 +134,7 @@ const SupabaseScheduling = () => {
         setClientPhone('');
       }
       setObservations('');
+      setShowPixPopup(false);
     }
 
     return success;
@@ -152,7 +154,7 @@ const SupabaseScheduling = () => {
       {/* Progress Indicator */}
       <div className="flex justify-center mb-8">
         <div className="flex items-center space-x-2">
-          {[1, 2, 3, 4, 5].map((step) => (
+          {[1, 2, 3, 4].map((step) => (
             <div
               key={step}
               className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold transition-all ${
@@ -287,7 +289,7 @@ const SupabaseScheduling = () => {
         </Card>
       )}
 
-      {/* Step 4: Contact Info */}
+      {/* Step 4: Contact Info and Summary */}
       {currentStep === 4 && (
         <div className="space-y-6">
           <Card className="glass-card border-salon-gold/20">
@@ -382,9 +384,21 @@ const SupabaseScheduling = () => {
                     <span className="text-white font-medium">{formatDuration(getSelectedService()!.duracao)}</span>
                   </div>
                   <div className="flex justify-between items-center pt-2 border-t border-salon-gold/30">
-                    <span className="text-muted-foreground">Valor:</span>
+                    <span className="text-muted-foreground">Valor Total:</span>
                     <span className="text-salon-gold font-bold text-xl">
                       R$ {getSelectedService()!.preco.toFixed(2)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-muted-foreground">Sinal (PIX):</span>
+                    <span className="text-salon-copper font-medium">
+                      R$ {DEPOSIT_AMOUNT.toFixed(2)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-muted-foreground">Restante no dia:</span>
+                    <span className="text-white font-medium">
+                      R$ {(getSelectedService()!.preco - DEPOSIT_AMOUNT).toFixed(2)}
                     </span>
                   </div>
                 </>
@@ -392,16 +406,6 @@ const SupabaseScheduling = () => {
             </CardContent>
           </Card>
         </div>
-      )}
-
-      {/* Step 5: PIX Payment */}
-      {currentStep === 5 && getSelectedService() && (
-        <PIXPaymentStep
-          amount={getSelectedService()!.preco}
-          serviceName={getSelectedService()!.nome}
-          onPaymentConfirm={handlePaymentConfirm}
-          loading={loading}
-        />
       )}
 
       {/* Navigation Buttons */}
@@ -417,7 +421,7 @@ const SupabaseScheduling = () => {
           </Button>
         )}
         
-        {currentStep < 5 && currentStep !== 4 && (
+        {currentStep < 4 && (
           <Button
             onClick={handleNextStep}
             disabled={
@@ -434,7 +438,7 @@ const SupabaseScheduling = () => {
         
         {currentStep === 4 && (
           <Button
-            onClick={handleNextStep}
+            onClick={handleProceedToPayment}
             disabled={
               (!user && (!clientName || !clientEmail || !clientPhone)) ||
               loading
@@ -445,6 +449,18 @@ const SupabaseScheduling = () => {
           </Button>
         )}
       </div>
+
+      {/* PIX Payment Popup */}
+      <PIXPaymentPopup
+        isOpen={showPixPopup}
+        onClose={() => setShowPixPopup(false)}
+        amount={DEPOSIT_AMOUNT}
+        serviceName={getSelectedService()?.nome || ''}
+        customerName={clientName}
+        customerEmail={clientEmail}
+        customerPhone={clientPhone}
+        onPaymentConfirm={handlePaymentConfirm}
+      />
     </div>
   );
 };

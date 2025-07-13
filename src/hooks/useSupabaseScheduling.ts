@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -16,7 +15,7 @@ export interface Client {
 export interface Service {
   id: string;
   nome: string;
-  duracao: number; // em minutos
+  duracao: number;
   preco: number;
   categoria: 'corte' | 'coloracao' | 'tratamento' | 'finalizacao' | 'outros';
   ativo: boolean;
@@ -32,9 +31,13 @@ export interface Appointment {
   status: 'pendente' | 'confirmado' | 'concluido' | 'rejeitado';
   valor?: number;
   observacoes?: string;
+  chave_pix?: string;
+  chave_pix_abacate?: string;
+  qr_code_data?: string;
+  transaction_id?: string;
+  comprovante_pix?: string;
   created_at?: string;
   updated_at?: string;
-  // Relations
   cliente?: Client;
   servico?: Service;
 }
@@ -45,7 +48,6 @@ export const useSupabaseScheduling = () => {
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
-  // Fetch services
   const fetchServices = async () => {
     try {
       const { data, error } = await supabase
@@ -55,7 +57,6 @@ export const useSupabaseScheduling = () => {
         .order('nome');
 
       if (error) throw error;
-      // Type assertion to ensure proper types
       setServices((data || []) as Service[]);
     } catch (error) {
       console.error('Error fetching services:', error);
@@ -67,7 +68,6 @@ export const useSupabaseScheduling = () => {
     }
   };
 
-  // Fetch appointments
   const fetchAppointments = async () => {
     try {
       const { data, error } = await supabase
@@ -81,7 +81,6 @@ export const useSupabaseScheduling = () => {
         .order('horario', { ascending: true });
 
       if (error) throw error;
-      // Type assertion to ensure proper types
       setAppointments((data || []) as Appointment[]);
     } catch (error) {
       console.error('Error fetching appointments:', error);
@@ -93,10 +92,8 @@ export const useSupabaseScheduling = () => {
     }
   };
 
-  // Create or get client
   const createOrGetClient = async (clientData: Omit<Client, 'id'>): Promise<string | null> => {
     try {
-      // First try to find existing client by email
       const { data: existingClient } = await supabase
         .from('clientes')
         .select('id')
@@ -107,7 +104,6 @@ export const useSupabaseScheduling = () => {
         return existingClient.id;
       }
 
-      // Create new client
       const { data, error } = await supabase
         .from('clientes')
         .insert([clientData])
@@ -122,7 +118,6 @@ export const useSupabaseScheduling = () => {
     }
   };
 
-  // Create appointment
   const createAppointment = async (appointmentData: {
     serviceId: string;
     data: string;
@@ -132,11 +127,13 @@ export const useSupabaseScheduling = () => {
     clientPhone: string;
     observacoes?: string;
     chave_pix?: string;
+    chave_pix_abacate?: string;
+    qr_code_data?: string;
+    transaction_id?: string;
     comprovante_pix?: string;
   }): Promise<boolean> => {
     setLoading(true);
     try {
-      // Create or get client
       const clientId = await createOrGetClient({
         nome: appointmentData.clientName,
         email: appointmentData.clientEmail,
@@ -147,13 +144,11 @@ export const useSupabaseScheduling = () => {
         throw new Error('Não foi possível criar/obter cliente');
       }
 
-      // Get service price
       const service = services.find(s => s.id === appointmentData.serviceId);
       if (!service) {
         throw new Error('Serviço não encontrado');
       }
 
-      // Create appointment
       const { error } = await supabase
         .from('agendamentos')
         .insert([{
@@ -166,17 +161,19 @@ export const useSupabaseScheduling = () => {
           status: 'pendente',
           status_pagamento: appointmentData.chave_pix ? 'pago' : 'pendente',
           chave_pix: appointmentData.chave_pix,
+          chave_pix_abacate: appointmentData.chave_pix_abacate,
+          qr_code_data: appointmentData.qr_code_data,
+          transaction_id: appointmentData.transaction_id,
           comprovante_pix: appointmentData.comprovante_pix
         }]);
 
       if (error) throw error;
 
-      // Refresh appointments
       await fetchAppointments();
       
       toast({
         title: "Agendamento enviado! ✨",
-        description: "Seu agendamento foi enviado e aguarda aprovação do administrador.",
+        description: "Seu agendamento foi enviado e o sinal foi processado. Aguarde a aprovação do administrador.",
       });
 
       return true;
@@ -193,16 +190,14 @@ export const useSupabaseScheduling = () => {
     }
   };
 
-  // Check if slot is available (just check for overlapping appointments, regardless of status)
   const isSlotAvailable = (date: string, time: string, serviceDuration: number): boolean => {
     const [startHour, startMinute] = time.split(':').map(Number);
     const startTimeInMinutes = startHour * 60 + startMinute;
     const endTimeInMinutes = startTimeInMinutes + serviceDuration;
 
-    // Check if any appointment (regardless of status) overlaps with this time slot
     const dayAppointments = appointments.filter(apt => 
       apt.data === date && 
-      (apt.status === 'confirmado' || apt.status === 'pendente') // Only confirmed or pending appointments block slots
+      (apt.status === 'confirmado' || apt.status === 'pendente')
     );
 
     for (const appointment of dayAppointments) {
@@ -210,7 +205,6 @@ export const useSupabaseScheduling = () => {
       const aptStartTime = aptHour * 60 + aptMinute;
       const aptEndTime = aptStartTime + (appointment.servico?.duracao || 0);
 
-      // Check for overlap
       if (
         (startTimeInMinutes < aptEndTime && endTimeInMinutes > aptStartTime) ||
         (aptStartTime < endTimeInMinutes && aptEndTime > startTimeInMinutes)
@@ -221,12 +215,11 @@ export const useSupabaseScheduling = () => {
 
     return true;
   };
-  // Get appointment status for a specific time slot (for coloring)
+
   const getSlotStatus = (date: string, time: string): 'livre' | 'ocupado' | 'pendente' => {
     const [startHour, startMinute] = time.split(':').map(Number);
     const startTimeInMinutes = startHour * 60 + startMinute;
 
-    // Find appointment that starts at this exact time
     const appointment = appointments.find(apt => {
       if (apt.data !== date) return false;
       
@@ -244,7 +237,6 @@ export const useSupabaseScheduling = () => {
     return 'livre';
   };
 
-  // Initialize data
   useEffect(() => {
     fetchServices();
     fetchAppointments();
