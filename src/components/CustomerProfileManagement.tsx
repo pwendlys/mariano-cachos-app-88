@@ -9,9 +9,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plus, User, DollarSign, History, AlertTriangle, CheckCircle, RefreshCw } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Plus, User, DollarSign, History, AlertTriangle, CheckCircle, RefreshCw, X } from 'lucide-react';
 import { useCustomerProfiles } from '@/hooks/useCustomerProfiles';
 import { useSupabaseScheduling } from '@/hooks/useSupabaseScheduling';
+import { useSupabaseProducts } from '@/hooks/useSupabaseProducts';
 import { format } from 'date-fns';
 
 const CustomerProfileManagement = () => {
@@ -26,6 +28,7 @@ const CustomerProfileManagement = () => {
   } = useCustomerProfiles();
   
   const { appointments, services } = useSupabaseScheduling();
+  const { products } = useSupabaseProducts();
 
   const [isHistoricoDialogOpen, setIsHistoricoDialogOpen] = useState(false);
   const [selectedHistorico, setSelectedHistorico] = useState<any>(null);
@@ -34,10 +37,11 @@ const CustomerProfileManagement = () => {
   const [historicoForm, setHistoricoForm] = useState({
     cliente_id: '',
     agendamento_id: '',
-    servicos_extras: [],
-    produtos_vendidos: [],
+    servicos_selecionados: [] as string[],
+    produtos_selecionados: [] as string[],
     valor_servicos_extras: '',
     valor_produtos: '',
+    valor_pendente: '',
     observacoes: '',
     status: 'pendente' as const
   });
@@ -53,22 +57,70 @@ const CustomerProfileManagement = () => {
     }
   };
 
+  const handleServicoToggle = (servicoId: string) => {
+    setHistoricoForm(prev => ({
+      ...prev,
+      servicos_selecionados: prev.servicos_selecionados.includes(servicoId)
+        ? prev.servicos_selecionados.filter(id => id !== servicoId)
+        : [...prev.servicos_selecionados, servicoId]
+    }));
+  };
+
+  const handleProdutoToggle = (produtoId: string) => {
+    setHistoricoForm(prev => ({
+      ...prev,
+      produtos_selecionados: prev.produtos_selecionados.includes(produtoId)
+        ? prev.produtos_selecionados.filter(id => id !== produtoId)
+        : [...prev.produtos_selecionados, produtoId]
+    }));
+  };
+
+  const calcularTotalServicos = () => {
+    const servicosSelecionados = services.filter(s => 
+      historicoForm.servicos_selecionados.includes(s.id)
+    );
+    const totalServicos = servicosSelecionados.reduce((sum, s) => sum + s.preco, 0);
+    const valorExtra = parseFloat(historicoForm.valor_servicos_extras) || 0;
+    return totalServicos + valorExtra;
+  };
+
+  const calcularTotalProdutos = () => {
+    const produtosSelecionados = products.filter(p => 
+      historicoForm.produtos_selecionados.includes(p.id)
+    );
+    const totalProdutos = produtosSelecionados.reduce((sum, p) => sum + p.price, 0);
+    const valorExtra = parseFloat(historicoForm.valor_produtos) || 0;
+    return totalProdutos + valorExtra;
+  };
+
   const handleCreateHistorico = async () => {
     try {
+      const servicosSelecionados = services.filter(s => 
+        historicoForm.servicos_selecionados.includes(s.id)
+      ).map(s => ({ id: s.id, nome: s.nome, preco: s.preco }));
+
+      const produtosSelecionados = products.filter(p => 
+        historicoForm.produtos_selecionados.includes(p.id)
+      ).map(p => ({ id: p.id, nome: p.name, preco: p.price }));
+
       await createHistoricoAtendimento({
         ...historicoForm,
-        valor_servicos_extras: parseFloat(historicoForm.valor_servicos_extras) || 0,
-        valor_produtos: parseFloat(historicoForm.valor_produtos) || 0,
-        data_atendimento: new Date().toISOString()
+        servicos_extras: servicosSelecionados,
+        produtos_vendidos: produtosSelecionados,
+        valor_servicos_extras: calcularTotalServicos(),
+        valor_produtos: calcularTotalProdutos(),
+        data_atendimento: new Date().toISOString(),
+        observacoes: `${historicoForm.observacoes}${historicoForm.valor_pendente ? `\nValor pendente: R$ ${historicoForm.valor_pendente}` : ''}`
       });
       
       setHistoricoForm({
         cliente_id: '',
         agendamento_id: '',
-        servicos_extras: [],
-        produtos_vendidos: [],
+        servicos_selecionados: [],
+        produtos_selecionados: [],
         valor_servicos_extras: '',
         valor_produtos: '',
+        valor_pendente: '',
         observacoes: '',
         status: 'pendente'
       });
@@ -114,11 +166,11 @@ const CustomerProfileManagement = () => {
                 Novo Atendimento
               </Button>
             </DialogTrigger>
-            <DialogContent className="glass-card border-salon-gold/30 text-white max-w-2xl">
+            <DialogContent className="glass-card border-salon-gold/30 text-white max-w-4xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle className="text-salon-gold">Registrar Novo Atendimento</DialogTitle>
               </DialogHeader>
-              <div className="space-y-4">
+              <div className="space-y-6">
                 <div>
                   <Label>Agendamento Base</Label>
                   <Select value={historicoForm.agendamento_id} onValueChange={(value) => {
@@ -140,28 +192,98 @@ const CustomerProfileManagement = () => {
                     </SelectContent>
                   </Select>
                 </div>
-                
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label>Valor Serviços Extras</Label>
+
+                {/* Seção Serviços */}
+                <div>
+                  <Label className="text-salon-gold text-lg">Serviços Realizados</Label>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3">
+                    {services.map(servico => (
+                      <div key={servico.id} className="flex items-center space-x-3 p-3 glass-card rounded border border-salon-gold/20">
+                        <Checkbox
+                          checked={historicoForm.servicos_selecionados.includes(servico.id)}
+                          onCheckedChange={() => handleServicoToggle(servico.id)}
+                          className="border-salon-gold/50"
+                        />
+                        <div className="flex-1">
+                          <p className="text-white font-medium">{servico.nome}</p>
+                          <p className="text-sm text-salon-copper">R$ {servico.preco.toFixed(2)}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  
+                  <div className="mt-4">
+                    <Label>Valor Extra de Serviços</Label>
                     <Input
                       type="number"
                       step="0.01"
+                      placeholder="0.00"
                       value={historicoForm.valor_servicos_extras}
                       onChange={(e) => setHistoricoForm({...historicoForm, valor_servicos_extras: e.target.value})}
                       className="glass-card border-salon-gold/30 bg-transparent text-white"
                     />
                   </div>
-                  <div>
-                    <Label>Valor Produtos</Label>
+                  
+                  <div className="mt-2 p-3 bg-salon-gold/10 rounded">
+                    <p className="text-salon-gold font-bold">
+                      Total Serviços: R$ {calcularTotalServicos().toFixed(2)}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Seção Produtos */}
+                <div>
+                  <Label className="text-salon-gold text-lg">Produtos Vendidos</Label>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3">
+                    {products.map(produto => (
+                      <div key={produto.id} className="flex items-center space-x-3 p-3 glass-card rounded border border-salon-gold/20">
+                        <Checkbox
+                          checked={historicoForm.produtos_selecionados.includes(produto.id)}
+                          onCheckedChange={() => handleProdutoToggle(produto.id)}
+                          className="border-salon-gold/50"
+                        />
+                        <div className="flex-1">
+                          <p className="text-white font-medium">{produto.name}</p>
+                          <p className="text-sm text-salon-copper">R$ {produto.price.toFixed(2)}</p>
+                          <p className="text-xs text-muted-foreground">{produto.brand}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  
+                  <div className="mt-4">
+                    <Label>Valor Extra de Produtos</Label>
                     <Input
                       type="number"
                       step="0.01"
+                      placeholder="0.00"
                       value={historicoForm.valor_produtos}
                       onChange={(e) => setHistoricoForm({...historicoForm, valor_produtos: e.target.value})}
                       className="glass-card border-salon-gold/30 bg-transparent text-white"
                     />
                   </div>
+                  
+                  <div className="mt-2 p-3 bg-salon-gold/10 rounded">
+                    <p className="text-salon-gold font-bold">
+                      Total Produtos: R$ {calcularTotalProdutos().toFixed(2)}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Valor Pendente */}
+                <div>
+                  <Label className="text-red-400">Valor Pendente (Ficou Faltando)</Label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    placeholder="0.00"
+                    value={historicoForm.valor_pendente}
+                    onChange={(e) => setHistoricoForm({...historicoForm, valor_pendente: e.target.value})}
+                    className="glass-card border-red-400/30 bg-transparent text-white"
+                  />
+                  <p className="text-xs text-red-400/70 mt-1">
+                    Informe o valor que o cliente ainda precisa pagar
+                  </p>
                 </div>
 
                 <div>
@@ -185,7 +307,35 @@ const CustomerProfileManagement = () => {
                     onChange={(e) => setHistoricoForm({...historicoForm, observacoes: e.target.value})}
                     className="glass-card border-salon-gold/30 bg-transparent text-white"
                     rows={3}
+                    placeholder="Observações sobre o atendimento..."
                   />
+                </div>
+
+                {/* Resumo Total */}
+                <div className="p-4 bg-salon-gold/20 rounded-lg border border-salon-gold/30">
+                  <h4 className="text-salon-gold font-bold mb-2">Resumo Financeiro</h4>
+                  <div className="space-y-1 text-sm">
+                    <div className="flex justify-between">
+                      <span>Total Serviços:</span>
+                      <span className="text-salon-gold">R$ {calcularTotalServicos().toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Total Produtos:</span>
+                      <span className="text-salon-gold">R$ {calcularTotalProdutos().toFixed(2)}</span>
+                    </div>
+                    {historicoForm.valor_pendente && (
+                      <div className="flex justify-between text-red-400">
+                        <span>Valor Pendente:</span>
+                        <span>R$ {parseFloat(historicoForm.valor_pendente || '0').toFixed(2)}</span>
+                      </div>
+                    )}
+                    <div className="flex justify-between border-t border-salon-gold/30 pt-2 font-bold">
+                      <span>Total Geral:</span>
+                      <span className="text-salon-gold">
+                        R$ {(calcularTotalServicos() + calcularTotalProdutos()).toFixed(2)}
+                      </span>
+                    </div>
+                  </div>
                 </div>
 
                 <div className="flex space-x-3">
@@ -247,7 +397,6 @@ const CustomerProfileManagement = () => {
         </Card>
       </div>
 
-      {/* Tabs */}
       <Tabs defaultValue="historico" className="space-y-4">
         <TabsList className="glass-card">
           <TabsTrigger value="historico">Histórico de Atendimentos</TabsTrigger>
