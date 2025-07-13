@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Calendar, Clock, User, MessageSquare, Check, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -5,11 +6,13 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { useSupabaseScheduling } from '@/hooks/useSupabaseScheduling';
+import { useSharedServices } from '@/hooks/useSharedServices';
 import { useAuth } from '@/hooks/useAuth';
 import PIXPaymentPopup from '@/components/PIXPaymentPopup';
 
 const SupabaseScheduling = () => {
-  const { services, createAppointment, isSlotAvailable, getSlotStatus, loading } = useSupabaseScheduling();
+  const { createAppointment, isSlotAvailable, getSlotStatus, loading } = useSupabaseScheduling();
+  const { services } = useSharedServices(); // Use services from admin panel
   const { user } = useAuth();
   
   const [currentStep, setCurrentStep] = useState(1);
@@ -79,7 +82,7 @@ const SupabaseScheduling = () => {
     const service = getSelectedService();
     if (!service) return false;
     
-    return isSlotAvailable(selectedDate, time, service.duracao);
+    return isSlotAvailable(selectedDate, time, service.duration);
   };
 
   const formatDuration = (minutes: number) => {
@@ -217,23 +220,39 @@ const SupabaseScheduling = () => {
                   }`}
                   onClick={() => setSelectedService(service.id)}
                 >
-                  <div className="flex items-center justify-between mb-2">
-                    <h3 className="font-semibold text-white text-lg">{service.nome}</h3>
-                    {selectedService === service.id ? (
-                      <Check className="text-salon-gold" size={20} />
-                    ) : (
-                      <Plus className="text-salon-gold/60" size={20} />
+                  <div className="flex items-start space-x-4">
+                    {service.image && (
+                      <div className="flex-shrink-0">
+                        <img 
+                          src={service.image} 
+                          alt={service.name}
+                          className="w-16 h-16 object-cover rounded-lg"
+                        />
+                      </div>
                     )}
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-salon-gold font-bold text-lg">R$ {service.preco.toFixed(2)}</span>
-                    <div className="flex items-center space-x-1 text-salon-copper">
-                      <Clock size={16} />
-                      <span className="text-sm">{formatDuration(service.duracao)}</span>
+                    
+                    <div className="flex-1">
+                      <div className="flex items-center justify-between mb-2">
+                        <h3 className="font-semibold text-white text-lg">{service.name}</h3>
+                        {selectedService === service.id ? (
+                          <Check className="text-salon-gold" size={20} />
+                        ) : (
+                          <Plus className="text-salon-gold/60" size={20} />
+                        )}
+                      </div>
+                      
+                      {service.description && (
+                        <p className="text-sm text-muted-foreground mb-2">{service.description}</p>
+                      )}
+                      
+                      <div className="flex items-center justify-between">
+                        <span className="text-salon-gold font-bold text-lg">R$ {service.price.toFixed(2)}</span>
+                        <div className="flex items-center space-x-1 text-salon-copper">
+                          <Clock size={16} />
+                          <span className="text-sm">{formatDuration(service.duration)}</span>
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                  <div className="mt-2">
-                    <span className="text-xs text-salon-copper capitalize">{service.categoria}</span>
                   </div>
                 </div>
               ))
@@ -272,7 +291,7 @@ const SupabaseScheduling = () => {
               Escolha o Horário
               {getSelectedService() && (
                 <span className="text-sm text-salon-copper ml-2">
-                  ({formatDuration(getSelectedService()!.duracao)})
+                  ({formatDuration(getSelectedService()!.duration)})
                 </span>
               )}
             </CardTitle>
@@ -396,7 +415,7 @@ const SupabaseScheduling = () => {
                 <>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Serviço:</span>
-                    <span className="text-white font-medium">{getSelectedService()!.nome}</span>
+                    <span className="text-white font-medium">{getSelectedService()!.name}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Data:</span>
@@ -408,12 +427,12 @@ const SupabaseScheduling = () => {
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Duração:</span>
-                    <span className="text-white font-medium">{formatDuration(getSelectedService()!.duracao)}</span>
+                    <span className="text-white font-medium">{formatDuration(getSelectedService()!.duration)}</span>
                   </div>
                   <div className="flex justify-between items-center pt-2 border-t border-salon-gold/30">
                     <span className="text-muted-foreground">Valor Total:</span>
                     <span className="text-salon-gold font-bold text-xl">
-                      R$ {getSelectedService()!.preco.toFixed(2)}
+                      R$ {getSelectedService()!.price.toFixed(2)}
                     </span>
                   </div>
                   <div className="flex justify-between items-center text-sm">
@@ -425,7 +444,7 @@ const SupabaseScheduling = () => {
                   <div className="flex justify-between items-center text-sm">
                     <span className="text-muted-foreground">Restante no dia:</span>
                     <span className="text-white font-medium">
-                      R$ {(getSelectedService()!.preco - DEPOSIT_AMOUNT).toFixed(2)}
+                      R$ {(getSelectedService()!.price - DEPOSIT_AMOUNT).toFixed(2)}
                     </span>
                   </div>
                 </>
@@ -482,7 +501,7 @@ const SupabaseScheduling = () => {
         isOpen={showPixPopup}
         onClose={() => setShowPixPopup(false)}
         amount={DEPOSIT_AMOUNT}
-        serviceName={getSelectedService()?.nome || ''}
+        serviceName={getSelectedService()?.name || ''}
         customerName={clientName}
         customerEmail={clientEmail}
         customerPhone={clientPhone}
