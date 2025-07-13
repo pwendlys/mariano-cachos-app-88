@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -38,6 +39,9 @@ export const useCustomerProfiles = () => {
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
+  // Constante para valor fixo do sinal
+  const VALOR_SINAL_FIXO = 50.00;
+
   // Sincronizar dados dos clientes e agendamentos
   const syncCustomerData = async () => {
     setLoading(true);
@@ -48,6 +52,8 @@ export const useCustomerProfiles = () => {
         .select('*');
 
       if (clientesError) throw clientesError;
+
+      console.log('Clientes encontrados:', clientes?.length);
 
       // Para cada cliente, calcular e atualizar o saldo
       for (const cliente of clientes || []) {
@@ -67,17 +73,22 @@ export const useCustomerProfiles = () => {
 
       if (agendamentosError) throw agendamentosError;
 
+      console.log('Agendamentos encontrados:', agendamentos?.length);
+
       // Para cada agendamento, verificar se já existe histórico
       for (const agendamento of agendamentos || []) {
         const { data: historicoExistente } = await supabase
           .from('historico_atendimentos')
           .select('id')
           .eq('agendamento_id', agendamento.id)
-          .single();
+          .maybeSingle();
 
         // Se não existe histórico, criar baseado no agendamento
         if (!historicoExistente) {
           const statusHistorico = agendamento.status_pagamento === 'pago' ? 'concluido' : 'pendente';
+          
+          // Usar o valor fixo do sinal se pago
+          const valorSinal = agendamento.status_pagamento === 'pago' ? VALOR_SINAL_FIXO : 0;
           
           await supabase
             .from('historico_atendimentos')
@@ -85,12 +96,16 @@ export const useCustomerProfiles = () => {
               cliente_id: agendamento.cliente_id,
               agendamento_id: agendamento.id,
               data_atendimento: `${agendamento.data}T${agendamento.horario}`,
-              servicos_extras: [],
+              servicos_extras: [{
+                id: agendamento.servico?.id,
+                nome: agendamento.servico?.nome,
+                preco: agendamento.servico?.preco
+              }],
               produtos_vendidos: [],
-              valor_servicos_extras: agendamento.valor || 0,
+              valor_servicos_extras: agendamento.servico?.preco || 0,
               valor_produtos: 0,
               status: statusHistorico,
-              observacoes: `Serviço: ${agendamento.servico?.nome} - Sincronizado automaticamente`
+              observacoes: `Serviço: ${agendamento.servico?.nome} - Sincronizado automaticamente${valorSinal > 0 ? `\nSinal pago: R$ ${valorSinal.toFixed(2)}` : ''}`
             });
         }
       }
@@ -130,6 +145,7 @@ export const useCustomerProfiles = () => {
         .order('data_atendimento', { ascending: false });
 
       if (error) throw error;
+      console.log('Histórico carregado:', data?.length);
       setHistoricoAtendimentos((data || []) as HistoricoAtendimento[]);
     } catch (error) {
       console.error('Erro ao carregar histórico:', error);
@@ -156,6 +172,7 @@ export const useCustomerProfiles = () => {
         .order('ultima_atualizacao', { ascending: false });
 
       if (error) throw error;
+      console.log('Saldos carregados:', data?.length);
       setSaldosClientes((data || []) as SaldoCliente[]);
     } catch (error) {
       console.error('Erro ao carregar saldos:', error);
@@ -172,16 +189,35 @@ export const useCustomerProfiles = () => {
   // Criar histórico de atendimento
   const createHistoricoAtendimento = async (historico: Omit<HistoricoAtendimento, 'id' | 'created_at' | 'updated_at' | 'cliente' | 'agendamento'>) => {
     try {
+      console.log('Criando histórico com dados:', historico);
+      
       const { data, error } = await supabase
         .from('historico_atendimentos')
-        .insert([historico])
+        .insert([{
+          cliente_id: historico.cliente_id,
+          agendamento_id: historico.agendamento_id,
+          data_atendimento: historico.data_atendimento,
+          servicos_extras: historico.servicos_extras,
+          produtos_vendidos: historico.produtos_vendidos, // Nome correto da coluna
+          valor_servicos_extras: historico.valor_servicos_extras,
+          valor_produtos: historico.valor_produtos,
+          observacoes: historico.observacoes,
+          status: historico.status
+        }])
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Erro detalhado ao criar histórico:', error);
+        throw error;
+      }
+      
+      console.log('Histórico criado com sucesso:', data);
       
       await fetchHistoricoAtendimentos();
-      await updateSaldoCliente(historico.cliente_id);
+      if (historico.cliente_id) {
+        await updateSaldoCliente(historico.cliente_id);
+      }
       
       toast({
         title: "Sucesso",
@@ -229,6 +265,8 @@ export const useCustomerProfiles = () => {
   // Atualizar saldo do cliente
   const updateSaldoCliente = async (clienteId: string) => {
     try {
+      console.log('Atualizando saldo para cliente:', clienteId);
+      
       // Calcular totais do histórico
       const { data: historicos, error: historicoError } = await supabase
         .from('historico_atendimentos')
@@ -241,17 +279,20 @@ export const useCustomerProfiles = () => {
       const totalServicos = historicos?.reduce((sum, h) => sum + (h.valor_servicos_extras || 0), 0) || 0;
       const totalProdutos = historicos?.reduce((sum, h) => sum + (h.valor_produtos || 0), 0) || 0;
 
-      // Calcular total pago dos agendamentos
+      // Calcular total pago dos agendamentos (usar valor fixo do sinal)
       const { data: agendamentos, error: agendamentoError } = await supabase
         .from('agendamentos')
-        .select('valor, status_pagamento')
+        .select('status_pagamento')
         .eq('cliente_id', clienteId)
         .eq('status_pagamento', 'pago');
 
       if (agendamentoError) throw agendamentoError;
 
-      const totalPago = agendamentos?.reduce((sum, a) => sum + (a.valor || 0), 0) || 0;
+      // Usar valor fixo do sinal para cada agendamento pago
+      const totalPago = (agendamentos?.length || 0) * VALOR_SINAL_FIXO;
       const saldoDevedor = (totalServicos + totalProdutos) - totalPago;
+
+      console.log('Calculando saldo:', { totalServicos, totalProdutos, totalPago, saldoDevedor });
 
       // Upsert no saldo do cliente
       const { error: upsertError } = await supabase
@@ -267,8 +308,12 @@ export const useCustomerProfiles = () => {
           onConflict: 'cliente_id'
         });
 
-      if (upsertError) throw upsertError;
+      if (upsertError) {
+        console.error('Erro ao fazer upsert do saldo:', upsertError);
+        throw upsertError;
+      }
       
+      console.log('Saldo atualizado com sucesso');
       await fetchSaldosClientes();
     } catch (error) {
       console.error('Erro ao atualizar saldo:', error);
@@ -296,9 +341,13 @@ export const useCustomerProfiles = () => {
         cliente_id: agendamento.cliente_id,
         agendamento_id: agendamentoId,
         data_atendimento: new Date().toISOString(),
-        servicos_extras: [],
+        servicos_extras: [{
+          id: agendamento.servico?.id,
+          nome: agendamento.servico?.nome,
+          preco: agendamento.servico?.preco
+        }],
         produtos_vendidos: [],
-        valor_servicos_extras: 0,
+        valor_servicos_extras: agendamento.servico?.preco || 0,
         valor_produtos: 0,
         status: 'pendente',
         observacoes: `Atendimento baseado no agendamento: ${agendamento.servico?.nome}`

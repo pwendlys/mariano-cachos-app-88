@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -29,6 +28,9 @@ const CustomerProfileManagement = () => {
   
   const { appointments, services } = useSupabaseScheduling();
   const { products } = useSupabaseProducts();
+
+  // Valor fixo do sinal sempre R$ 50,00
+  const VALOR_SINAL_FIXO = 50.00;
 
   const [isHistoricoDialogOpen, setIsHistoricoDialogOpen] = useState(false);
   const [selectedHistorico, setSelectedHistorico] = useState<any>(null);
@@ -104,20 +106,31 @@ const CustomerProfileManagement = () => {
     return totalProdutos + valorExtra;
   };
 
-  // Calcular valor do sinal pago (se o agendamento foi pago)
+  // Usar valor fixo do sinal se o agendamento foi pago
   const calcularSinalPago = () => {
-    if (selectedAgendamento && selectedAgendamento.status_pagamento === 'pago' && selectedAgendamento.valor) {
-      return selectedAgendamento.valor;
+    if (selectedAgendamento && selectedAgendamento.status_pagamento === 'pago') {
+      return VALOR_SINAL_FIXO;
+    }
+    return 0;
+  };
+
+  // Calcular valor total do serviço do agendamento
+  const calcularValorServicoAgendamento = () => {
+    if (selectedAgendamento && selectedAgendamento.servico) {
+      return selectedAgendamento.servico.preco;
     }
     return 0;
   };
 
   // Calcular total geral considerando o sinal
   const calcularTotalComSinal = () => {
-    const totalServicos = calcularTotalServicos();
+    const valorServicoAgendamento = calcularValorServicoAgendamento();
+    const totalServicosExtras = calcularTotalServicos();
     const totalProdutos = calcularTotalProdutos();
     const sinalPago = calcularSinalPago();
-    return Math.max(0, (totalServicos + totalProdutos) - sinalPago);
+    
+    const totalGeral = valorServicoAgendamento + totalServicosExtras + totalProdutos;
+    return Math.max(0, totalGeral - sinalPago);
   };
 
   const handleCreateHistorico = async () => {
@@ -132,12 +145,15 @@ const CustomerProfileManagement = () => {
 
       // Incluir o serviço do agendamento se existir
       const servicosExtras = [...servicosSelecionados];
+      let valorServicoAgendamento = 0;
+      
       if (selectedAgendamento && selectedAgendamento.servico) {
         servicosExtras.push({
           id: selectedAgendamento.servico.id,
           nome: selectedAgendamento.servico.nome,
           preco: selectedAgendamento.servico.preco
         });
+        valorServicoAgendamento = selectedAgendamento.servico.preco;
       }
 
       let observacoesCompletas = historicoForm.observacoes;
@@ -153,16 +169,20 @@ const CustomerProfileManagement = () => {
         observacoesCompletas += `\nValor pendente: R$ ${historicoForm.valor_pendente}`;
       }
 
+      // Usar os nomes corretos das colunas conforme o schema
       await createHistoricoAtendimento({
-        ...historicoForm,
-        servicos_extras: servicosExtras,
-        produtos_vendidos: produtosSelecionados,
-        valor_servicos_extras: calcularTotalServicos() + (selectedAgendamento?.servico?.preco || 0),
+        cliente_id: historicoForm.cliente_id,
+        agendamento_id: historicoForm.agendamento_id || null,
+        servicos_extras: servicosExtras, // Esta coluna existe no schema
+        produtos_vendidos: produtosSelecionados, // Esta é a coluna correta no schema
+        valor_servicos_extras: valorServicoAgendamento + calcularTotalServicos(),
         valor_produtos: calcularTotalProdutos(),
         data_atendimento: new Date().toISOString(),
-        observacoes: observacoesCompletas
+        observacoes: observacoesCompletas,
+        status: historicoForm.status
       });
       
+      // Resetar formulário
       setHistoricoForm({
         cliente_id: '',
         agendamento_id: '',
@@ -253,7 +273,7 @@ const CustomerProfileManagement = () => {
                         <p className="text-white font-medium">{selectedAgendamento.servico?.nome}</p>
                         <p className="text-sm text-salon-copper">R$ {selectedAgendamento.servico?.preco?.toFixed(2)}</p>
                         {selectedAgendamento.status_pagamento === 'pago' && (
-                          <p className="text-xs text-green-400">✓ Sinal pago: R$ {selectedAgendamento.valor?.toFixed(2)}</p>
+                          <p className="text-xs text-green-400">✓ Sinal pago: R$ {VALOR_SINAL_FIXO.toFixed(2)}</p>
                         )}
                       </div>
                     </div>
@@ -436,6 +456,8 @@ const CustomerProfileManagement = () => {
         </div>
       </div>
 
+      {/* Cards de Resumo */}
+      
       {/* Cards de Resumo */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card className="glass-card border-salon-gold/20">
