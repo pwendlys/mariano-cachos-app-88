@@ -12,6 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useDebtCollection, Devedor, Divida } from '@/hooks/useDebtCollection';
 import { useCustomerProfiles } from '@/hooks/useCustomerProfiles';
 import CustomerProfileManagement from '@/components/CustomerProfileManagement';
+import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
 
 const DebtCollectionManagement = () => {
@@ -60,10 +61,29 @@ const DebtCollectionManagement = () => {
 
   const handleCreateDevedor = async () => {
     try {
+      // Criar cliente na tabela clientes para que apareça no novo atendimento
+      const { data: clienteData, error: clienteError } = await supabase
+        .from('clientes')
+        .insert({
+          nome: devedorForm.nome,
+          telefone: devedorForm.telefone.replace(/\D/g, ''),
+          email: devedorForm.email || '',
+          endereco: devedorForm.endereco
+        })
+        .select()
+        .single();
+
+      if (clienteError) {
+        console.error('Erro ao criar cliente:', clienteError);
+        return;
+      }
+
+      // Criar devedor na tabela devedores
       await createDevedor({
         ...devedorForm,
         telefone: devedorForm.telefone.replace(/\D/g, '') // Remove caracteres não numéricos
       });
+
       setDevedorForm({
         nome: '',
         telefone: '',
@@ -74,7 +94,7 @@ const DebtCollectionManagement = () => {
       });
       setIsDevedorDialogOpen(false);
     } catch (error) {
-      console.error('Erro ao criar devedor:', error);
+      console.error('Erro ao criar cliente/devedor:', error);
     }
   };
 
@@ -272,12 +292,12 @@ const DebtCollectionManagement = () => {
             <DialogTrigger asChild>
               <Button className="bg-salon-gold hover:bg-salon-copper text-salon-dark">
                 <Users className="mr-2" size={16} />
-                Novo Devedor
+                Novo Cliente
               </Button>
             </DialogTrigger>
             <DialogContent className="glass-card border-salon-gold/30 text-white">
               <DialogHeader>
-                <DialogTitle className="text-salon-gold">Novo Devedor</DialogTitle>
+                <DialogTitle className="text-salon-gold">Novo Cliente</DialogTitle>
               </DialogHeader>
               <div className="space-y-4">
                 <div>
@@ -332,7 +352,7 @@ const DebtCollectionManagement = () => {
                 </div>
                 <div className="flex space-x-3">
                   <Button onClick={handleCreateDevedor} className="flex-1 bg-salon-gold hover:bg-salon-copper text-salon-dark">
-                    Criar Devedor
+                    Criar Cliente
                   </Button>
                   <Button variant="outline" onClick={() => setIsDevedorDialogOpen(false)} className="border-salon-gold/30 text-salon-gold">
                     Cancelar
