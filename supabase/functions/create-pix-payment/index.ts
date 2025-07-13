@@ -13,29 +13,27 @@ serve(async (req) => {
   }
 
   try {
+    console.log('PIX Payment request received')
     const { amount, description, customerName, customerEmail, customerPhone } = await req.json()
 
-    // Get Abacate Pay API key from Supabase
-    const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    )
+    console.log('Request data:', { amount, description, customerName, customerEmail, customerPhone })
 
-    const { data: config } = await supabaseClient
-      .from('abacate_config')
-      .select('api_key')
-      .single()
-
-    if (!config?.api_key) {
+    // Get Abacate Pay API key from environment
+    const apiKey = Deno.env.get('ABACATE_PAY_API_KEY')
+    
+    if (!apiKey) {
+      console.error('Abacate Pay API key not found in environment variables')
       throw new Error('Abacate Pay API key not configured')
     }
+
+    console.log('API key found, making request to Abacate Pay')
 
     // Create PIX payment with Abacate Pay
     const abacateResponse = await fetch('https://api.abacatepay.com/v1/billing/pix', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${config.api_key}`
+        'Authorization': `Bearer ${apiKey}`
       },
       body: JSON.stringify({
         amount: amount,
@@ -52,13 +50,16 @@ serve(async (req) => {
       })
     })
 
+    console.log('Abacate Pay response status:', abacateResponse.status)
+
     if (!abacateResponse.ok) {
       const errorData = await abacateResponse.text()
       console.error('Abacate Pay API Error:', errorData)
-      throw new Error(`Abacate Pay API error: ${abacateResponse.status}`)
+      throw new Error(`Abacate Pay API error: ${abacateResponse.status} - ${errorData}`)
     }
 
     const paymentData = await abacateResponse.json()
+    console.log('Payment data received:', paymentData)
     
     return new Response(
       JSON.stringify({
