@@ -13,9 +13,6 @@ serve(async (req) => {
   }
 
   try {
-    const url = new URL(req.url)
-    const action = url.searchParams.get('action')
-
     // Get Abacate Pay API key from environment
     const apiKey = Deno.env.get('ABACATE_PAY_API_KEY')
     
@@ -24,12 +21,16 @@ serve(async (req) => {
       throw new Error('Abacate Pay API key not configured')
     }
 
+    const requestBody = await req.json()
+    console.log('Request body received:', requestBody)
+
     // Handle payment status check
-    if (action === 'check') {
+    if (requestBody.action === 'check') {
       console.log('Checking payment status')
-      const { transactionId } = await req.json()
+      const { transactionId } = requestBody
 
       if (!transactionId) {
+        console.error('Transaction ID is required for payment check')
         throw new Error('Transaction ID is required for payment check')
       }
 
@@ -38,11 +39,13 @@ serve(async (req) => {
       const checkResponse = await fetch(`https://api.abacatepay.com/v1/pixQrCode/check?transactionId=${transactionId}`, {
         method: 'GET',
         headers: {
-          'Authorization': `Bearer ${apiKey}`
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json'
         }
       })
 
       console.log('Payment check response status:', checkResponse.status)
+      console.log('Payment check response headers:', Object.fromEntries(checkResponse.headers.entries()))
 
       if (!checkResponse.ok) {
         const errorData = await checkResponse.text()
@@ -69,7 +72,7 @@ serve(async (req) => {
 
     // Handle payment creation (existing code)
     console.log('PIX Payment creation request received')
-    const { amount, description, customerName, customerEmail, customerPhone, customerCPF } = await req.json()
+    const { amount, description, customerName, customerEmail, customerPhone, customerCPF } = requestBody
 
     console.log('Request data:', { amount, description, customerName, customerEmail, customerPhone, customerCPF })
 
