@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { QrCode, CreditCard, X, Loader2, CheckCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -194,8 +195,10 @@ const PIXPaymentPopup: React.FC<PIXPaymentPopupProps> = ({
       console.log('Checking payment status for transaction:', transactionId);
 
       const { data, error } = await supabase.functions.invoke('create-pix-payment', {
-        body: { transactionId },
-        url: new URL('?action=check', window.location.href)
+        body: { 
+          transactionId,
+          action: 'check'
+        }
       });
 
       console.log('Payment check response:', { data, error });
