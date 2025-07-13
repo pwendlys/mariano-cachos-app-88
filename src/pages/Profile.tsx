@@ -1,39 +1,24 @@
 
 import React, { useState } from 'react';
-import { User, Calendar, ShoppingBag, Heart, Settings, LogOut, Star, Package } from 'lucide-react';
+import { User, Calendar, ShoppingBag, Star, Package, Settings, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
-import { useSupabaseProducts, Product } from '@/hooks/useSupabaseProducts';
+import { useSupabaseProducts } from '@/hooks/useSupabaseProducts';
+import { useUserAppointments } from '@/hooks/useUserAppointments';
 
 const Profile = () => {
   const { toast } = useToast();
   const { user, logout } = useAuth();
   const navigate = useNavigate();
-  const { products, loading } = useSupabaseProducts();
+  const { products, loading: productsLoading } = useSupabaseProducts();
+  const { appointments, loading: appointmentsLoading, getStatusLabel, getStatusColor, formatDate } = useUserAppointments();
   const [activeTab, setActiveTab] = useState('info');
 
-  // Mock data for appointments and purchases
-  const appointments = [
-    {
-      id: '1',
-      service: 'Corte + Escova',
-      date: '2024-01-15',
-      time: '14:30',
-      status: 'Confirmado'
-    },
-    {
-      id: '2',
-      service: 'Hidratação Profunda',
-      date: '2024-01-08',
-      time: '16:00',
-      status: 'Concluído'
-    }
-  ];
-
+  // Mock data for purchases - TODO: Replace with real data
   const purchases = [
     {
       id: '1',
@@ -162,27 +147,65 @@ const Profile = () => {
         <TabsContent value="appointments">
           <div className="space-y-4">
             <h2 className="text-xl font-semibold text-salon-gold mb-4">Meus Agendamentos</h2>
-            {appointments.map((appointment) => (
-              <Card key={appointment.id} className="glass-card border-salon-gold/20">
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="font-semibold text-white">{appointment.service}</h3>
-                      <p className="text-sm text-muted-foreground">
-                        {appointment.date} às {appointment.time}
-                      </p>
+            
+            {appointmentsLoading ? (
+              <div className="text-center py-8">
+                <p className="text-muted-foreground">Carregando agendamentos...</p>
+              </div>
+            ) : appointments.length === 0 ? (
+              <div className="text-center py-8">
+                <Calendar size={48} className="text-muted-foreground mx-auto mb-4" />
+                <p className="text-muted-foreground">Você ainda não possui agendamentos.</p>
+                <Button 
+                  onClick={() => navigate('/agendamento')}
+                  className="mt-4 bg-salon-gold hover:bg-salon-copper text-salon-dark"
+                >
+                  Fazer Agendamento
+                </Button>
+              </div>
+            ) : (
+              appointments.map((appointment) => (
+                <Card key={appointment.id} className="glass-card border-salon-gold/20">
+                  <CardContent className="p-4">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <h3 className="font-semibold text-white">{appointment.servico.nome}</h3>
+                        <p className="text-sm text-salon-copper capitalize">
+                          {appointment.servico.categoria} • {appointment.servico.duracao} min
+                        </p>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          {formatDate(appointment.data)} às {appointment.horario}
+                        </p>
+                        {appointment.valor && (
+                          <p className="text-salon-gold font-medium mt-1">
+                            R$ {appointment.valor.toFixed(2)}
+                          </p>
+                        )}
+                        {appointment.observacoes && (
+                          <p className="text-xs text-muted-foreground mt-2">
+                            <strong>Obs:</strong> {appointment.observacoes}
+                          </p>
+                        )}
+                      </div>
+                      <div className="flex flex-col gap-2 ml-4">
+                        <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(appointment.status)}`}>
+                          {getStatusLabel(appointment.status)}
+                        </span>
+                        {appointment.status_pagamento && (
+                          <span className={`px-2 py-1 rounded text-xs ${
+                            appointment.status_pagamento === 'pago' 
+                              ? 'bg-green-500/20 text-green-400' 
+                              : 'bg-yellow-500/20 text-yellow-400'
+                          }`}>
+                            {appointment.status_pagamento === 'pago' ? 'Pago' : 'Pag. Pendente'}
+                          </span>
+                        )}
+                      </div>
                     </div>
-                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                      appointment.status === 'Confirmado' 
-                        ? 'bg-green-500/20 text-green-400' 
-                        : 'bg-blue-500/20 text-blue-400'
-                    }`}>
-                      {appointment.status}
-                    </span>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+                  </CardContent>
+                </Card>
+              ))
+            )}
           </div>
         </TabsContent>
 
@@ -190,7 +213,7 @@ const Profile = () => {
           <div className="space-y-4">
             <h2 className="text-xl font-semibold text-salon-gold mb-4">Produtos a Venda</h2>
             
-            {loading ? (
+            {productsLoading ? (
               <div className="text-center py-8">
                 <p className="text-muted-foreground">Carregando produtos...</p>
               </div>
