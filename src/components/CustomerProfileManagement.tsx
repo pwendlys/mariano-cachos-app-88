@@ -44,7 +44,7 @@ const CustomerProfileManagement = () => {
     produtos_selecionados: [] as string[],
     valor_servicos_extras: '',
     valor_produtos: '',
-    valor_pendente: '',
+    valor_recebido: '',
     observacoes: '',
     status: 'pendente' as const
   });
@@ -133,6 +133,13 @@ const CustomerProfileManagement = () => {
     return Math.max(0, totalGeral - sinalPago);
   };
 
+  // Calcular valor restante (total - valor recebido)
+  const calcularValorRestante = () => {
+    const totalDevido = calcularTotalComSinal();
+    const valorRecebido = parseFloat(historicoForm.valor_recebido) || 0;
+    return Math.max(0, totalDevido - valorRecebido);
+  };
+
   const handleCreateHistorico = async () => {
     try {
       const servicosSelecionados = services.filter(s => 
@@ -164,9 +171,16 @@ const CustomerProfileManagement = () => {
         observacoesCompletas += `\nSinal pago: R$ ${sinalPago.toFixed(2)}`;
       }
       
-      // Adicionar valor pendente se houver
-      if (historicoForm.valor_pendente) {
-        observacoesCompletas += `\nValor pendente: R$ ${historicoForm.valor_pendente}`;
+      // Calcular e adicionar informação do valor recebido e restante
+      const valorRecebido = parseFloat(historicoForm.valor_recebido) || 0;
+      const valorRestante = calcularValorRestante();
+      
+      if (valorRecebido > 0) {
+        observacoesCompletas += `\nValor recebido: R$ ${valorRecebido.toFixed(2)}`;
+      }
+      
+      if (valorRestante > 0) {
+        observacoesCompletas += `\nValor restante: R$ ${valorRestante.toFixed(2)}`;
       }
 
       // Usar os nomes corretos das colunas conforme o schema
@@ -179,7 +193,8 @@ const CustomerProfileManagement = () => {
         valor_produtos: calcularTotalProdutos(),
         data_atendimento: new Date().toISOString(),
         observacoes: observacoesCompletas,
-        status: historicoForm.status
+        status: historicoForm.status,
+        valor_recebido: parseFloat(historicoForm.valor_recebido) || 0
       });
       
       // Resetar formulário
@@ -190,7 +205,7 @@ const CustomerProfileManagement = () => {
         produtos_selecionados: [],
         valor_servicos_extras: '',
         valor_produtos: '',
-        valor_pendente: '',
+        valor_recebido: '',
         observacoes: '',
         status: 'pendente'
       });
@@ -357,20 +372,29 @@ const CustomerProfileManagement = () => {
                   </div>
                 </div>
 
-                {/* Valor Pendente */}
+                {/* Valor Recebido */}
                 <div>
-                  <Label className="text-red-400">Valor Pendente (Ficou Faltando)</Label>
+                  <Label className="text-green-400">Valor Recebido</Label>
                   <Input
                     type="number"
                     step="0.01"
                     placeholder="0.00"
-                    value={historicoForm.valor_pendente}
-                    onChange={(e) => setHistoricoForm({...historicoForm, valor_pendente: e.target.value})}
-                    className="glass-card border-red-400/30 bg-transparent text-white"
+                    value={historicoForm.valor_recebido}
+                    onChange={(e) => setHistoricoForm({...historicoForm, valor_recebido: e.target.value})}
+                    className="glass-card border-green-400/30 bg-transparent text-white"
                   />
-                  <p className="text-xs text-red-400/70 mt-1">
-                    Informe o valor que o cliente ainda precisa pagar
+                  <p className="text-xs text-green-400/70 mt-1">
+                    Informe o valor que o cliente pagou hoje
                   </p>
+                  
+                  {/* Mostrar valor restante calculado automaticamente */}
+                  {historicoForm.valor_recebido && (
+                    <div className="mt-2 p-2 bg-red-500/10 rounded border border-red-500/30">
+                      <p className="text-xs text-red-400">
+                        Valor restante: <span className="font-bold">R$ {calcularValorRestante().toFixed(2)}</span>
+                      </p>
+                    </div>
+                  )}
                 </div>
 
                 <div>
@@ -427,10 +451,17 @@ const CustomerProfileManagement = () => {
                       </div>
                     )}
                     
-                    {historicoForm.valor_pendente && (
+                    {historicoForm.valor_recebido && (
+                      <div className="flex justify-between text-green-400">
+                        <span>Valor Recebido:</span>
+                        <span>R$ {parseFloat(historicoForm.valor_recebido || '0').toFixed(2)}</span>
+                      </div>
+                    )}
+                    
+                    {historicoForm.valor_recebido && calcularValorRestante() > 0 && (
                       <div className="flex justify-between text-red-400">
-                        <span>Valor Pendente:</span>
-                        <span>R$ {parseFloat(historicoForm.valor_pendente || '0').toFixed(2)}</span>
+                        <span>Valor Restante:</span>
+                        <span>R$ {calcularValorRestante().toFixed(2)}</span>
                       </div>
                     )}
                     <div className="flex justify-between border-t border-salon-gold/30 pt-2 font-bold">

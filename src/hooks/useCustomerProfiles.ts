@@ -187,7 +187,7 @@ export const useCustomerProfiles = () => {
   };
 
   // Criar histórico de atendimento
-  const createHistoricoAtendimento = async (historico: Omit<HistoricoAtendimento, 'id' | 'created_at' | 'updated_at' | 'cliente' | 'agendamento'>) => {
+  const createHistoricoAtendimento = async (historico: Omit<HistoricoAtendimento, 'id' | 'created_at' | 'updated_at' | 'cliente' | 'agendamento'> & { valor_recebido?: number }) => {
     try {
       console.log('Criando histórico com dados:', historico);
       
@@ -289,7 +289,28 @@ export const useCustomerProfiles = () => {
       if (agendamentoError) throw agendamentoError;
 
       // Usar valor fixo do sinal para cada agendamento pago
-      const totalPago = (agendamentos?.length || 0) * VALOR_SINAL_FIXO;
+      const totalPagoSinal = (agendamentos?.length || 0) * VALOR_SINAL_FIXO;
+      
+      // Calcular valores recebidos adicionais do histórico
+      const { data: historicosCompletos, error: historicoCompletoError } = await supabase
+        .from('historico_atendimentos')
+        .select('observacoes')
+        .eq('cliente_id', clienteId);
+
+      if (historicoCompletoError) throw historicoCompletoError;
+
+      // Extrair valores recebidos das observações
+      let totalRecebidoAdicional = 0;
+      historicosCompletos?.forEach(h => {
+        if (h.observacoes) {
+          const match = h.observacoes.match(/Valor recebido: R\$ ([\d,]+\.?\d*)/);
+          if (match) {
+            totalRecebidoAdicional += parseFloat(match[1].replace(',', ''));
+          }
+        }
+      });
+
+      const totalPago = totalPagoSinal + totalRecebidoAdicional;
       const saldoDevedor = (totalServicos + totalProdutos) - totalPago;
 
       console.log('Calculando saldo:', { totalServicos, totalProdutos, totalPago, saldoDevedor });
