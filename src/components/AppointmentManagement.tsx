@@ -42,9 +42,8 @@ const AppointmentManagement: React.FC = () => {
           cliente:clientes(nome, email, telefone),
           servico:servicos(nome, categoria)
         `)
-        .eq('status_pagamento', 'pago')
-        .eq('status', 'pendente')
-        .order('data', { ascending: true });
+        .order('data', { ascending: true })
+        .order('horario', { ascending: true });
 
       if (error) throw error;
 
@@ -65,51 +64,33 @@ const AppointmentManagement: React.FC = () => {
     fetchAppointments();
   }, []);
 
-  const handleApproveAppointment = async (appointmentId: string) => {
+  const handleStatusChange = async (appointmentId: string, newStatus: string) => {
     try {
       const { error } = await supabase
         .from('agendamentos')
-        .update({ status: 'confirmado' })
+        .update({ status: newStatus })
         .eq('id', appointmentId);
 
       if (error) throw error;
 
+      const statusLabels = {
+        pendente: 'aguardando',
+        confirmado: 'confirmado',
+        concluido: 'concluído',
+        rejeitado: 'rejeitado'
+      };
+
       toast({
-        title: "Sucesso",
-        description: "Agendamento aprovado com sucesso!",
+        title: "Status atualizado",
+        description: `Agendamento marcado como ${statusLabels[newStatus as keyof typeof statusLabels]}`,
       });
       
       fetchAppointments();
     } catch (error) {
-      console.error('Erro ao aprovar agendamento:', error);
+      console.error('Erro ao atualizar status:', error);
       toast({
         title: "Erro",
-        description: "Não foi possível aprovar o agendamento",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleRejectAppointment = async (appointmentId: string) => {
-    try {
-      const { error } = await supabase
-        .from('agendamentos')
-        .update({ status: 'rejeitado' })
-        .eq('id', appointmentId);
-
-      if (error) throw error;
-
-      toast({
-        title: "Agendamento rejeitado",
-        description: "O agendamento foi rejeitado",
-      });
-      
-      fetchAppointments();
-    } catch (error) {
-      console.error('Erro ao rejeitar agendamento:', error);
-      toast({
-        title: "Erro",
-        description: "Não foi possível rejeitar o agendamento",
+        description: "Não foi possível atualizar o status do agendamento",
         variant: "destructive",
       });
     }
@@ -121,8 +102,9 @@ const AppointmentManagement: React.FC = () => {
 
   const getStatusBadge = (status: string) => {
     const statusMap = {
-      pendente: { label: 'Aguardando Aprovação', variant: 'secondary' as const },
+      pendente: { label: 'Aguardando', variant: 'secondary' as const },
       confirmado: { label: 'Confirmado', variant: 'default' as const },
+      concluido: { label: 'Concluído', variant: 'outline' as const },
       rejeitado: { label: 'Rejeitado', variant: 'destructive' as const },
     };
     
@@ -165,7 +147,7 @@ const AppointmentManagement: React.FC = () => {
           <CardContent className="pt-6">
             <div className="text-center text-salon-copper">
               <Calendar size={48} className="mx-auto mb-4 opacity-50" />
-              <p>Nenhum agendamento aguardando aprovação</p>
+              <p>Nenhum agendamento encontrado</p>
             </div>
           </CardContent>
         </Card>
@@ -239,25 +221,44 @@ const AppointmentManagement: React.FC = () => {
                 )}
 
                 <div className="flex gap-2 pt-4 border-t border-salon-gold/20">
-                  <Button
-                    onClick={() => handleApproveAppointment(appointment.id)}
-                    className="flex-1 bg-green-600 hover:bg-green-700 text-white"
-                  >
-                    <Check size={16} className="mr-2" />
-                    Aprovar
-                  </Button>
-                  <Button
-                    onClick={() => handleRejectAppointment(appointment.id)}
-                    variant="destructive"
-                    className="flex-1"
-                  >
-                    <X size={16} className="mr-2" />
-                    Rejeitar
-                  </Button>
+                  <div className="flex gap-1 flex-wrap">
+                    <Button
+                      onClick={() => handleStatusChange(appointment.id, 'pendente')}
+                      variant={appointment.status === 'pendente' ? 'default' : 'outline'}
+                      size="sm"
+                      className="text-xs"
+                    >
+                      Aguardando
+                    </Button>
+                    <Button
+                      onClick={() => handleStatusChange(appointment.id, 'confirmado')}
+                      variant={appointment.status === 'confirmado' ? 'default' : 'outline'}
+                      size="sm"
+                      className="text-xs bg-green-600 hover:bg-green-700 text-white"
+                    >
+                      Confirmado
+                    </Button>
+                    <Button
+                      onClick={() => handleStatusChange(appointment.id, 'concluido')}
+                      variant={appointment.status === 'concluido' ? 'default' : 'outline'}
+                      size="sm"
+                      className="text-xs bg-blue-600 hover:bg-blue-700 text-white"
+                    >
+                      Concluído
+                    </Button>
+                    <Button
+                      onClick={() => handleStatusChange(appointment.id, 'rejeitado')}
+                      variant={appointment.status === 'rejeitado' ? 'destructive' : 'outline'}
+                      size="sm"
+                      className="text-xs"
+                    >
+                      Rejeitar
+                    </Button>
+                  </div>
                   {appointment.comprovante_pix && (
                     <Dialog>
                       <DialogTrigger asChild>
-                        <Button variant="outline" className="border-salon-gold/30 text-salon-gold hover:bg-salon-gold/10">
+                        <Button variant="outline" size="sm" className="border-salon-gold/30 text-salon-gold hover:bg-salon-gold/10">
                           <Eye size={16} />
                         </Button>
                       </DialogTrigger>
