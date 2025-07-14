@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -199,7 +200,6 @@ export const useSupabaseScheduling = () => {
       }
 
       console.log('Appointment created successfully');
-      await fetchAppointments();
       
       toast({
         title: "Agendamento enviado! ✨",
@@ -271,6 +271,45 @@ export const useSupabaseScheduling = () => {
     console.log('useSupabaseScheduling hook initialized, fetching data...');
     fetchServices();
     fetchAppointments();
+
+    // Configurar listeners para mudanças em tempo real
+    const servicesChannel = supabase
+      .channel('servicos-scheduling-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'servicos'
+        },
+        (payload) => {
+          console.log('Real-time change detected in servicos (scheduling):', payload);
+          fetchServices(); // Refetch services quando houver mudanças
+        }
+      )
+      .subscribe();
+
+    const appointmentsChannel = supabase
+      .channel('agendamentos-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'agendamentos'
+        },
+        (payload) => {
+          console.log('Real-time change detected in agendamentos:', payload);
+          fetchAppointments(); // Refetch appointments quando houver mudanças
+        }
+      )
+      .subscribe();
+
+    return () => {
+      console.log('Cleaning up scheduling real-time subscriptions');
+      supabase.removeChannel(servicesChannel);
+      supabase.removeChannel(appointmentsChannel);
+    };
   }, []);
 
   return {

@@ -58,7 +58,6 @@ export const useSupabaseServices = () => {
       }
 
       console.log('Service created successfully');
-      await fetchServices();
       
       toast({
         title: "Serviço criado!",
@@ -95,7 +94,6 @@ export const useSupabaseServices = () => {
       }
 
       console.log('Service updated successfully');
-      await fetchServices();
       
       toast({
         title: "Serviço atualizado!",
@@ -133,7 +131,6 @@ export const useSupabaseServices = () => {
       }
 
       console.log('Service deleted successfully');
-      await fetchServices();
       
       toast({
         title: "Serviço removido",
@@ -157,6 +154,29 @@ export const useSupabaseServices = () => {
   useEffect(() => {
     console.log('useSupabaseServices hook initialized, fetching services...');
     fetchServices();
+
+    // Configurar listener para mudanças em tempo real
+    const channel = supabase
+      .channel('servicos-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'servicos'
+        },
+        (payload) => {
+          console.log('Real-time change detected in servicos:', payload);
+          // Refetch services quando houver mudanças
+          fetchServices();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      console.log('Cleaning up servicos real-time subscription');
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   return {
