@@ -8,7 +8,7 @@ import ProductManagement from '@/components/ProductManagement';
 import ProfessionalManagement from '@/components/ProfessionalManagement';
 import TimeBlockingManagement from '@/components/TimeBlockingManagement';
 import CashFlowManagement from '@/components/CashFlowManagement';
-import DebtCollectionManagement from '@/components/DebtCollectionManagement';
+import CustomerProfileManagement from '@/components/CustomerProfileManagement';
 import BannerManagement from '@/components/BannerManagement';
 import AppointmentManagement from '@/components/AppointmentManagement';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -24,7 +24,7 @@ const Admin = () => {
     { value: 'professionals', label: 'Profissionais', shortLabel: 'Prof', icon: Users },
     { value: 'timeblocking', label: 'Horários', shortLabel: 'Hora', icon: Calendar },
     { value: 'cashflow', label: 'Fluxo de Caixa', shortLabel: 'Caixa', icon: DollarSign },
-    { value: 'debts', label: 'Cobranças', shortLabel: 'Cobr', icon: AlertTriangle },
+    { value: 'customers', label: 'Clientes/Atendimentos', shortLabel: 'Cli/At', icon: Users },
     { value: 'banners', label: 'Banners', shortLabel: 'Ban', icon: Settings },
   ];
 
@@ -90,8 +90,8 @@ const Admin = () => {
                 <CashFlowManagement />
               </TabsContent>
 
-              <TabsContent value="debts" className="mt-0">
-                <DebtCollectionManagement />
+              <TabsContent value="customers" className="mt-0">
+                <CustomerProfileManagement />
               </TabsContent>
 
               <TabsContent value="banners" className="mt-0">
