@@ -13,6 +13,7 @@ import { Plus, User, DollarSign, History, AlertTriangle, CheckCircle, RefreshCw,
 import { useCustomerProfiles } from '@/hooks/useCustomerProfiles';
 import { useSupabaseScheduling } from '@/hooks/useSupabaseScheduling';
 import { useSupabaseProducts } from '@/hooks/useSupabaseProducts';
+import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
 
 const CustomerProfileManagement = () => {
@@ -36,6 +37,7 @@ const CustomerProfileManagement = () => {
   const [selectedHistorico, setSelectedHistorico] = useState<any>(null);
   const [isUpdating, setIsUpdating] = useState(false);
   const [selectedAgendamento, setSelectedAgendamento] = useState<any>(null);
+  const [allClientes, setAllClientes] = useState<any[]>([]);
 
   const [historicoForm, setHistoricoForm] = useState({
     cliente_id: '',
@@ -48,6 +50,31 @@ const CustomerProfileManagement = () => {
     observacoes: '',
     status: 'pendente' as const
   });
+
+  // Carregar todos os clientes
+  const fetchAllClientes = async () => {
+    try {
+      const { data: clientes, error } = await supabase
+        .from('clientes')
+        .select('*')
+        .order('nome');
+
+      if (error) {
+        console.error('Erro ao carregar clientes:', error);
+        return;
+      }
+
+      console.log('Clientes carregados:', clientes?.length);
+      setAllClientes(clientes || []);
+    } catch (error) {
+      console.error('Erro ao buscar clientes:', error);
+    }
+  };
+
+  // Carregar clientes quando o componente montar
+  useEffect(() => {
+    fetchAllClientes();
+  }, []);
 
   // Atualizar agendamento selecionado quando o agendamento_id mudar
   useEffect(() => {
@@ -63,6 +90,8 @@ const CustomerProfileManagement = () => {
     setIsUpdating(true);
     try {
       await syncCustomerData();
+      // Recarregar clientes após sincronização
+      await fetchAllClientes();
     } catch (error) {
       console.error('Erro ao sincronizar dados:', error);
     } finally {
@@ -264,8 +293,27 @@ const CustomerProfileManagement = () => {
                 <DialogTitle className="text-salon-gold">Registrar Novo Atendimento</DialogTitle>
               </DialogHeader>
               <div className="space-y-6">
+                {/* Seleção de Cliente */}
                 <div>
-                  <Label>Agendamento Base</Label>
+                  <Label>Cliente</Label>
+                  <Select value={historicoForm.cliente_id} onValueChange={(value) => {
+                    setHistoricoForm({...historicoForm, cliente_id: value});
+                  }}>
+                    <SelectTrigger className="glass-card border-salon-gold/30 bg-transparent text-white">
+                      <SelectValue placeholder="Selecione um cliente" />
+                    </SelectTrigger>
+                    <SelectContent className="glass-card border-salon-gold/30">
+                      {allClientes.map(cliente => (
+                        <SelectItem key={cliente.id} value={cliente.id}>
+                          {cliente.nome} - {cliente.telefone}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label>Agendamento Base (Opcional)</Label>
                   <Select value={historicoForm.agendamento_id} onValueChange={(value) => {
                     setHistoricoForm({...historicoForm, agendamento_id: value});
                     const agendamento = appointments.find(a => a.id === value);
@@ -274,7 +322,7 @@ const CustomerProfileManagement = () => {
                     }
                   }}>
                     <SelectTrigger className="glass-card border-salon-gold/30 bg-transparent text-white">
-                      <SelectValue placeholder="Selecione um agendamento" />
+                      <SelectValue placeholder="Selecione um agendamento (opcional)" />
                     </SelectTrigger>
                     <SelectContent className="glass-card border-salon-gold/30">
                       {appointments.map(agendamento => (
