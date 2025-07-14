@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -51,7 +50,7 @@ export const useSupabaseScheduling = () => {
 
   const fetchServices = async () => {
     try {
-      console.log('Fetching services from Supabase...');
+      console.log('Fetching active services from Supabase...');
       const { data, error } = await supabase
         .from('servicos')
         .select('*')
@@ -63,7 +62,7 @@ export const useSupabaseScheduling = () => {
         throw error;
       }
       
-      console.log('Services fetched:', data);
+      console.log('Active services fetched:', data);
       setServices((data || []) as Service[]);
     } catch (error: any) {
       console.error('Error fetching services:', error);

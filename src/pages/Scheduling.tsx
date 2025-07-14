@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Calendar, Clock, User, MessageSquare, Check, Plus, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -66,6 +65,17 @@ const Scheduling = () => {
       return mins > 0 ? `${hours}h ${mins}min` : `${hours}h`;
     }
     return `${mins}min`;
+  };
+
+  const getCategoryLabel = (categoria: string) => {
+    const categoryLabels: Record<string, string> = {
+      'corte': 'Corte',
+      'coloracao': 'Coloração',
+      'tratamento': 'Tratamento',
+      'finalizacao': 'Finalização',
+      'outros': 'Outros'
+    };
+    return categoryLabels[categoria] || categoria;
   };
 
   const handleServiceToggle = (serviceId: string) => {
@@ -196,7 +206,7 @@ const Scheduling = () => {
                 <p className="text-sm mt-2">Entre em contato com o administrador.</p>
               </div>
             ) : (
-              services.map((service) => (
+              services.filter(service => service.ativo).map((service) => (
                 <div
                   key={service.id}
                   className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${
@@ -222,7 +232,7 @@ const Scheduling = () => {
                     </div>
                   </div>
                   <div className="mt-2">
-                    <span className="text-xs text-salon-copper capitalize">{service.categoria}</span>
+                    <span className="text-xs text-salon-copper">{getCategoryLabel(service.categoria)}</span>
                   </div>
                 </div>
               ))

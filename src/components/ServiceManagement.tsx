@@ -1,89 +1,60 @@
+
 import React, { useState } from 'react';
-import { Plus, Edit, Trash2, Clock, DollarSign, Upload, X, Users } from 'lucide-react';
+import { Plus, Edit, Trash2, Clock, DollarSign, Upload, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Checkbox } from '@/components/ui/checkbox';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { useSharedServices, Service } from '@/hooks/useSharedServices';
-import { useProfessionals } from '@/hooks/useProfessionals';
+import { useSupabaseServices, SupabaseService } from '@/hooks/useSupabaseServices';
 
 const ServiceManagement = () => {
   const { toast } = useToast();
-  const { services, addService, updateService, deleteService } = useSharedServices();
-  const { professionals } = useProfessionals();
+  const { services, addService, updateService, deleteService, loading } = useSupabaseServices();
 
-  const [editingService, setEditingService] = useState<Service | null>(null);
+  const [editingService, setEditingService] = useState<SupabaseService | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [formData, setFormData] = useState({
-    name: '',
-    description: '',
-    price: '',
-    duration: '',
-    image: '',
-    professionalIds: [] as string[]
+    nome: '',
+    categoria: 'corte' as 'corte' | 'coloracao' | 'tratamento' | 'finalizacao' | 'outros',
+    preco: '',
+    duracao: ''
   });
-  const [imagePreview, setImagePreview] = useState<string>('');
 
-  const handleEdit = (service: Service) => {
+  const categoryOptions = [
+    { value: 'corte', label: 'Corte' },
+    { value: 'coloracao', label: 'Coloração' },
+    { value: 'tratamento', label: 'Tratamento' },
+    { value: 'finalizacao', label: 'Finalização' },
+    { value: 'outros', label: 'Outros' }
+  ];
+
+  const handleEdit = (service: SupabaseService) => {
     setEditingService(service);
     setFormData({
-      name: service.name,
-      description: service.description,
-      price: service.price.toString(),
-      duration: service.duration.toString(),
-      image: service.image || '',
-      professionalIds: service.professionalIds || []
+      nome: service.nome,
+      categoria: service.categoria,
+      preco: service.preco.toString(),
+      duracao: service.duracao.toString()
     });
-    setImagePreview(service.image || '');
     setIsDialogOpen(true);
   };
 
   const handleAdd = () => {
     setEditingService(null);
     setFormData({
-      name: '',
-      description: '',
-      price: '',
-      duration: '',
-      image: '',
-      professionalIds: []
+      nome: '',
+      categoria: 'corte',
+      preco: '',
+      duracao: ''
     });
-    setImagePreview('');
     setIsDialogOpen(true);
   };
 
-  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const imageUrl = e.target?.result as string;
-        setImagePreview(imageUrl);
-        setFormData({ ...formData, image: imageUrl });
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const removeImage = () => {
-    setImagePreview('');
-    setFormData({ ...formData, image: '' });
-  };
-
-  const handleProfessionalToggle = (professionalId: string) => {
-    setFormData(prev => ({
-      ...prev,
-      professionalIds: prev.professionalIds.includes(professionalId)
-        ? prev.professionalIds.filter(id => id !== professionalId)
-        : [...prev.professionalIds, professionalId]
-    }));
-  };
-
-  const handleSave = () => {
-    if (!formData.name || !formData.price || !formData.duration) {
+  const handleSave = async () => {
+    if (!formData.nome || !formData.preco || !formData.duracao) {
       toast({
         title: "Campos obrigatórios",
         description: "Por favor, preencha todos os campos obrigatórios.",
@@ -92,48 +63,30 @@ const ServiceManagement = () => {
       return;
     }
 
-    if (formData.professionalIds.length === 0) {
-      toast({
-        title: "Selecione pelo menos um profissional",
-        description: "É necessário selecionar pelo menos um profissional para o serviço.",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    const serviceData: Service = {
-      id: editingService?.id || Date.now().toString(),
-      name: formData.name,
-      description: formData.description,
-      price: parseFloat(formData.price),
-      duration: parseInt(formData.duration),
-      image: formData.image || undefined,
-      professionalIds: formData.professionalIds
+    const serviceData = {
+      nome: formData.nome,
+      categoria: formData.categoria,
+      preco: parseFloat(formData.preco),
+      duracao: parseInt(formData.duracao),
+      ativo: true
     };
 
+    let success = false;
     if (editingService) {
-      updateService(editingService.id, serviceData);
-      toast({
-        title: "Serviço atualizado!",
-        description: "As informações do serviço foram atualizadas.",
-      });
+      success = await updateService(editingService.id, serviceData);
     } else {
-      addService(serviceData);
-      toast({
-        title: "Serviço adicionado!",
-        description: "Novo serviço foi criado com sucesso.",
-      });
+      success = await addService(serviceData);
     }
 
-    setIsDialogOpen(false);
+    if (success) {
+      setIsDialogOpen(false);
+    }
   };
 
-  const handleDelete = (serviceId: string) => {
-    deleteService(serviceId);
-    toast({
-      title: "Serviço removido",
-      description: "O serviço foi excluído do sistema.",
-    });
+  const handleDelete = async (serviceId: string) => {
+    if (window.confirm('Tem certeza que deseja desativar este serviço?')) {
+      await deleteService(serviceId);
+    }
   };
 
   const formatDuration = (minutes: number) => {
@@ -145,16 +98,18 @@ const ServiceManagement = () => {
     return `${mins}min`;
   };
 
-  const getProfessionalNames = (professionalIds: string[] | undefined) => {
-    if (!professionalIds || professionalIds.length === 0) {
-      return 'Nenhum profissional';
-    }
-    
-    return professionalIds
-      .map(id => professionals.find(p => p.id === id)?.name)
-      .filter(Boolean)
-      .join(', ') || 'Profissionais não encontrados';
+  const getCategoryLabel = (categoria: string) => {
+    const option = categoryOptions.find(opt => opt.value === categoria);
+    return option ? option.label : categoria;
   };
+
+  if (loading && services.length === 0) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <div className="text-salon-gold">Carregando serviços...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -165,6 +120,7 @@ const ServiceManagement = () => {
             <Button 
               onClick={handleAdd}
               className="bg-salon-gold hover:bg-salon-copper text-salon-dark font-medium h-12 px-6"
+              disabled={loading}
             >
               <Plus className="mr-2" size={16} />
               Novo Serviço
@@ -182,75 +138,27 @@ const ServiceManagement = () => {
               <div>
                 <label className="block text-sm font-medium mb-2">Nome do Serviço *</label>
                 <Input
-                  value={formData.name}
-                  onChange={(e) => setFormData({...formData, name: e.target.value})}
+                  value={formData.nome}
+                  onChange={(e) => setFormData({...formData, nome: e.target.value})}
                   placeholder="Ex: Corte Especializado"
                   className="glass-card border-salon-gold/30 bg-transparent text-white h-12"
                 />
               </div>
               
               <div>
-                <label className="block text-sm font-medium mb-2">Descrição</label>
-                <Textarea
-                  value={formData.description}
-                  onChange={(e) => setFormData({...formData, description: e.target.value})}
-                  placeholder="Descreva o serviço..."
-                  className="glass-card border-salon-gold/30 bg-transparent text-white"
-                  rows={3}
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-2">Profissionais que realizam este serviço *</label>
-                <div className="space-y-2 p-4 glass-card border-salon-gold/30 rounded-lg">
-                  {professionals.map((professional) => (
-                    <div key={professional.id} className="flex items-center space-x-2">
-                      <Checkbox
-                        id={professional.id}
-                        checked={formData.professionalIds.includes(professional.id)}
-                        onCheckedChange={() => handleProfessionalToggle(professional.id)}
-                      />
-                      <label htmlFor={professional.id} className="text-sm text-white cursor-pointer">
-                        {professional.name}
-                      </label>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-2">Foto do Serviço</label>
-                <div className="space-y-3">
-                  {imagePreview ? (
-                    <div className="relative">
-                      <img 
-                        src={imagePreview} 
-                        alt="Preview" 
-                        className="w-full h-32 object-cover rounded-lg"
-                      />
-                      <Button
-                        type="button"
-                        variant="destructive"
-                        size="icon"
-                        className="absolute top-2 right-2 h-8 w-8"
-                        onClick={removeImage}
-                      >
-                        <X size={16} />
-                      </Button>
-                    </div>
-                  ) : (
-                    <div className="border-2 border-dashed border-salon-gold/30 rounded-lg p-4 text-center">
-                      <Upload className="mx-auto text-salon-gold mb-2" size={24} />
-                      <p className="text-sm text-muted-foreground">Clique para adicionar uma foto</p>
-                    </div>
-                  )}
-                  <Input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleImageUpload}
-                    className="glass-card border-salon-gold/30 bg-transparent text-white h-12"
-                  />
-                </div>
+                <label className="block text-sm font-medium mb-2">Categoria *</label>
+                <Select value={formData.categoria} onValueChange={(value: any) => setFormData({...formData, categoria: value})}>
+                  <SelectTrigger className="glass-card border-salon-gold/30 bg-transparent text-white h-12">
+                    <SelectValue placeholder="Selecione uma categoria" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {categoryOptions.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               
               <div className="grid grid-cols-2 gap-4">
@@ -258,8 +166,8 @@ const ServiceManagement = () => {
                   <label className="block text-sm font-medium mb-2">Preço (R$) *</label>
                   <Input
                     type="number"
-                    value={formData.price}
-                    onChange={(e) => setFormData({...formData, price: e.target.value})}
+                    value={formData.preco}
+                    onChange={(e) => setFormData({...formData, preco: e.target.value})}
                     placeholder="0.00"
                     className="glass-card border-salon-gold/30 bg-transparent text-white h-12"
                   />
@@ -269,8 +177,8 @@ const ServiceManagement = () => {
                   <label className="block text-sm font-medium mb-2">Duração (min) *</label>
                   <Input
                     type="number"
-                    value={formData.duration}
-                    onChange={(e) => setFormData({...formData, duration: e.target.value})}
+                    value={formData.duracao}
+                    onChange={(e) => setFormData({...formData, duracao: e.target.value})}
                     placeholder="60"
                     className="glass-card border-salon-gold/30 bg-transparent text-white h-12"
                   />
@@ -280,6 +188,7 @@ const ServiceManagement = () => {
               <div className="flex space-x-3 pt-4">
                 <Button 
                   onClick={handleSave}
+                  disabled={loading}
                   className="flex-1 bg-salon-gold hover:bg-salon-copper text-salon-dark font-medium h-12"
                 >
                   {editingService ? 'Atualizar' : 'Criar'} Serviço
@@ -298,37 +207,22 @@ const ServiceManagement = () => {
       </div>
 
       <div className="grid gap-4">
-        {services.map((service) => (
+        {services.filter(service => service.ativo).map((service) => (
           <Card key={service.id} className="glass-card border-salon-gold/20">
             <CardContent className="p-4">
               <div className="flex items-start space-x-4">
-                {service.image && (
-                  <div className="flex-shrink-0">
-                    <img 
-                      src={service.image} 
-                      alt={service.name}
-                      className="w-20 h-20 object-cover rounded-lg"
-                    />
-                  </div>
-                )}
-                
                 <div className="flex-1">
-                  <h3 className="font-semibold text-white text-lg">{service.name}</h3>
-                  <p className="text-sm text-muted-foreground mt-1">{service.description}</p>
-                  
-                  <div className="flex items-center space-x-1 mt-2 text-salon-copper">
-                    <Users size={14} />
-                    <span className="text-xs">{getProfessionalNames(service.professionalIds)}</span>
-                  </div>
+                  <h3 className="font-semibold text-white text-lg">{service.nome}</h3>
+                  <p className="text-sm text-salon-copper mt-1">{getCategoryLabel(service.categoria)}</p>
                   
                   <div className="flex items-center space-x-4 mt-3">
                     <div className="flex items-center space-x-1 text-salon-gold">
                       <DollarSign size={16} />
-                      <span className="font-bold">R$ {service.price.toFixed(2)}</span>
+                      <span className="font-bold">R$ {service.preco.toFixed(2)}</span>
                     </div>
                     <div className="flex items-center space-x-1 text-salon-copper">
                       <Clock size={16} />
-                      <span>{formatDuration(service.duration)}</span>
+                      <span>{formatDuration(service.duracao)}</span>
                     </div>
                   </div>
                 </div>
@@ -338,6 +232,7 @@ const ServiceManagement = () => {
                     variant="outline"
                     size="icon"
                     onClick={() => handleEdit(service)}
+                    disabled={loading}
                     className="border-salon-gold/30 text-salon-gold hover:bg-salon-gold/10 h-12 w-12"
                   >
                     <Edit size={16} />
@@ -346,6 +241,7 @@ const ServiceManagement = () => {
                     variant="outline"
                     size="icon"
                     onClick={() => handleDelete(service.id)}
+                    disabled={loading}
                     className="border-red-400/30 text-red-400 hover:bg-red-400/10 h-12 w-12"
                   >
                     <Trash2 size={16} />
@@ -355,6 +251,17 @@ const ServiceManagement = () => {
             </CardContent>
           </Card>
         ))}
+        
+        {services.filter(service => service.ativo).length === 0 && (
+          <Card className="glass-card border-salon-gold/20">
+            <CardContent className="pt-6">
+              <div className="text-center text-salon-copper">
+                <p>Nenhum serviço ativo encontrado</p>
+                <p className="text-sm mt-2">Adicione serviços para começar</p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
       </div>
     </div>
   );
