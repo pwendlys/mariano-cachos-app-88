@@ -15,6 +15,7 @@ import { useSupabaseScheduling } from '@/hooks/useSupabaseScheduling';
 import { useSupabaseProducts } from '@/hooks/useSupabaseProducts';
 import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
+import ClientList from './ClientList';
 
 const CustomerProfileManagement = () => {
   const { 
@@ -38,6 +39,10 @@ const CustomerProfileManagement = () => {
   const [isUpdating, setIsUpdating] = useState(false);
   const [selectedAgendamento, setSelectedAgendamento] = useState<any>(null);
   const [allClientes, setAllClientes] = useState<any[]>([]);
+  
+  // Estados para mostrar listas de clientes
+  const [showClientList, setShowClientList] = useState(false);
+  const [clientListType, setClientListType] = useState<'all' | 'with-debt'>('all');
 
   const [historicoForm, setHistoricoForm] = useState({
     cliente_id: '',
@@ -266,6 +271,23 @@ const CustomerProfileManagement = () => {
   };
 
   const clientesComSaldo = saldosClientes.filter(s => s.saldo_devedor > 0);
+
+  const handleClientCardClick = (type: 'all' | 'with-debt') => {
+    setClientListType(type);
+    setShowClientList(true);
+  };
+
+  // Se está mostrando a lista de clientes, renderizar apenas isso
+  if (showClientList) {
+    return (
+      <div className="space-y-6">
+        <ClientList 
+          filterType={clientListType}
+          onClose={() => setShowClientList(false)}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -542,11 +564,12 @@ const CustomerProfileManagement = () => {
         </div>
       </div>
 
-      {/* Cards de Resumo */}
-      
-      {/* Cards de Resumo */}
+      {/* Cards de Resumo - Agora clicáveis */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card className="glass-card border-salon-gold/20">
+        <Card 
+          className="glass-card border-salon-gold/20 cursor-pointer hover:border-salon-gold/40 transition-colors"
+          onClick={() => handleClientCardClick('all')}
+        >
           <CardHeader className="pb-3">
             <CardTitle className="text-salon-gold flex items-center gap-2 text-sm">
               <User size={16} />
@@ -557,10 +580,14 @@ const CustomerProfileManagement = () => {
             <div className="text-2xl font-bold text-white">
               {saldosClientes.length}
             </div>
+            <p className="text-xs text-salon-copper mt-1">Clique para ver todos</p>
           </CardContent>
         </Card>
 
-        <Card className="glass-card border-red-500/20">
+        <Card 
+          className="glass-card border-red-500/20 cursor-pointer hover:border-red-500/40 transition-colors"
+          onClick={() => handleClientCardClick('with-debt')}
+        >
           <CardHeader className="pb-3">
             <CardTitle className="text-red-400 flex items-center gap-2 text-sm">
               <AlertTriangle size={16} />
@@ -571,6 +598,7 @@ const CustomerProfileManagement = () => {
             <div className="text-2xl font-bold text-white">
               {clientesComSaldo.length}
             </div>
+            <p className="text-xs text-red-400/70 mt-1">Clique para gerenciar</p>
           </CardContent>
         </Card>
 
