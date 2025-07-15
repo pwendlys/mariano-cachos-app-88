@@ -20,21 +20,21 @@ export const useSupabaseServices = () => {
 
   const fetchServices = async () => {
     try {
-      console.log('Fetching services from Supabase...');
+      console.log('🔄 [useSupabaseServices] Fetching services from Supabase...');
       const { data, error } = await supabase
         .from('servicos')
         .select('*')
         .order('nome');
 
       if (error) {
-        console.error('Error fetching services:', error);
+        console.error('❌ [useSupabaseServices] Error fetching services:', error);
         throw error;
       }
       
-      console.log('Services fetched:', data);
+      console.log('✅ [useSupabaseServices] Services fetched successfully:', data);
       setServices((data || []) as SupabaseService[]);
     } catch (error: any) {
-      console.error('Error fetching services:', error);
+      console.error('❌ [useSupabaseServices] Error in fetchServices:', error);
       toast({
         title: "Erro ao carregar serviços",
         description: error.message || "Não foi possível carregar a lista de serviços.",
@@ -46,18 +46,18 @@ export const useSupabaseServices = () => {
   const addService = async (serviceData: Omit<SupabaseService, 'id' | 'created_at'>): Promise<boolean> => {
     setLoading(true);
     try {
-      console.log('Creating service:', serviceData);
+      console.log('➕ [useSupabaseServices] Creating service:', serviceData);
       
       const { error } = await supabase
         .from('servicos')
         .insert([serviceData]);
 
       if (error) {
-        console.error('Error creating service:', error);
+        console.error('❌ [useSupabaseServices] Error creating service:', error);
         throw error;
       }
 
-      console.log('Service created successfully');
+      console.log('✅ [useSupabaseServices] Service created successfully');
       
       toast({
         title: "Serviço criado!",
@@ -66,11 +66,11 @@ export const useSupabaseServices = () => {
 
       return true;
     } catch (error: any) {
-      console.error('Error creating service:', error);
+      console.error('❌ [useSupabaseServices] Error in addService:', error);
       toast({
         title: "Erro ao criar serviço",
         description: error.message || "Não foi possível criar o serviço.",
-        variant: "destructive",
+        variant: "destructive"
       });
       return false;
     } finally {
@@ -81,7 +81,7 @@ export const useSupabaseServices = () => {
   const updateService = async (serviceId: string, serviceData: Partial<SupabaseService>): Promise<boolean> => {
     setLoading(true);
     try {
-      console.log('Updating service:', serviceId, serviceData);
+      console.log('✏️ [useSupabaseServices] Updating service:', serviceId, serviceData);
       
       const { error } = await supabase
         .from('servicos')
@@ -89,11 +89,11 @@ export const useSupabaseServices = () => {
         .eq('id', serviceId);
 
       if (error) {
-        console.error('Error updating service:', error);
+        console.error('❌ [useSupabaseServices] Error updating service:', error);
         throw error;
       }
 
-      console.log('Service updated successfully');
+      console.log('✅ [useSupabaseServices] Service updated successfully');
       
       toast({
         title: "Serviço atualizado!",
@@ -102,7 +102,7 @@ export const useSupabaseServices = () => {
 
       return true;
     } catch (error: any) {
-      console.error('Error updating service:', error);
+      console.error('❌ [useSupabaseServices] Error in updateService:', error);
       toast({
         title: "Erro ao atualizar serviço",
         description: error.message || "Não foi possível atualizar o serviço.",
@@ -117,7 +117,7 @@ export const useSupabaseServices = () => {
   const deleteService = async (serviceId: string): Promise<boolean> => {
     setLoading(true);
     try {
-      console.log('Deleting service:', serviceId);
+      console.log('🗑️ [useSupabaseServices] Deleting service (soft delete):', serviceId);
       
       // Soft delete - marca como inativo ao invés de excluir
       const { error } = await supabase
@@ -126,11 +126,11 @@ export const useSupabaseServices = () => {
         .eq('id', serviceId);
 
       if (error) {
-        console.error('Error deleting service:', error);
+        console.error('❌ [useSupabaseServices] Error deleting service:', error);
         throw error;
       }
 
-      console.log('Service deleted successfully');
+      console.log('✅ [useSupabaseServices] Service deleted successfully');
       
       toast({
         title: "Serviço removido",
@@ -139,7 +139,7 @@ export const useSupabaseServices = () => {
 
       return true;
     } catch (error: any) {
-      console.error('Error deleting service:', error);
+      console.error('❌ [useSupabaseServices] Error in deleteService:', error);
       toast({
         title: "Erro ao remover serviço",
         description: error.message || "Não foi possível remover o serviço.",
@@ -152,12 +152,14 @@ export const useSupabaseServices = () => {
   };
 
   useEffect(() => {
-    console.log('useSupabaseServices hook initialized, fetching services...');
+    console.log('🚀 [useSupabaseServices] Hook initialized, setting up real-time subscription...');
+    
+    // Buscar dados iniciais
     fetchServices();
 
     // Configurar listener para mudanças em tempo real
     const channel = supabase
-      .channel('servicos-changes')
+      .channel('admin-services-changes')
       .on(
         'postgres_changes',
         {
@@ -166,15 +168,18 @@ export const useSupabaseServices = () => {
           table: 'servicos'
         },
         (payload) => {
-          console.log('Real-time change detected in servicos:', payload);
-          // Refetch services quando houver mudanças
+          console.log('📡 [useSupabaseServices] Real-time change detected:', payload);
+          
+          // Refetch services quando houver mudanças para garantir sincronização
           fetchServices();
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log('📡 [useSupabaseServices] Subscription status:', status);
+      });
 
     return () => {
-      console.log('Cleaning up servicos real-time subscription');
+      console.log('🧹 [useSupabaseServices] Cleaning up real-time subscription');
       supabase.removeChannel(channel);
     };
   }, []);

@@ -51,7 +51,7 @@ export const useSupabaseScheduling = () => {
 
   const fetchServices = async () => {
     try {
-      console.log('Fetching active services from Supabase...');
+      console.log('🔄 [useSupabaseScheduling] Fetching active services from Supabase...');
       const { data, error } = await supabase
         .from('servicos')
         .select('*')
@@ -59,14 +59,14 @@ export const useSupabaseScheduling = () => {
         .order('nome');
 
       if (error) {
-        console.error('Error fetching services:', error);
+        console.error('❌ [useSupabaseScheduling] Error fetching services:', error);
         throw error;
       }
       
-      console.log('Active services fetched:', data);
+      console.log('✅ [useSupabaseScheduling] Active services fetched successfully:', data);
       setServices((data || []) as Service[]);
     } catch (error: any) {
-      console.error('Error fetching services:', error);
+      console.error('❌ [useSupabaseScheduling] Error in fetchServices:', error);
       toast({
         title: "Erro ao carregar serviços",
         description: error.message || "Não foi possível carregar a lista de serviços.",
@@ -77,7 +77,7 @@ export const useSupabaseScheduling = () => {
 
   const fetchAppointments = async () => {
     try {
-      console.log('Fetching appointments from Supabase...');
+      console.log('🔄 [useSupabaseScheduling] Fetching appointments from Supabase...');
       const { data, error } = await supabase
         .from('agendamentos')
         .select(`
@@ -89,14 +89,14 @@ export const useSupabaseScheduling = () => {
         .order('horario', { ascending: true });
 
       if (error) {
-        console.error('Error fetching appointments:', error);
+        console.error('❌ [useSupabaseScheduling] Error fetching appointments:', error);
         throw error;
       }
       
-      console.log('Appointments fetched:', data);
+      console.log('✅ [useSupabaseScheduling] Appointments fetched successfully:', data);
       setAppointments((data || []) as Appointment[]);
     } catch (error: any) {
-      console.error('Error fetching appointments:', error);
+      console.error('❌ [useSupabaseScheduling] Error in fetchAppointments:', error);
       toast({
         title: "Erro ao carregar agendamentos",
         description: error.message || "Não foi possível carregar os agendamentos.",
@@ -107,7 +107,7 @@ export const useSupabaseScheduling = () => {
 
   const createOrGetClient = async (clientData: Omit<Client, 'id'>): Promise<string | null> => {
     try {
-      console.log('Creating or getting client:', clientData);
+      console.log('👤 [useSupabaseScheduling] Creating or getting client:', clientData);
       
       // First, try to find existing client
       const { data: existingClient } = await supabase
@@ -117,7 +117,7 @@ export const useSupabaseScheduling = () => {
         .maybeSingle();
 
       if (existingClient) {
-        console.log('Found existing client:', existingClient.id);
+        console.log('✅ [useSupabaseScheduling] Found existing client:', existingClient.id);
         return existingClient.id;
       }
 
@@ -129,14 +129,14 @@ export const useSupabaseScheduling = () => {
         .single();
 
       if (error) {
-        console.error('Error creating client:', error);
+        console.error('❌ [useSupabaseScheduling] Error creating client:', error);
         throw error;
       }
       
-      console.log('Created new client:', data?.id);
+      console.log('✅ [useSupabaseScheduling] Created new client:', data?.id);
       return data?.id || null;
     } catch (error: any) {
-      console.error('Error creating/getting client:', error);
+      console.error('❌ [useSupabaseScheduling] Error in createOrGetClient:', error);
       return null;
     }
   };
@@ -157,7 +157,7 @@ export const useSupabaseScheduling = () => {
   }): Promise<boolean> => {
     setLoading(true);
     try {
-      console.log('Creating appointment with data:', appointmentData);
+      console.log('📅 [useSupabaseScheduling] Creating appointment with data:', appointmentData);
       
       const clientId = await createOrGetClient({
         nome: appointmentData.clientName,
@@ -174,7 +174,7 @@ export const useSupabaseScheduling = () => {
         throw new Error('Serviço não encontrado');
       }
 
-      console.log('Creating appointment for client:', clientId, 'service:', service.id);
+      console.log('✅ [useSupabaseScheduling] Creating appointment for client:', clientId, 'service:', service.id);
 
       const { error } = await supabase
         .from('agendamentos')
@@ -195,11 +195,11 @@ export const useSupabaseScheduling = () => {
         }]);
 
       if (error) {
-        console.error('Error creating appointment:', error);
+        console.error('❌ [useSupabaseScheduling] Error creating appointment:', error);
         throw error;
       }
 
-      console.log('Appointment created successfully');
+      console.log('✅ [useSupabaseScheduling] Appointment created successfully');
       
       toast({
         title: "Agendamento enviado! ✨",
@@ -208,7 +208,7 @@ export const useSupabaseScheduling = () => {
 
       return true;
     } catch (error: any) {
-      console.error('Error creating appointment:', error);
+      console.error('❌ [useSupabaseScheduling] Error in createAppointment:', error);
       toast({
         title: "Erro ao criar agendamento",
         description: error.message || "Não foi possível criar o agendamento.",
@@ -268,13 +268,15 @@ export const useSupabaseScheduling = () => {
   };
 
   useEffect(() => {
-    console.log('useSupabaseScheduling hook initialized, fetching data...');
+    console.log('🚀 [useSupabaseScheduling] Hook initialized, setting up real-time subscriptions...');
+    
+    // Buscar dados iniciais
     fetchServices();
     fetchAppointments();
 
-    // Configurar listeners para mudanças em tempo real
+    // Configurar listeners para mudanças em tempo real com nomes únicos
     const servicesChannel = supabase
-      .channel('servicos-scheduling-changes')
+      .channel('scheduling-services-changes')
       .on(
         'postgres_changes',
         {
@@ -283,14 +285,16 @@ export const useSupabaseScheduling = () => {
           table: 'servicos'
         },
         (payload) => {
-          console.log('Real-time change detected in servicos (scheduling):', payload);
+          console.log('📡 [useSupabaseScheduling] Real-time change detected in servicos:', payload);
           fetchServices(); // Refetch services quando houver mudanças
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log('📡 [useSupabaseScheduling] Services subscription status:', status);
+      });
 
     const appointmentsChannel = supabase
-      .channel('agendamentos-changes')
+      .channel('scheduling-appointments-changes')
       .on(
         'postgres_changes',
         {
@@ -299,14 +303,16 @@ export const useSupabaseScheduling = () => {
           table: 'agendamentos'
         },
         (payload) => {
-          console.log('Real-time change detected in agendamentos:', payload);
+          console.log('📡 [useSupabaseScheduling] Real-time change detected in agendamentos:', payload);
           fetchAppointments(); // Refetch appointments quando houver mudanças
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log('📡 [useSupabaseScheduling] Appointments subscription status:', status);
+      });
 
     return () => {
-      console.log('Cleaning up scheduling real-time subscriptions');
+      console.log('🧹 [useSupabaseScheduling] Cleaning up real-time subscriptions');
       supabase.removeChannel(servicesChannel);
       supabase.removeChannel(appointmentsChannel);
     };
