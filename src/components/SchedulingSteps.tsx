@@ -1,10 +1,9 @@
-
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Calendar, Clock, User, MessageSquare, Check, Plus } from 'lucide-react';
+import { Calendar, Clock, User, MessageSquare, Check, Plus, Image } from 'lucide-react';
 import { useSupabaseScheduling } from '@/hooks/useSupabaseScheduling';
 import { useProfessionals } from '@/hooks/useProfessionals';
 
@@ -134,23 +133,40 @@ const SchedulingSteps: React.FC<SchedulingStepsProps> = ({
                 }`}
                 onClick={() => onServiceToggle(service.id)}
               >
-                <div className="flex items-center justify-between mb-2">
-                  <h3 className="font-semibold text-white text-lg">{service.nome}</h3>
-                  {selectedServices.includes(service.id) ? (
-                    <Check className="text-salon-gold" size={20} />
+                <div className="flex items-center space-x-4 mb-2">
+                  {/* Service Image */}
+                  {service.imagem ? (
+                    <img 
+                      src={service.imagem} 
+                      alt={service.nome}
+                      className="w-16 h-16 object-cover rounded-lg border border-salon-gold/30 flex-shrink-0"
+                    />
                   ) : (
-                    <Plus className="text-salon-gold/60" size={20} />
+                    <div className="w-16 h-16 bg-salon-gold/10 rounded-lg border border-salon-gold/30 flex items-center justify-center flex-shrink-0">
+                      <Image className="text-salon-gold/40" size={20} />
+                    </div>
                   )}
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-salon-gold font-bold text-lg">R$ {service.preco.toFixed(2)}</span>
-                  <div className="flex items-center space-x-1 text-salon-copper">
-                    <Clock size={16} />
-                    <span className="text-sm">{formatDuration(service.duracao)}</span>
+                  
+                  <div className="flex-1">
+                    <div className="flex items-center justify-between mb-2">
+                      <h3 className="font-semibold text-white text-lg">{service.nome}</h3>
+                      {selectedServices.includes(service.id) ? (
+                        <Check className="text-salon-gold" size={20} />
+                      ) : (
+                        <Plus className="text-salon-gold/60" size={20} />
+                      )}
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-salon-gold font-bold text-lg">R$ {service.preco.toFixed(2)}</span>
+                      <div className="flex items-center space-x-1 text-salon-copper">
+                        <Clock size={16} />
+                        <span className="text-sm">{formatDuration(service.duracao)}</span>
+                      </div>
+                    </div>
+                    <div className="mt-2">
+                      <span className="text-xs text-salon-copper">{getCategoryLabel(service.categoria)}</span>
+                    </div>
                   </div>
-                </div>
-                <div className="mt-2">
-                  <span className="text-xs text-salon-copper">{getCategoryLabel(service.categoria)}</span>
                 </div>
               </div>
             ))

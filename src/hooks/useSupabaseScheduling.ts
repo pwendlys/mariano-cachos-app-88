@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -20,6 +19,7 @@ export interface Service {
   preco: number;
   categoria: 'corte' | 'coloracao' | 'tratamento' | 'finalizacao' | 'outros';
   ativo: boolean;
+  imagem?: string | null;
   created_at?: string;
 }
 

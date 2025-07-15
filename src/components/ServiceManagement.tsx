@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Plus, Edit, Trash2, Clock, DollarSign, Upload, X } from 'lucide-react';
+import { Plus, Edit, Trash2, Clock, DollarSign, Upload, X, Image } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { useSupabaseServices, SupabaseService } from '@/hooks/useSupabaseServices';
+import { supabase } from '@/integrations/supabase/client';
 
 const ServiceManagement = () => {
   const { toast } = useToast();
@@ -16,11 +17,13 @@ const ServiceManagement = () => {
 
   const [editingService, setEditingService] = useState<SupabaseService | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
   const [formData, setFormData] = useState({
     nome: '',
     categoria: 'corte' as 'corte' | 'coloracao' | 'tratamento' | 'finalizacao' | 'outros',
     preco: '',
-    duracao: ''
+    duracao: '',
+    imagem: ''
   });
 
   const categoryOptions = [
@@ -37,7 +40,8 @@ const ServiceManagement = () => {
       nome: service.nome,
       categoria: service.categoria,
       preco: service.preco.toString(),
-      duracao: service.duracao.toString()
+      duracao: service.duracao.toString(),
+      imagem: service.imagem || ''
     });
     setIsDialogOpen(true);
   };
@@ -48,9 +52,88 @@ const ServiceManagement = () => {
       nome: '',
       categoria: 'corte',
       preco: '',
-      duracao: ''
+      duracao: '',
+      imagem: ''
     });
     setIsDialogOpen(true);
+  };
+
+  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast({
+        title: "Erro",
+        description: "Por favor, selecione apenas arquivos de imagem.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast({
+        title: "Erro",
+        description: "A imagem deve ter no máximo 5MB.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setUploadingImage(true);
+
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
+      const filePath = `services/${fileName}`;
+
+      console.log('🖼️ [ServiceManagement] Uploading image:', filePath);
+
+      const { error: uploadError } = await supabase.storage
+        .from('service-images')
+        .upload(filePath, file);
+
+      if (uploadError) {
+        console.error('❌ [ServiceManagement] Error uploading image:', uploadError);
+        throw uploadError;
+      }
+
+      // Get public URL
+      const { data } = supabase.storage
+        .from('service-images')
+        .getPublicUrl(filePath);
+
+      console.log('✅ [ServiceManagement] Image uploaded successfully:', data.publicUrl);
+
+      setFormData(prev => ({
+        ...prev,
+        imagem: data.publicUrl
+      }));
+
+      toast({
+        title: "Imagem carregada!",
+        description: "A imagem foi carregada com sucesso.",
+      });
+
+    } catch (error: any) {
+      console.error('❌ [ServiceManagement] Error in handleImageUpload:', error);
+      toast({
+        title: "Erro ao carregar imagem",
+        description: error.message || "Não foi possível carregar a imagem.",
+        variant: "destructive"
+      });
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
+  const handleRemoveImage = () => {
+    setFormData(prev => ({
+      ...prev,
+      imagem: ''
+    }));
   };
 
   const handleSave = async () => {
@@ -68,7 +151,8 @@ const ServiceManagement = () => {
       categoria: formData.categoria,
       preco: parseFloat(formData.preco),
       duracao: parseInt(formData.duracao),
-      ativo: true
+      ativo: true,
+      imagem: formData.imagem || null
     };
 
     let success = false;
@@ -184,11 +268,64 @@ const ServiceManagement = () => {
                   />
                 </div>
               </div>
+
+              {/* Image Upload Section */}
+              <div>
+                <label className="block text-sm font-medium mb-2">Imagem do Serviço</label>
+                
+                {formData.imagem ? (
+                  <div className="relative">
+                    <img 
+                      src={formData.imagem} 
+                      alt="Preview" 
+                      className="w-full h-32 object-cover rounded-lg border border-salon-gold/30"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      onClick={handleRemoveImage}
+                      className="absolute top-2 right-2 h-8 w-8 border-red-400/30 text-red-400 hover:bg-red-400/10"
+                    >
+                      <X size={16} />
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="border-2 border-dashed border-salon-gold/30 rounded-lg p-4 text-center">
+                    <Input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageUpload}
+                      disabled={uploadingImage}
+                      className="hidden"
+                      id="image-upload"
+                    />
+                    <label 
+                      htmlFor="image-upload" 
+                      className="cursor-pointer flex flex-col items-center gap-2"
+                    >
+                      {uploadingImage ? (
+                        <div className="text-salon-gold">Carregando...</div>
+                      ) : (
+                        <>
+                          <Image className="text-salon-gold/60" size={32} />
+                          <span className="text-sm text-salon-gold/80">
+                            Clique para selecionar uma imagem
+                          </span>
+                          <span className="text-xs text-muted-foreground">
+                            Máximo 5MB - JPG, PNG, GIF
+                          </span>
+                        </>
+                      )}
+                    </label>
+                  </div>
+                )}
+              </div>
               
               <div className="flex space-x-3 pt-4">
                 <Button 
                   onClick={handleSave}
-                  disabled={loading}
+                  disabled={loading || uploadingImage}
                   className="flex-1 bg-salon-gold hover:bg-salon-copper text-salon-dark font-medium h-12"
                 >
                   {editingService ? 'Atualizar' : 'Criar'} Serviço
@@ -211,6 +348,19 @@ const ServiceManagement = () => {
           <Card key={service.id} className="glass-card border-salon-gold/20">
             <CardContent className="p-4">
               <div className="flex items-start space-x-4">
+                {/* Service Image */}
+                {service.imagem ? (
+                  <img 
+                    src={service.imagem} 
+                    alt={service.nome}
+                    className="w-20 h-20 object-cover rounded-lg border border-salon-gold/30 flex-shrink-0"
+                  />
+                ) : (
+                  <div className="w-20 h-20 bg-salon-gold/10 rounded-lg border border-salon-gold/30 flex items-center justify-center flex-shrink-0">
+                    <Image className="text-salon-gold/40" size={24} />
+                  </div>
+                )}
+                
                 <div className="flex-1">
                   <h3 className="font-semibold text-white text-lg">{service.nome}</h3>
                   <p className="text-sm text-salon-copper mt-1">{getCategoryLabel(service.categoria)}</p>
