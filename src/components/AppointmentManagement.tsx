@@ -4,10 +4,19 @@ import { Calendar } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import AppointmentCard from '@/components/AppointmentCard';
+import AppointmentDateFilter from '@/components/AppointmentDateFilter';
 import { useAppointments } from '@/hooks/useAppointments';
 
 const AppointmentManagement: React.FC = () => {
-  const { appointments, loading, fetchAppointments, handleStatusChange, handleDateTimeUpdate } = useAppointments();
+  const { 
+    appointments, 
+    loading, 
+    selectedDate,
+    fetchAppointments, 
+    handleDateChange,
+    handleStatusChange, 
+    handleDateTimeUpdate 
+  } = useAppointments();
 
   if (loading) {
     return (
@@ -19,15 +28,21 @@ const AppointmentManagement: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-4">
         <h2 className="text-2xl font-bold text-salon-gold">Gerenciar Agendamentos</h2>
-        <Button
-          onClick={fetchAppointments}
-          variant="outline"
-          className="border-salon-gold/30 text-salon-gold hover:bg-salon-gold/10"
-        >
-          Atualizar
-        </Button>
+        <div className="flex items-center gap-3">
+          <AppointmentDateFilter
+            selectedDate={selectedDate}
+            onDateChange={handleDateChange}
+          />
+          <Button
+            onClick={() => fetchAppointments(selectedDate)}
+            variant="outline"
+            className="border-salon-gold/30 text-salon-gold hover:bg-salon-gold/10"
+          >
+            Atualizar
+          </Button>
+        </div>
       </div>
 
       {appointments.length === 0 ? (
@@ -35,7 +50,12 @@ const AppointmentManagement: React.FC = () => {
           <CardContent className="pt-6">
             <div className="text-center text-salon-copper">
               <Calendar size={48} className="mx-auto mb-4 opacity-50" />
-              <p>Nenhum agendamento encontrado</p>
+              <p>
+                {selectedDate 
+                  ? `Nenhum agendamento encontrado para ${selectedDate.toLocaleDateString('pt-BR')}`
+                  : 'Nenhum agendamento encontrado'
+                }
+              </p>
             </div>
           </CardContent>
         </Card>

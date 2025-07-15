@@ -27,17 +27,28 @@ interface Appointment {
 export const useAppointments = () => {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const { toast } = useToast();
 
-  const fetchAppointments = async () => {
+  const fetchAppointments = async (filterDate?: Date | null) => {
     try {
-      const { data, error } = await supabase
+      setLoading(true);
+      
+      let query = supabase
         .from('agendamentos')
         .select(`
           *,
           cliente:clientes(nome, email, telefone),
           servico:servicos(nome, categoria)
-        `)
+        `);
+
+      // Aplicar filtro de data se fornecido
+      if (filterDate) {
+        const formattedDate = filterDate.toISOString().split('T')[0];
+        query = query.eq('data', formattedDate);
+      }
+
+      const { data, error } = await query
         .order('data', { ascending: true })
         .order('horario', { ascending: true });
 
@@ -54,6 +65,11 @@ export const useAppointments = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleDateChange = (date: Date | null) => {
+    setSelectedDate(date);
+    fetchAppointments(date);
   };
 
   const handleStatusChange = async (appointmentId: string, newStatus: string) => {
@@ -77,7 +93,7 @@ export const useAppointments = () => {
         description: `Agendamento marcado como ${statusLabels[newStatus as keyof typeof statusLabels]}`,
       });
       
-      fetchAppointments();
+      fetchAppointments(selectedDate);
     } catch (error) {
       console.error('Erro ao atualizar status:', error);
       toast({
@@ -106,7 +122,7 @@ export const useAppointments = () => {
         description: `Data e horário alterados com sucesso`,
       });
       
-      fetchAppointments();
+      fetchAppointments(selectedDate);
     } catch (error) {
       console.error('Erro ao atualizar data/horário:', error);
       toast({
@@ -124,7 +140,9 @@ export const useAppointments = () => {
   return {
     appointments,
     loading,
+    selectedDate,
     fetchAppointments,
+    handleDateChange,
     handleStatusChange,
     handleDateTimeUpdate
   };
