@@ -26,9 +26,7 @@ interface Appointment {
 
 export const useAppointments = () => {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
-  const [allAppointments, setAllAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const { toast } = useToast();
 
   const fetchAppointments = async () => {
@@ -45,15 +43,7 @@ export const useAppointments = () => {
 
       if (error) throw error;
 
-      const fetchedAppointments = data || [];
-      setAllAppointments(fetchedAppointments);
-      
-      // Apply date filter if selected
-      if (selectedDate) {
-        filterAppointmentsByDate(fetchedAppointments, selectedDate);
-      } else {
-        setAppointments(fetchedAppointments);
-      }
+      setAppointments(data || []);
     } catch (error) {
       console.error('Erro ao buscar agendamentos:', error);
       toast({
@@ -63,22 +53,6 @@ export const useAppointments = () => {
       });
     } finally {
       setLoading(false);
-    }
-  };
-
-  const filterAppointmentsByDate = (appointmentsList: Appointment[], date: Date) => {
-    const dateString = date.toISOString().split('T')[0];
-    const filtered = appointmentsList.filter(appointment => appointment.data === dateString);
-    setAppointments(filtered);
-  };
-
-  const handleDateFilterChange = (date: Date | null) => {
-    setSelectedDate(date);
-    
-    if (date) {
-      filterAppointmentsByDate(allAppointments, date);
-    } else {
-      setAppointments(allAppointments);
     }
   };
 
@@ -150,10 +124,8 @@ export const useAppointments = () => {
   return {
     appointments,
     loading,
-    selectedDate,
     fetchAppointments,
     handleStatusChange,
-    handleDateTimeUpdate,
-    handleDateFilterChange
+    handleDateTimeUpdate
   };
 };
