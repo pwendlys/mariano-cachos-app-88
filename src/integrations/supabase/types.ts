@@ -524,6 +524,7 @@ export type Database = {
           created_at: string
           duracao: number
           id: string
+          imagem: string | null
           nome: string
           preco: number
         }
@@ -533,6 +534,7 @@ export type Database = {
           created_at?: string
           duracao: number
           id?: string
+          imagem?: string | null
           nome: string
           preco: number
         }
@@ -542,6 +544,7 @@ export type Database = {
           created_at?: string
           duracao?: number
           id?: string
+          imagem?: string | null
           nome?: string
           preco?: number
         }
