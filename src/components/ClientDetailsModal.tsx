@@ -16,6 +16,7 @@ import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { useSupabaseScheduling } from '@/hooks/useSupabaseScheduling';
 import { useSupabaseProducts } from '@/hooks/useSupabaseProducts';
+import type { Json } from '@/integrations/supabase/types';
 
 interface Cliente {
   id: string;
@@ -43,8 +44,8 @@ interface Agendamento {
 interface HistoricoAtendimento {
   id: string;
   data_atendimento: string;
-  servicos_extras: any[];
-  produtos_vendidos: any[];
+  servicos_extras: Json;
+  produtos_vendidos: Json;
   valor_servicos_extras: number;
   valor_produtos: number;
   observacoes?: string;
@@ -333,6 +334,22 @@ const ClientDetailsModal: React.FC<ClientDetailsModalProps> = ({ cliente, onUpda
     }
   };
 
+  // Helper function to safely parse JSON data
+  const parseJsonArray = (jsonData: Json): any[] => {
+    if (Array.isArray(jsonData)) {
+      return jsonData;
+    }
+    if (typeof jsonData === 'string') {
+      try {
+        const parsed = JSON.parse(jsonData);
+        return Array.isArray(parsed) ? parsed : [];
+      } catch {
+        return [];
+      }
+    }
+    return [];
+  };
+
   return (
     <div className="space-y-6">
       <Tabs defaultValue="info" className="w-full">
@@ -565,32 +582,57 @@ const ClientDetailsModal: React.FC<ClientDetailsModalProps> = ({ cliente, onUpda
                 </p>
               ) : (
                 <div className="space-y-3">
-                  {historico.map((item) => (
-                    <div key={item.id} className="p-4 glass-card rounded border border-salon-gold/20">
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <p className="text-sm text-muted-foreground">
-                            {format(new Date(item.data_atendimento), "dd/MM/yyyy HH:mm")}
-                          </p>
-                          <div className="mt-2">
-                            <p className="text-white font-medium">
-                              Serviços: R$ {item.valor_servicos_extras.toFixed(2)} | 
-                              Produtos: R$ {item.valor_produtos.toFixed(2)}
+                  {historico.map((item) => {
+                    const servicosExtras = parseJsonArray(item.servicos_extras);
+                    const produtosVendidos = parseJsonArray(item.produtos_vendidos);
+                    
+                    return (
+                      <div key={item.id} className="p-4 glass-card rounded border border-salon-gold/20">
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <p className="text-sm text-muted-foreground">
+                              {format(new Date(item.data_atendimento), "dd/MM/yyyy HH:mm")}
                             </p>
-                            <p className="text-salon-gold font-bold">
-                              Total: R$ {(item.valor_servicos_extras + item.valor_produtos).toFixed(2)}
-                            </p>
+                            <div className="mt-2">
+                              {servicosExtras.length > 0 && (
+                                <div className="mb-1">
+                                  <p className="text-xs text-salon-copper">Serviços:</p>
+                                  {servicosExtras.map((servico: any, index: number) => (
+                                    <p key={index} className="text-xs text-white ml-2">
+                                      • {servico.nome} - R$ {servico.preco?.toFixed(2)}
+                                    </p>
+                                  ))}
+                                </div>
+                              )}
+                              {produtosVendidos.length > 0 && (
+                                <div className="mb-1">
+                                  <p className="text-xs text-salon-copper">Produtos:</p>
+                                  {produtosVendidos.map((produto: any, index: number) => (
+                                    <p key={index} className="text-xs text-white ml-2">
+                                      • {produto.nome} - R$ {produto.preco?.toFixed(2)}
+                                    </p>
+                                  ))}
+                                </div>
+                              )}
+                              <p className="text-white font-medium">
+                                Serviços: R$ {item.valor_servicos_extras.toFixed(2)} | 
+                                Produtos: R$ {item.valor_produtos.toFixed(2)}
+                              </p>
+                              <p className="text-salon-gold font-bold">
+                                Total: R$ {(item.valor_servicos_extras + item.valor_produtos).toFixed(2)}
+                              </p>
+                            </div>
+                            {item.observacoes && (
+                              <p className="text-xs text-salon-copper mt-2">{item.observacoes}</p>
+                            )}
                           </div>
-                          {item.observacoes && (
-                            <p className="text-xs text-salon-copper mt-2">{item.observacoes}</p>
-                          )}
+                          <Badge className={getStatusColor(item.status)}>
+                            {item.status}
+                          </Badge>
                         </div>
-                        <Badge className={getStatusColor(item.status)}>
-                          {item.status}
-                        </Badge>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </CardContent>
