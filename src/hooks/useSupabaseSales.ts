@@ -123,25 +123,29 @@ export const useSupabaseSales = () => {
 
       // Se um cupom foi usado, incrementar contador de uso
       if (couponId) {
-        const { error: couponError } = await supabase.rpc('increment_coupon_usage', {
-          coupon_id: couponId
-        });
+        // Buscar o cupom atual
+        const { data: currentCoupon, error: fetchError } = await supabase
+          .from('cupons')
+          .select('usos_realizados')
+          .eq('id', couponId)
+          .single();
 
-        if (couponError) {
-          console.error('Erro ao atualizar uso do cupom:', couponError);
-          // Usar alternativa manual se a função RPC não existir
-          const { error: manualCouponError } = await supabase
+        if (fetchError) {
+          console.error('Erro ao buscar cupom:', fetchError);
+        } else {
+          // Atualizar o contador de uso
+          const { error: couponError } = await supabase
             .from('cupons')
             .update({ 
-              usos_realizados: supabase.from('cupons').select('usos_realizados').eq('id', couponId).single().then(data => (data.data?.usos_realizados || 0) + 1)
+              usos_realizados: (currentCoupon.usos_realizados || 0) + 1
             })
             .eq('id', couponId);
 
-          if (manualCouponError) {
-            console.error('Erro ao atualizar uso do cupom manualmente:', manualCouponError);
+          if (couponError) {
+            console.error('Erro ao atualizar uso do cupom:', couponError);
+          } else {
+            console.log('Uso do cupom incrementado');
           }
-        } else {
-          console.log('Uso do cupom incrementado');
         }
       }
 

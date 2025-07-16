@@ -3,8 +3,6 @@ import React, { useState } from 'react';
 import { ShoppingCart, Minus, Plus, Trash2, Receipt } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useSharedCart } from '@/hooks/useSharedCart';
 import { useSupabaseSales } from '@/hooks/useSupabaseSales';
 import { useCoupons } from '@/hooks/useCoupons';
@@ -22,7 +20,6 @@ const SupabaseCart = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
   
-  const [paymentMethod, setPaymentMethod] = useState<string>('');
   const [showPixModal, setShowPixModal] = useState(false);
 
   const totalPrice = getTotalPrice();
@@ -39,27 +36,11 @@ const SupabaseCart = () => {
       return;
     }
 
-    if (!paymentMethod) {
-      toast({
-        title: "Forma de pagamento obrigatória",
-        description: "Selecione uma forma de pagamento para continuar.",
-        variant: "destructive",
-      });
-      return;
-    }
-
     try {
-      if (paymentMethod === 'pix') {
-        await createPixPayment(cart, paymentMethod, appliedCoupon, discountAmount, finalTotal);
-        setShowPixModal(true);
-      } else {
-        await createSale(cart, paymentMethod, discountAmount, appliedCoupon?.id);
-        clearCart();
-        removeCoupon();
-        navigate('/loja');
-      }
+      await createPixPayment(cart, 'pix', appliedCoupon, discountAmount, finalTotal);
+      setShowPixModal(true);
     } catch (error) {
-      console.error('Erro ao finalizar compra:', error);
+      console.error('Erro ao gerar PIX:', error);
     }
   };
 
@@ -191,25 +172,19 @@ const SupabaseCart = () => {
         onCouponApply={() => {}} // Handled internally by the hook
       />
 
-      {/* Payment Method */}
+      {/* Payment Method - Only PIX */}
       <Card className="glass-card border-salon-gold/20">
         <CardHeader>
           <CardTitle className="text-salon-gold">Forma de Pagamento</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="payment-method" className="text-white">Selecione a forma de pagamento *</Label>
-            <Select value={paymentMethod} onValueChange={setPaymentMethod}>
-              <SelectTrigger className="glass-card border-salon-gold/30 text-white">
-                <SelectValue placeholder="Selecione a forma de pagamento" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="dinheiro">Dinheiro</SelectItem>
-                <SelectItem value="cartao_debito">Cartão de Débito</SelectItem>
-                <SelectItem value="cartao_credito">Cartão de Crédito</SelectItem>
-                <SelectItem value="pix">PIX</SelectItem>
-              </SelectContent>
-            </Select>
+          <div className="bg-salon-gold/10 border border-salon-gold/30 rounded-lg p-4 text-center">
+            <div className="text-salon-gold font-bold text-lg mb-2">
+              💳 Pagamento via PIX
+            </div>
+            <p className="text-sm text-salon-copper">
+              Método seguro e instantâneo através da API AbacatePay
+            </p>
           </div>
         </CardContent>
       </Card>
@@ -252,7 +227,7 @@ const SupabaseCart = () => {
           ) : (
             <Receipt className="mr-2" size={20} />
           )}
-          {(saleLoading || pixLoading) ? 'Processando...' : `Finalizar Compra - R$ ${finalTotal.toFixed(2)}`}
+          {(saleLoading || pixLoading) ? 'Gerando PIX...' : `Pagar com PIX - R$ ${finalTotal.toFixed(2)}`}
         </Button>
 
         <Button
