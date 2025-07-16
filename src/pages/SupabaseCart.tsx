@@ -1,30 +1,39 @@
 
 import React, { useState } from 'react';
-import { ShoppingCart, Minus, Plus, Trash2, CreditCard, DollarSign, Receipt } from 'lucide-react';
+import { ShoppingCart, Minus, Plus, Trash2, Receipt } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useSharedCart } from '@/hooks/useSharedCart';
 import { useSupabaseSales } from '@/hooks/useSupabaseSales';
+import { useCoupons } from '@/hooks/useCoupons';
+import { useAbacatePayment } from '@/hooks/useAbacatePayment';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
+import CouponInput from '@/components/CouponInput';
+import PIXPaymentModal from '@/components/PIXPaymentModal';
 
 const SupabaseCart = () => {
   const { cart, updateQuantity, removeFromCart, clearCart, getTotalItems, getTotalPrice } = useSharedCart();
-  const { createSale, loading } = useSupabaseSales();
+  const { createSale, loading: saleLoading } = useSupabaseSales();
+  const { appliedCoupon, calculateDiscount, removeCoupon } = useCoupons();
+  const { loading: pixLoading, pixData, createPixPayment, checkPaymentStatus, clearPixData } = useAbacatePayment();
   const { toast } = useToast();
   const navigate = useNavigate();
   
   const [paymentMethod, setPaymentMethod] = useState<string>('');
-  const [discount, setDiscount] = useState<number>(0);
+  const [showPixModal, setShowPixModal] = useState(false);
+
+  const totalPrice = getTotalPrice();
+  const discountAmount = calculateDiscount(totalPrice, appliedCoupon);
+  const finalTotal = Math.max(0, totalPrice - discountAmount);
 
   const handleFinalizeSale = async () => {
     if (cart.length === 0) {
       toast({
         title: "Carrinho vazio",
-        description: "Adicione produtos ao carrinho antes de finalizar a venda.",
+        description: "Adicione produtos ao carrinho antes de finalizar a compra.",
         variant: "destructive",
       });
       return;
@@ -40,15 +49,43 @@ const SupabaseCart = () => {
     }
 
     try {
-      await createSale(cart, paymentMethod, discount);
-      clearCart();
-      navigate('/loja');
+      if (paymentMethod === 'pix') {
+        await createPixPayment(cart, paymentMethod, appliedCoupon, discountAmount, finalTotal);
+        setShowPixModal(true);
+      } else {
+        await createSale(cart, paymentMethod, discountAmount, appliedCoupon?.id);
+        clearCart();
+        removeCoupon();
+        navigate('/loja');
+      }
     } catch (error) {
-      console.error('Erro ao finalizar venda:', error);
+      console.error('Erro ao finalizar compra:', error);
     }
   };
 
-  const totalWithDiscount = getTotalPrice() - discount;
+  const handlePaymentConfirmed = async () => {
+    try {
+      await createSale(cart, 'pix', discountAmount, appliedCoupon?.id);
+      clearCart();
+      removeCoupon();
+      clearPixData();
+      setShowPixModal(false);
+      
+      toast({
+        title: "Compra finalizada! 🎉",
+        description: "Pagamento confirmado e compra processada com sucesso.",
+      });
+      
+      navigate('/loja');
+    } catch (error) {
+      console.error('Erro ao finalizar compra após pagamento:', error);
+      toast({
+        title: "Erro",
+        description: "Pagamento confirmado, mas erro ao processar compra. Entre em contato conosco.",
+        variant: "destructive",
+      });
+    }
+  };
 
   if (cart.length === 0) {
     return (
@@ -70,7 +107,7 @@ const SupabaseCart = () => {
     <div className="px-4 space-y-6 animate-fade-in">
       <div className="text-center mb-6">
         <h1 className="text-2xl font-bold text-gradient-gold mb-2 font-playfair">
-          Finalizar Venda
+          Finalizar Compra
         </h1>
         <p className="text-muted-foreground">
           {getTotalItems()} {getTotalItems() === 1 ? 'item' : 'itens'} no carrinho
@@ -147,17 +184,21 @@ const SupabaseCart = () => {
         ))}
       </div>
 
-      {/* Payment Details */}
+      {/* Coupon Input */}
+      <CouponInput
+        totalCompra={totalPrice}
+        appliedCoupon={appliedCoupon}
+        onCouponApply={() => {}} // Handled internally by the hook
+      />
+
+      {/* Payment Method */}
       <Card className="glass-card border-salon-gold/20">
         <CardHeader>
-          <CardTitle className="text-salon-gold flex items-center gap-2">
-            <CreditCard size={20} />
-            Detalhes do Pagamento
-          </CardTitle>
+          <CardTitle className="text-salon-gold">Forma de Pagamento</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="payment-method" className="text-white">Forma de Pagamento *</Label>
+            <Label htmlFor="payment-method" className="text-white">Selecione a forma de pagamento *</Label>
             <Select value={paymentMethod} onValueChange={setPaymentMethod}>
               <SelectTrigger className="glass-card border-salon-gold/30 text-white">
                 <SelectValue placeholder="Selecione a forma de pagamento" />
@@ -170,20 +211,6 @@ const SupabaseCart = () => {
               </SelectContent>
             </Select>
           </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="discount" className="text-white">Desconto (R$)</Label>
-            <Input
-              id="discount"
-              type="number"
-              min="0"
-              step="0.01"
-              value={discount}
-              onChange={(e) => setDiscount(Math.max(0, parseFloat(e.target.value) || 0))}
-              className="glass-card border-salon-gold/30 bg-transparent text-white"
-              placeholder="0,00"
-            />
-          </div>
         </CardContent>
       </Card>
 
@@ -193,20 +220,20 @@ const SupabaseCart = () => {
           <div className="space-y-2">
             <div className="flex justify-between text-white">
               <span>Subtotal:</span>
-              <span>R$ {getTotalPrice().toFixed(2)}</span>
+              <span>R$ {totalPrice.toFixed(2)}</span>
             </div>
             
-            {discount > 0 && (
+            {appliedCoupon && discountAmount > 0 && (
               <div className="flex justify-between text-green-400">
-                <span>Desconto:</span>
-                <span>- R$ {discount.toFixed(2)}</span>
+                <span>Desconto ({appliedCoupon.codigo}):</span>
+                <span>- R$ {discountAmount.toFixed(2)}</span>
               </div>
             )}
             
             <div className="border-t border-salon-gold/20 pt-2">
               <div className="flex justify-between text-salon-gold font-bold text-lg">
                 <span>Total Final:</span>
-                <span>R$ {Math.max(0, totalWithDiscount).toFixed(2)}</span>
+                <span>R$ {finalTotal.toFixed(2)}</span>
               </div>
             </div>
           </div>
@@ -217,15 +244,15 @@ const SupabaseCart = () => {
       <div className="space-y-3 pb-24">
         <Button
           onClick={handleFinalizeSale}
-          disabled={loading || totalWithDiscount < 0}
+          disabled={saleLoading || pixLoading}
           className="w-full bg-salon-gold hover:bg-salon-copper text-salon-dark font-bold h-14 text-lg"
         >
-          {loading ? (
+          {(saleLoading || pixLoading) ? (
             <div className="animate-spin w-5 h-5 border-2 border-salon-dark border-t-transparent rounded-full mr-2" />
           ) : (
             <Receipt className="mr-2" size={20} />
           )}
-          {loading ? 'Processando...' : `Finalizar Venda - R$ ${Math.max(0, totalWithDiscount).toFixed(2)}`}
+          {(saleLoading || pixLoading) ? 'Processando...' : `Finalizar Compra - R$ ${finalTotal.toFixed(2)}`}
         </Button>
 
         <Button
@@ -236,6 +263,15 @@ const SupabaseCart = () => {
           Continuar Comprando
         </Button>
       </div>
+
+      {/* PIX Payment Modal */}
+      <PIXPaymentModal
+        isOpen={showPixModal}
+        onClose={() => setShowPixModal(false)}
+        pixData={pixData}
+        onPaymentConfirmed={handlePaymentConfirmed}
+        checkPaymentStatus={checkPaymentStatus}
+      />
     </div>
   );
 };

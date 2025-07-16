@@ -193,6 +193,54 @@ export type Database = {
           },
         ]
       }
+      cupons: {
+        Row: {
+          ativo: boolean | null
+          codigo: string
+          created_at: string | null
+          data_fim: string
+          data_inicio: string
+          descricao: string | null
+          id: string
+          limite_uso: number | null
+          tipo: string
+          updated_at: string | null
+          usos_realizados: number | null
+          valor: number
+          valor_minimo_compra: number | null
+        }
+        Insert: {
+          ativo?: boolean | null
+          codigo: string
+          created_at?: string | null
+          data_fim: string
+          data_inicio?: string
+          descricao?: string | null
+          id?: string
+          limite_uso?: number | null
+          tipo: string
+          updated_at?: string | null
+          usos_realizados?: number | null
+          valor: number
+          valor_minimo_compra?: number | null
+        }
+        Update: {
+          ativo?: boolean | null
+          codigo?: string
+          created_at?: string | null
+          data_fim?: string
+          data_inicio?: string
+          descricao?: string | null
+          id?: string
+          limite_uso?: number | null
+          tipo?: string
+          updated_at?: string | null
+          usos_realizados?: number | null
+          valor?: number
+          valor_minimo_compra?: number | null
+        }
+        Relationships: []
+      }
       devedores: {
         Row: {
           ativo: boolean | null
@@ -590,26 +638,35 @@ export type Database = {
         Row: {
           cliente_id: string | null
           created_at: string
+          cupom_id: string | null
           data_venda: string
+          desconto: number | null
           id: string
           status: string
           total: number
+          total_final: number
         }
         Insert: {
           cliente_id?: string | null
           created_at?: string
+          cupom_id?: string | null
           data_venda?: string
+          desconto?: number | null
           id?: string
           status?: string
           total: number
+          total_final: number
         }
         Update: {
           cliente_id?: string | null
           created_at?: string
+          cupom_id?: string | null
           data_venda?: string
+          desconto?: number | null
           id?: string
           status?: string
           total?: number
+          total_final?: number
         }
         Relationships: [
           {
@@ -617,6 +674,13 @@ export type Database = {
             columns: ["cliente_id"]
             isOneToOne: false
             referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vendas_cupom_id_fkey"
+            columns: ["cupom_id"]
+            isOneToOne: false
+            referencedRelation: "cupons"
             referencedColumns: ["id"]
           },
         ]

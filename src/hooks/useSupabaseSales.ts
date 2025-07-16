@@ -11,6 +11,7 @@ export interface SaleData {
   total_final: number;
   forma_pagamento?: string;
   observacoes?: string;
+  cupom_id?: string;
   items: {
     produto_id: string;
     quantidade: number;
@@ -23,10 +24,15 @@ export const useSupabaseSales = () => {
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
-  const createSale = async (cartItems: CartItem[], paymentMethod?: string, discount: number = 0) => {
+  const createSale = async (
+    cartItems: CartItem[], 
+    paymentMethod?: string, 
+    discount: number = 0,
+    couponId?: string
+  ) => {
     try {
       setLoading(true);
-      console.log('Iniciando criação de venda:', { cartItems, paymentMethod, discount });
+      console.log('Iniciando criação de venda:', { cartItems, paymentMethod, discount, couponId });
       
       const total = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
       const finalTotal = total - discount;
@@ -39,6 +45,7 @@ export const useSupabaseSales = () => {
           desconto: discount,
           total_final: finalTotal,
           forma_pagamento: paymentMethod,
+          cupom_id: couponId,
           status: 'pendente'
         })
         .select()
@@ -114,6 +121,20 @@ export const useSupabaseSales = () => {
         }
       }
 
+      // Se um cupom foi usado, incrementar contador de uso
+      if (couponId) {
+        const { error: couponError } = await supabase
+          .from('cupons')
+          .update({ usos_realizados: supabase.sql`usos_realizados + 1` })
+          .eq('id', couponId);
+
+        if (couponError) {
+          console.error('Erro ao atualizar uso do cupom:', couponError);
+        } else {
+          console.log('Uso do cupom incrementado');
+        }
+      }
+
       // Finalizar a venda
       const { error: updateError } = await supabase
         .from('vendas')
@@ -128,16 +149,16 @@ export const useSupabaseSales = () => {
       console.log('Venda finalizada com sucesso');
 
       toast({
-        title: "Venda finalizada! 🎉",
-        description: `Venda de R$ ${finalTotal.toFixed(2)} realizada com sucesso. Estoque atualizado automaticamente.`,
+        title: "Compra finalizada! 🎉",
+        description: `Compra de R$ ${finalTotal.toFixed(2)} realizada com sucesso. Estoque atualizado automaticamente.`,
       });
 
       return sale;
     } catch (error) {
       console.error('Erro ao criar venda:', error);
       toast({
-        title: "Erro ao finalizar venda",
-        description: "Não foi possível processar a venda. Tente novamente.",
+        title: "Erro ao finalizar compra",
+        description: "Não foi possível processar a compra. Tente novamente.",
         variant: "destructive",
       });
       throw error;
