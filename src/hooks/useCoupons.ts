@@ -73,7 +73,13 @@ export const useCoupons = () => {
         return null;
       }
 
-      return coupon;
+      // Garantir que o tipo seja válido
+      const validatedCoupon: Coupon = {
+        ...coupon,
+        tipo: coupon.tipo as 'percentual' | 'valor_fixo'
+      };
+
+      return validatedCoupon;
     } catch (error) {
       console.error('Erro ao validar cupom:', error);
       toast({
