@@ -26,6 +26,7 @@ export const useSupabaseSales = () => {
   const createSale = async (cartItems: CartItem[], paymentMethod?: string, discount: number = 0) => {
     try {
       setLoading(true);
+      console.log('Iniciando criação de venda:', { cartItems, paymentMethod, discount });
       
       const total = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
       const finalTotal = total - discount;
@@ -43,7 +44,12 @@ export const useSupabaseSales = () => {
         .select()
         .single();
 
-      if (saleError) throw saleError;
+      if (saleError) {
+        console.error('Erro ao criar venda:', saleError);
+        throw saleError;
+      }
+
+      console.log('Venda criada:', sale);
 
       // Criar os itens da venda
       const saleItems = cartItems.map(item => ({
@@ -58,19 +64,72 @@ export const useSupabaseSales = () => {
         .from('itens_venda')
         .insert(saleItems);
 
-      if (itemsError) throw itemsError;
+      if (itemsError) {
+        console.error('Erro ao criar itens da venda:', itemsError);
+        throw itemsError;
+      }
 
-      // Finalizar a venda (isso dispara o trigger para atualizar estoque)
+      console.log('Itens da venda criados:', saleItems);
+
+      // Atualizar o estoque dos produtos
+      for (const item of cartItems) {
+        // Buscar o produto atual para verificar estoque
+        const { data: produto, error: produtoError } = await supabase
+          .from('produtos')
+          .select('estoque')
+          .eq('id', item.id)
+          .single();
+
+        if (produtoError) {
+          console.error('Erro ao buscar produto:', produtoError);
+          continue;
+        }
+
+        const novoEstoque = produto.estoque - item.quantity;
+        
+        // Atualizar estoque do produto
+        const { error: updateError } = await supabase
+          .from('produtos')
+          .update({ estoque: Math.max(0, novoEstoque) })
+          .eq('id', item.id);
+
+        if (updateError) {
+          console.error('Erro ao atualizar estoque:', updateError);
+        } else {
+          console.log(`Estoque atualizado para produto ${item.id}: ${produto.estoque} -> ${novoEstoque}`);
+        }
+
+        // Registrar movimentação de estoque
+        const { error: movError } = await supabase
+          .from('movimentacao_estoque')
+          .insert({
+            produto_id: item.id,
+            tipo: 'saida',
+            quantidade: item.quantity,
+            motivo: `Venda ${sale.id}`,
+          });
+
+        if (movError) {
+          console.error('Erro ao registrar movimentação:', movError);
+        }
+      }
+
+      // Finalizar a venda
       const { error: updateError } = await supabase
         .from('vendas')
         .update({ status: 'finalizada' })
         .eq('id', sale.id);
 
-      if (updateError) throw updateError;
+      if (updateError) {
+        console.error('Erro ao finalizar venda:', updateError);
+        throw updateError;
+      }
+
+      console.log('Venda finalizada com sucesso');
 
       toast({
         title: "Venda finalizada! 🎉",
-        description: `Venda de R$ ${finalTotal.toFixed(2)} realizada com sucesso.`,
+        description: `Venda de R$ ${finalTotal.toFixed(2)} realizada com sucesso. Estoque atualizado automaticamente.`,
       });
 
       return sale;

@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Search, Grid3X3, List, Package } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -20,7 +20,7 @@ const SupabaseStore = () => {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
   // Initialize real-time hooks
-  const { products, loading, isConnected } = useRealtimeProducts();
+  const { products, loading } = useRealtimeProducts();
   const { 
     addToCartWithValidation, 
     getTotalItems, 
@@ -106,14 +106,8 @@ const SupabaseStore = () => {
             Produtos em Tempo Real
           </h1>
           <p className="text-muted-foreground">
-            Conectado ao estoque do Supabase - Atualizações em tempo real
+            Estoque sincronizado com atualizações automáticas
           </p>
-          <div className="flex items-center justify-center gap-2 mt-2">
-            <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`}></div>
-            <span className={`text-xs ${isConnected ? 'text-green-400' : 'text-red-400'}`}>
-              {isConnected ? 'Conectado em tempo real' : 'Desconectado'}
-            </span>
-          </div>
         </div>
 
         {/* Search and View Toggle */}

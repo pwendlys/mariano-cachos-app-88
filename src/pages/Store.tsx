@@ -19,7 +19,7 @@ const Store = () => {
   const [favorites, setFavorites] = useState<string[]>([]);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
-  const { products, loading, isConnected } = useRealtimeProducts();
+  const { products, loading } = useRealtimeProducts();
   const { 
     addToCartWithValidation, 
     getTotalItems, 
@@ -109,12 +109,6 @@ const Store = () => {
           <p className="text-muted-foreground">
             Cuide dos seus cachos com produtos de qualidade
           </p>
-          <div className="flex items-center justify-center gap-2 mt-2">
-            <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`}></div>
-            <span className={`text-xs ${isConnected ? 'text-green-400' : 'text-red-400'}`}>
-              {isConnected ? 'Tempo real ativo' : 'Sem conexão em tempo real'}
-            </span>
-          </div>
         </div>
 
         {/* Search and View Toggle */}
