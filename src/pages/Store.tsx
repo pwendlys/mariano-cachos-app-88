@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { useRealtimeCart } from '@/hooks/useRealtimeCart';
 import { useRealtimeProducts } from '@/hooks/useRealtimeProducts';
+import { useRealtimeStockUpdate } from '@/hooks/useRealtimeStockUpdate';
 import { useNavigate } from 'react-router-dom';
 import ProductCard from '@/components/ProductCard';
 import StockWarnings from '@/components/StockWarnings';
@@ -26,6 +27,9 @@ const Store = () => {
     stockWarnings, 
     clearStockWarnings 
   } = useRealtimeCart();
+  
+  // Add real-time stock alerts
+  useRealtimeStockUpdate();
 
   const categories = [
     { id: 'all', name: 'Todos', count: products.length },
@@ -46,13 +50,26 @@ const Store = () => {
   const recommendedProducts = filteredProducts.slice(0, 4);
 
   const handleAddToCart = (product: any, quantity: number) => {
-    addToCartWithValidation({
-      id: product.id,
-      name: product.name,
-      brand: product.brand,
-      price: product.price,
-      image: product.image
-    }, quantity);
+    try {
+      addToCartWithValidation({
+        id: product.id,
+        name: product.name,
+        brand: product.brand,
+        price: product.price,
+        image: product.image
+      }, quantity);
+      
+      toast({
+        title: "Produto adicionado! 🛒",
+        description: `${quantity}x ${product.name} adicionado ao carrinho.`,
+      });
+    } catch (error) {
+      toast({
+        title: "Erro ao adicionar produto",
+        description: error instanceof Error ? error.message : "Erro desconhecido",
+        variant: "destructive",
+      });
+    }
   };
 
   const toggleFavorite = (productId: string) => {
@@ -92,11 +109,12 @@ const Store = () => {
           <p className="text-muted-foreground">
             Cuide dos seus cachos com produtos de qualidade
           </p>
-          {!isConnected && (
-            <p className="text-xs text-orange-400 mt-1">
-              ⚠️ Conexão em tempo real desconectada
-            </p>
-          )}
+          <div className="flex items-center justify-center gap-2 mt-2">
+            <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`}></div>
+            <span className={`text-xs ${isConnected ? 'text-green-400' : 'text-red-400'}`}>
+              {isConnected ? 'Tempo real ativo' : 'Sem conexão em tempo real'}
+            </span>
+          </div>
         </div>
 
         {/* Search and View Toggle */}
@@ -141,7 +159,7 @@ const Store = () => {
         </div>
 
         {/* Categories */}
-        <div className="flex space-x-2 overflow-x-auto pb-2">
+        <div className="flex space-x-2 overflow-x-auto pb-2 scrollbar-hide">
           {categories.map((category) => (
             <Button
               key={category.id}
@@ -204,14 +222,19 @@ const Store = () => {
           {filteredProducts.length === 0 && !loading && (
             <div className="text-center py-12">
               <Package className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-              <p className="text-muted-foreground">Nenhum produto encontrado</p>
+              <p className="text-muted-foreground">
+                {products.length === 0 
+                  ? 'Nenhum produto no estoque. Adicione produtos pelo painel admin.' 
+                  : 'Nenhum produto encontrado para sua busca.'
+                }
+              </p>
             </div>
           )}
         </div>
 
         {/* Cart Summary */}
         {getTotalItems() > 0 && (
-          <div className="fixed bottom-24 left-4 right-4 glass-card rounded-2xl p-4">
+          <div className="fixed bottom-24 left-4 right-4 glass-card rounded-2xl p-4 z-30">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-salon-gold font-medium">
