@@ -8,6 +8,7 @@ import CartIcon from './CartIcon';
 import { useBannerSettings } from '@/hooks/useBannerSettings';
 import { useAuth } from '@/hooks/useAuth';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useRealtimeCart } from '@/hooks/useRealtimeCart';
 
 const Header = () => {
   const navigate = useNavigate();
@@ -15,9 +16,7 @@ const Header = () => {
   const { bannerSettings } = useBannerSettings();
   const { user, logout } = useAuth();
   const isMobile = useIsMobile();
-
-  // Mock cart count - in real app this would come from state/context
-  const cartItemCount = 3;
+  const { getTotalItems } = useRealtimeCart();
 
   const getPageTitle = () => {
     switch (location.pathname) {
@@ -82,7 +81,7 @@ const Header = () => {
             </span>
           </Button>
           
-          <CartIcon itemCount={cartItemCount} size={isMobile ? 'sm' : 'default'} />
+          <CartIcon itemCount={getTotalItems()} size={isMobile ? 'sm' : 'default'} />
           
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
