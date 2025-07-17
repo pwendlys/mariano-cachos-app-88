@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -90,7 +89,14 @@ export const useSupabaseProducts = (productType?: 'ecommerce' | 'interno' | 'all
       const { data, error } = await query;
 
       if (error) throw error;
-      setSupabaseProducts(data || []);
+      
+      // Type cast the data to ensure tipo_produto is properly typed
+      const typedData = (data || []).map(item => ({
+        ...item,
+        tipo_produto: item.tipo_produto as 'ecommerce' | 'interno'
+      }));
+      
+      setSupabaseProducts(typedData);
     } catch (error) {
       console.error('Erro ao buscar produtos:', error);
       toast({
