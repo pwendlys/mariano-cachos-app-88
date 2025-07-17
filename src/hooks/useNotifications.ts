@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
+import type { Tables } from '@/integrations/supabase/types';
 
 export interface Notification {
   id: string;
@@ -15,12 +16,27 @@ export interface Notification {
   created_at: string;
 }
 
+// Type for the raw notification data from Supabase
+type SupabaseNotification = Tables<'notificacoes'>;
+
 export const useNotifications = () => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
   const [unreadCount, setUnreadCount] = useState(0);
   const { toast } = useToast();
   const { user } = useAuth();
+
+  // Helper function to transform Supabase data to our Notification type
+  const transformNotification = (data: SupabaseNotification): Notification => ({
+    id: data.id,
+    tipo: data.tipo as 'agendamento_aprovado' | 'compra_concluida',
+    titulo: data.titulo,
+    mensagem: data.mensagem,
+    lida: data.lida || false,
+    data_criacao: data.data_criacao || data.created_at || '',
+    metadata: data.metadata,
+    created_at: data.created_at || '',
+  });
 
   const fetchNotifications = async () => {
     if (!user?.id) return;
@@ -40,8 +56,9 @@ export const useNotifications = () => {
       }
 
       console.log('✅ [useNotifications] Notifications fetched:', data);
-      setNotifications(data || []);
-      setUnreadCount((data || []).filter(n => !n.lida).length);
+      const transformedNotifications = (data || []).map(transformNotification);
+      setNotifications(transformedNotifications);
+      setUnreadCount(transformedNotifications.filter(n => !n.lida).length);
     } catch (error: any) {
       console.error('❌ [useNotifications] Error in fetchNotifications:', error);
       toast({
@@ -142,7 +159,7 @@ export const useNotifications = () => {
         },
         (payload) => {
           console.log('📡 [useNotifications] New notification received:', payload);
-          const newNotification = payload.new as Notification;
+          const newNotification = transformNotification(payload.new as SupabaseNotification);
           
           // Add to local state
           setNotifications(prev => [newNotification, ...prev]);
