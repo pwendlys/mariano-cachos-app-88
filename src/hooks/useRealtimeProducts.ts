@@ -3,8 +3,8 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useSupabaseProducts, Product } from './useSupabaseProducts';
 
-export const useRealtimeProducts = () => {
-  const { products, loading, ...productMethods } = useSupabaseProducts();
+export const useRealtimeProducts = (productType: 'ecommerce' | 'interno' | 'all' = 'ecommerce') => {
+  const { products, loading, ...productMethods } = useSupabaseProducts(productType);
   const [isConnected, setIsConnected] = useState(false);
 
   useEffect(() => {
@@ -31,7 +31,7 @@ export const useRealtimeProducts = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [productType]);
 
   return {
     products,

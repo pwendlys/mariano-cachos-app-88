@@ -16,6 +16,7 @@ export interface SupabaseProduct {
   imagem?: string;
   codigo_barras?: string;
   ativo: boolean;
+  tipo_produto: 'ecommerce' | 'interno';
   created_at?: string;
   updated_at?: string;
 }
@@ -32,6 +33,7 @@ export interface Product {
   category: string;
   image?: string;
   costPrice?: number;
+  type: 'ecommerce' | 'interno';
 }
 
 // Helper functions to convert between interfaces
@@ -46,6 +48,7 @@ const convertToProduct = (supabaseProduct: SupabaseProduct): Product => ({
   category: supabaseProduct.categoria,
   image: supabaseProduct.imagem,
   costPrice: supabaseProduct.preco_custo,
+  type: supabaseProduct.tipo_produto,
 });
 
 const convertFromProduct = (product: Product): Omit<SupabaseProduct, 'id' | 'created_at' | 'updated_at' | 'ativo'> => ({
@@ -59,9 +62,10 @@ const convertFromProduct = (product: Product): Omit<SupabaseProduct, 'id' | 'cre
   imagem: product.image,
   preco_custo: product.costPrice,
   codigo_barras: '',
+  tipo_produto: product.type,
 });
 
-export const useSupabaseProducts = () => {
+export const useSupabaseProducts = (productType?: 'ecommerce' | 'interno' | 'all') => {
   const [supabaseProducts, setSupabaseProducts] = useState<SupabaseProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
@@ -72,11 +76,18 @@ export const useSupabaseProducts = () => {
   const fetchProducts = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
+      let query = supabase
         .from('produtos')
         .select('*')
         .eq('ativo', true)
         .order('nome');
+
+      // Filter by product type if specified
+      if (productType && productType !== 'all') {
+        query = query.eq('tipo_produto', productType);
+      }
+
+      const { data, error } = await query;
 
       if (error) throw error;
       setSupabaseProducts(data || []);
@@ -94,7 +105,7 @@ export const useSupabaseProducts = () => {
 
   useEffect(() => {
     fetchProducts();
-  }, []);
+  }, [productType]);
 
   const addProduct = async (product: Product) => {
     try {

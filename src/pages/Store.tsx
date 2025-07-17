@@ -19,7 +19,8 @@ const Store = () => {
   const [favorites, setFavorites] = useState<string[]>([]);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
-  const { products, loading } = useRealtimeProducts();
+  // Only show e-commerce products in the store
+  const { products, loading } = useRealtimeProducts('ecommerce');
   const { 
     addToCartWithValidation, 
     getTotalItems, 

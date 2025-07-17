@@ -1,10 +1,12 @@
+
 import React, { useState } from 'react';
-import { Plus, Edit, Trash2, Upload, X, TrendingDown } from 'lucide-react';
+import { Plus, Edit, Trash2, Upload, X, TrendingDown, Filter } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { useSupabaseProducts, Product } from '@/hooks/useSupabaseProducts';
 
@@ -14,7 +16,8 @@ interface ProductManagementProps {
 
 const ProductManagement: React.FC<ProductManagementProps> = ({ onStockEntry }) => {
   const { toast } = useToast();
-  const { products, loading, addProduct, updateProduct, deleteProduct, updateProductStock } = useSupabaseProducts();
+  const [productTypeFilter, setProductTypeFilter] = useState<'all' | 'ecommerce' | 'interno'>('all');
+  const { products, loading, addProduct, updateProduct, deleteProduct, updateProductStock } = useSupabaseProducts(productTypeFilter);
 
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -34,7 +37,8 @@ const ProductManagement: React.FC<ProductManagementProps> = ({ onStockEntry }) =
     minStock: '',
     category: '',
     image: '',
-    costPrice: ''
+    costPrice: '',
+    type: 'ecommerce' as 'ecommerce' | 'interno'
   });
   const [imagePreview, setImagePreview] = useState<string>('');
 
@@ -95,7 +99,8 @@ const ProductManagement: React.FC<ProductManagementProps> = ({ onStockEntry }) =
       minStock: product.minStock.toString(),
       category: product.category,
       image: product.image || '',
-      costPrice: product.costPrice?.toString() || ''
+      costPrice: product.costPrice?.toString() || '',
+      type: product.type
     });
     setImagePreview(product.image || '');
     setIsDialogOpen(true);
@@ -112,7 +117,8 @@ const ProductManagement: React.FC<ProductManagementProps> = ({ onStockEntry }) =
       minStock: '',
       category: '',
       image: '',
-      costPrice: ''
+      costPrice: '',
+      type: 'ecommerce'
     });
     setImagePreview('');
     setIsDialogOpen(true);
@@ -156,7 +162,8 @@ const ProductManagement: React.FC<ProductManagementProps> = ({ onStockEntry }) =
       minStock: parseInt(formData.minStock) || 1,
       category: formData.category,
       image: formData.image || undefined,
-      costPrice: formData.costPrice ? parseFloat(formData.costPrice) : undefined
+      costPrice: formData.costPrice ? parseFloat(formData.costPrice) : undefined,
+      type: formData.type
     };
 
     if (editingProduct) {
@@ -184,179 +191,216 @@ const ProductManagement: React.FC<ProductManagementProps> = ({ onStockEntry }) =
     });
   };
 
+  const getProductTypeLabel = (type: 'ecommerce' | 'interno') => {
+    return type === 'ecommerce' ? 'E-commerce' : 'Uso Interno';
+  };
+
+  const getProductTypeBadgeClass = (type: 'ecommerce' | 'interno') => {
+    return type === 'ecommerce' 
+      ? 'bg-blue-500/20 text-blue-400' 
+      : 'bg-purple-500/20 text-purple-400';
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-xl font-semibold text-salon-gold">Gestão de Produtos e Estoque</h2>
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button 
-              onClick={handleAdd}
-              className="bg-salon-gold hover:bg-salon-copper text-salon-dark font-medium h-12 px-6"
-            >
-              <Plus className="mr-2" size={16} />
-              Novo Produto
-            </Button>
-          </DialogTrigger>
+        <div className="flex gap-2">
+          <Select value={productTypeFilter} onValueChange={(value: 'all' | 'ecommerce' | 'interno') => setProductTypeFilter(value)}>
+            <SelectTrigger className="w-[180px] glass-card border-salon-gold/30 bg-transparent text-white">
+              <Filter size={16} className="mr-2" />
+              <SelectValue placeholder="Filtrar por tipo" />
+            </SelectTrigger>
+            <SelectContent className="glass-card border-salon-gold/30 bg-salon-dark text-white">
+              <SelectItem value="all">Todos os Produtos</SelectItem>
+              <SelectItem value="ecommerce">E-commerce</SelectItem>
+              <SelectItem value="interno">Uso Interno</SelectItem>
+            </SelectContent>
+          </Select>
           
-          <DialogContent className="glass-card border-salon-gold/30 text-white max-w-md max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle className="text-salon-gold">
-                {editingProduct ? 'Editar Produto' : 'Novo Produto'}
-              </DialogTitle>
-            </DialogHeader>
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogTrigger asChild>
+              <Button 
+                onClick={handleAdd}
+                className="bg-salon-gold hover:bg-salon-copper text-salon-dark font-medium h-12 px-6"
+              >
+                <Plus className="mr-2" size={16} />
+                Novo Produto
+              </Button>
+            </DialogTrigger>
             
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium mb-2">Nome do Produto *</label>
-                <Input
-                  value={formData.name}
-                  onChange={(e) => setFormData({...formData, name: e.target.value})}
-                  placeholder="Ex: Shampoo Hidratante"
-                  className="glass-card border-salon-gold/30 bg-transparent text-white h-12"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-2">Marca *</label>
-                <Input
-                  value={formData.brand}
-                  onChange={(e) => setFormData({...formData, brand: e.target.value})}
-                  placeholder="Ex: Salon Professional"
-                  className="glass-card border-salon-gold/30 bg-transparent text-white h-12"
-                />
-              </div>
+            <DialogContent className="glass-card border-salon-gold/30 text-white max-w-md max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle className="text-salon-gold">
+                  {editingProduct ? 'Editar Produto' : 'Novo Produto'}
+                </DialogTitle>
+              </DialogHeader>
               
-              <div>
-                <label className="block text-sm font-medium mb-2">Descrição</label>
-                <Textarea
-                  value={formData.description}
-                  onChange={(e) => setFormData({...formData, description: e.target.value})}
-                  placeholder="Descreva o produto..."
-                  className="glass-card border-salon-gold/30 bg-transparent text-white"
-                  rows={3}
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-2">Categoria *</label>
-                <select
-                  value={formData.category}
-                  onChange={(e) => setFormData({...formData, category: e.target.value})}
-                  className="w-full h-12 px-3 glass-card border border-salon-gold/30 bg-transparent text-white rounded-md"
-                >
-                  <option value="">Selecione uma categoria</option>
-                  {categories.map(cat => (
-                    <option key={cat} value={cat} className="bg-salon-dark text-white">
-                      {cat.charAt(0).toUpperCase() + cat.slice(1)}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-2">Foto do Produto</label>
-                <div className="space-y-3">
-                  {imagePreview ? (
-                    <div className="relative">
-                      <img 
-                        src={imagePreview} 
-                        alt="Preview" 
-                        className="w-full h-32 object-cover rounded-lg"
-                      />
-                      <Button
-                        type="button"
-                        variant="destructive"
-                        size="icon"
-                        className="absolute top-2 right-2 h-8 w-8"
-                        onClick={removeImage}
-                      >
-                        <X size={16} />
-                      </Button>
-                    </div>
-                  ) : (
-                    <div className="border-2 border-dashed border-salon-gold/30 rounded-lg p-4 text-center">
-                      <Upload className="mx-auto text-salon-gold mb-2" size={24} />
-                      <p className="text-sm text-muted-foreground">Clique para adicionar uma foto</p>
-                    </div>
-                  )}
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium mb-2">Nome do Produto *</label>
                   <Input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleImageUpload}
+                    value={formData.name}
+                    onChange={(e) => setFormData({...formData, name: e.target.value})}
+                    placeholder="Ex: Shampoo Hidratante"
                     className="glass-card border-salon-gold/30 bg-transparent text-white h-12"
                   />
                 </div>
-              </div>
-              
-              <div className="grid grid-cols-2 gap-4">
+
                 <div>
-                  <label className="block text-sm font-medium mb-2">Preço Venda (R$) *</label>
+                  <label className="block text-sm font-medium mb-2">Marca *</label>
                   <Input
-                    type="number"
-                    step="0.01"
-                    value={formData.price}
-                    onChange={(e) => setFormData({...formData, price: e.target.value})}
-                    placeholder="0.00"
+                    value={formData.brand}
+                    onChange={(e) => setFormData({...formData, brand: e.target.value})}
+                    placeholder="Ex: Salon Professional"
                     className="glass-card border-salon-gold/30 bg-transparent text-white h-12"
                   />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-2">Tipo do Produto *</label>
+                  <Select value={formData.type} onValueChange={(value: 'ecommerce' | 'interno') => setFormData({...formData, type: value})}>
+                    <SelectTrigger className="glass-card border-salon-gold/30 bg-transparent text-white h-12">
+                      <SelectValue placeholder="Selecione o tipo" />
+                    </SelectTrigger>
+                    <SelectContent className="glass-card border-salon-gold/30 bg-salon-dark text-white">
+                      <SelectItem value="ecommerce">E-commerce (Venda Online)</SelectItem>
+                      <SelectItem value="interno">Uso Interno (Salão)</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
                 
                 <div>
-                  <label className="block text-sm font-medium mb-2">Custo (R$)</label>
-                  <Input
-                    type="number"
-                    step="0.01"
-                    value={formData.costPrice}
-                    onChange={(e) => setFormData({...formData, costPrice: e.target.value})}
-                    placeholder="0.00"
-                    className="glass-card border-salon-gold/30 bg-transparent text-white h-12"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium mb-2">Estoque Inicial *</label>
-                  <Input
-                    type="number"
-                    value={formData.stock}
-                    onChange={(e) => setFormData({...formData, stock: e.target.value})}
-                    placeholder="0"
-                    className="glass-card border-salon-gold/30 bg-transparent text-white h-12"
+                  <label className="block text-sm font-medium mb-2">Descrição</label>
+                  <Textarea
+                    value={formData.description}
+                    onChange={(e) => setFormData({...formData, description: e.target.value})}
+                    placeholder="Descreva o produto..."
+                    className="glass-card border-salon-gold/30 bg-transparent text-white"
+                    rows={3}
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium mb-2">Estoque Mínimo</label>
-                  <Input
-                    type="number"
-                    value={formData.minStock}
-                    onChange={(e) => setFormData({...formData, minStock: e.target.value})}
-                    placeholder="1"
-                    className="glass-card border-salon-gold/30 bg-transparent text-white h-12"
-                  />
+                  <label className="block text-sm font-medium mb-2">Categoria *</label>
+                  <Select value={formData.category} onValueChange={(value) => setFormData({...formData, category: value})}>
+                    <SelectTrigger className="glass-card border-salon-gold/30 bg-transparent text-white h-12">
+                      <SelectValue placeholder="Selecione uma categoria" />
+                    </SelectTrigger>
+                    <SelectContent className="glass-card border-salon-gold/30 bg-salon-dark text-white">
+                      {categories.map(cat => (
+                        <SelectItem key={cat} value={cat}>
+                          {cat.charAt(0).toUpperCase() + cat.slice(1)}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-2">Foto do Produto</label>
+                  <div className="space-y-3">
+                    {imagePreview ? (
+                      <div className="relative">
+                        <img 
+                          src={imagePreview} 
+                          alt="Preview" 
+                          className="w-full h-32 object-cover rounded-lg"
+                        />
+                        <Button
+                          type="button"
+                          variant="destructive"
+                          size="icon"
+                          className="absolute top-2 right-2 h-8 w-8"
+                          onClick={removeImage}
+                        >
+                          <X size={16} />
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="border-2 border-dashed border-salon-gold/30 rounded-lg p-4 text-center">
+                        <Upload className="mx-auto text-salon-gold mb-2" size={24} />
+                        <p className="text-sm text-muted-foreground">Clique para adicionar uma foto</p>
+                      </div>
+                    )}
+                    <Input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageUpload}
+                      className="glass-card border-salon-gold/30 bg-transparent text-white h-12"
+                    />
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Preço Venda (R$) *</label>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      value={formData.price}
+                      onChange={(e) => setFormData({...formData, price: e.target.value})}
+                      placeholder="0.00"
+                      className="glass-card border-salon-gold/30 bg-transparent text-white h-12"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Custo (R$)</label>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      value={formData.costPrice}
+                      onChange={(e) => setFormData({...formData, costPrice: e.target.value})}
+                      placeholder="0.00"
+                      className="glass-card border-salon-gold/30 bg-transparent text-white h-12"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Estoque Inicial *</label>
+                    <Input
+                      type="number"
+                      value={formData.stock}
+                      onChange={(e) => setFormData({...formData, stock: e.target.value})}
+                      placeholder="0"
+                      className="glass-card border-salon-gold/30 bg-transparent text-white h-12"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Estoque Mínimo</label>
+                    <Input
+                      type="number"
+                      value={formData.minStock}
+                      onChange={(e) => setFormData({...formData, minStock: e.target.value})}
+                      placeholder="1"
+                      className="glass-card border-salon-gold/30 bg-transparent text-white h-12"
+                    />
+                  </div>
+                </div>
+                
+                <div className="flex space-x-3 pt-4">
+                  <Button 
+                    onClick={handleSave}
+                    className="flex-1 bg-salon-gold hover:bg-salon-copper text-salon-dark font-medium h-12"
+                  >
+                    {editingProduct ? 'Atualizar' : 'Criar'} Produto
+                  </Button>
+                  <Button 
+                    variant="outline"
+                    onClick={() => setIsDialogOpen(false)}
+                    className="border-salon-gold/30 text-salon-gold hover:bg-salon-gold/10 h-12"
+                  >
+                    Cancelar
+                  </Button>
                 </div>
               </div>
-              
-              <div className="flex space-x-3 pt-4">
-                <Button 
-                  onClick={handleSave}
-                  className="flex-1 bg-salon-gold hover:bg-salon-copper text-salon-dark font-medium h-12"
-                >
-                  {editingProduct ? 'Atualizar' : 'Criar'} Produto
-                </Button>
-                <Button 
-                  variant="outline"
-                  onClick={() => setIsDialogOpen(false)}
-                  className="border-salon-gold/30 text-salon-gold hover:bg-salon-gold/10 h-12"
-                >
-                  Cancelar
-                </Button>
-              </div>
-            </div>
-          </DialogContent>
-        </Dialog>
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
 
       {/* Dialog de Entrada de Estoque */}
@@ -443,7 +487,12 @@ const ProductManagement: React.FC<ProductManagementProps> = ({ onStockEntry }) =
                 )}
                 
                 <div className="flex-1">
-                  <h3 className="font-semibold text-white text-lg">{product.name}</h3>
+                  <div className="flex items-center gap-2 mb-1">
+                    <h3 className="font-semibold text-white text-lg">{product.name}</h3>
+                    <span className={`text-xs px-2 py-1 rounded ${getProductTypeBadgeClass(product.type)}`}>
+                      {getProductTypeLabel(product.type)}
+                    </span>
+                  </div>
                   <p className="text-sm text-salon-copper">{product.brand}</p>
                   <p className="text-sm text-muted-foreground mt-1">{product.description}</p>
                   
