@@ -1,9 +1,8 @@
 
 import React, { useState } from 'react';
-import { Search, Grid3X3, List, Package } from 'lucide-react';
+import { Search, Grid3X3, List, Package, Star } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { useRealtimeCart } from '@/hooks/useRealtimeCart';
 import { useRealtimeProducts } from '@/hooks/useRealtimeProducts';
@@ -17,12 +16,11 @@ const SupabaseStore = () => {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
-  const [productTypeFilter, setProductTypeFilter] = useState<'all' | 'ecommerce' | 'interno'>('all');
   const [favorites, setFavorites] = useState<string[]>([]);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
-  // Initialize real-time hooks with product type filter
-  const { products, loading } = useRealtimeProducts(productTypeFilter);
+  // Only show e-commerce products in the store
+  const { products, loading } = useRealtimeProducts('ecommerce');
   const { 
     addToCartWithValidation, 
     getTotalItems, 
@@ -50,17 +48,9 @@ const SupabaseStore = () => {
     return matchesSearch && matchesCategory;
   });
 
-  const handleAddToCart = (product: any, quantity: number) => {
-    // Only allow adding e-commerce products to cart
-    if (product.type !== 'ecommerce') {
-      toast({
-        title: "Produto não disponível para venda",
-        description: "Este produto é de uso interno do salão.",
-        variant: "destructive",
-      });
-      return;
-    }
+  const recommendedProducts = filteredProducts.slice(0, 4);
 
+  const handleAddToCart = (product: any, quantity: number) => {
     try {
       addToCartWithValidation({
         id: product.id,
@@ -99,10 +89,6 @@ const SupabaseStore = () => {
     }
   };
 
-  const getProductTypeLabel = (type: 'ecommerce' | 'interno') => {
-    return type === 'ecommerce' ? 'E-commerce' : 'Uso Interno';
-  };
-
   if (loading) {
     return (
       <div className="px-4 py-8 text-center">
@@ -119,14 +105,14 @@ const SupabaseStore = () => {
       <div className="px-4 space-y-6 animate-fade-in">
         <div className="text-center mb-6">
           <h1 className="text-2xl font-bold text-gradient-gold mb-2 font-playfair">
-            Produtos em Tempo Real
+            Produtos Especializados
           </h1>
           <p className="text-muted-foreground">
-            Estoque sincronizado com atualizações automáticas
+            Cuide dos seus cachos com produtos de qualidade
           </p>
         </div>
 
-        {/* Search, Product Type Filter and View Toggle */}
+        {/* Search and View Toggle */}
         <div className="flex space-x-2">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" size={20} />
@@ -137,17 +123,6 @@ const SupabaseStore = () => {
               className="pl-10 glass-card border-salon-gold/30 bg-transparent text-white placeholder:text-muted-foreground focus:border-salon-gold h-12"
             />
           </div>
-          
-          <Select value={productTypeFilter} onValueChange={(value: 'all' | 'ecommerce' | 'interno') => setProductTypeFilter(value)}>
-            <SelectTrigger className="w-[140px] glass-card border-salon-gold/30 bg-transparent text-white h-12">
-              <SelectValue placeholder="Tipo" />
-            </SelectTrigger>
-            <SelectContent className="glass-card border-salon-gold/30 bg-salon-dark text-white">
-              <SelectItem value="all">Todos</SelectItem>
-              <SelectItem value="ecommerce">E-commerce</SelectItem>
-              <SelectItem value="interno">Uso Interno</SelectItem>
-            </SelectContent>
-          </Select>
           
           <div className="flex space-x-1 bg-salon-dark/50 rounded-lg p-1">
             <Button
@@ -197,27 +172,45 @@ const SupabaseStore = () => {
           ))}
         </div>
 
-        {/* Products */}
-        <div className="space-y-4">
-          <div className={viewMode === 'grid' ? 'grid grid-cols-2 gap-4' : 'space-y-4'}>
-            {filteredProducts.map((product) => (
-              <div key={product.id} className="relative">
+        {/* Recommended Products */}
+        {selectedCategory === 'all' && recommendedProducts.length > 0 && (
+          <div className="space-y-4">
+            <h2 className="text-lg font-semibold text-salon-gold flex items-center gap-2">
+              <Star className="text-salon-gold fill-current" size={20} />
+              Produtos que combinam com você
+            </h2>
+            
+            <div className={viewMode === 'grid' ? 'grid grid-cols-2 gap-4' : 'space-y-4'}>
+              {recommendedProducts.map((product) => (
                 <ProductCard 
+                  key={product.id} 
                   product={product}
                   viewMode={viewMode}
                   onAddToCart={handleAddToCart}
                   onToggleFavorite={toggleFavorite}
                   isFavorite={favorites.includes(product.id)}
                 />
-                {/* Product type badge */}
-                <div className={`absolute top-2 right-2 text-xs px-2 py-1 rounded ${
-                  product.type === 'ecommerce' 
-                    ? 'bg-blue-500/20 text-blue-400' 
-                    : 'bg-purple-500/20 text-purple-400'
-                }`}>
-                  {getProductTypeLabel(product.type)}
-                </div>
-              </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* All Products */}
+        <div className="space-y-4">
+          {selectedCategory === 'all' && recommendedProducts.length > 0 && (
+            <h2 className="text-lg font-semibold text-salon-gold">Todos os Produtos</h2>
+          )}
+          
+          <div className={viewMode === 'grid' ? 'grid grid-cols-2 gap-4' : 'space-y-4'}>
+            {filteredProducts.map((product) => (
+              <ProductCard 
+                key={product.id} 
+                product={product}
+                viewMode={viewMode}
+                onAddToCart={handleAddToCart}
+                onToggleFavorite={toggleFavorite}
+                isFavorite={favorites.includes(product.id)}
+              />
             ))}
           </div>
 
@@ -234,7 +227,7 @@ const SupabaseStore = () => {
           )}
         </div>
 
-        {/* Cart Summary - Only show if there are e-commerce items */}
+        {/* Cart Summary */}
         {getTotalItems() > 0 && (
           <div className="fixed bottom-24 left-4 right-4 glass-card rounded-2xl p-4 z-30">
             <div className="flex items-center justify-between">
