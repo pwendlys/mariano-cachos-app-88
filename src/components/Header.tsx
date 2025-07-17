@@ -1,10 +1,11 @@
 
 import React from 'react';
-import { Bell, User, LogOut, Menu } from 'lucide-react';
+import { User, LogOut } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import CartIcon from './CartIcon';
+import NotificationsDropdown from './NotificationsDropdown';
 import { useBannerSettings } from '@/hooks/useBannerSettings';
 import { useAuth } from '@/hooks/useAuth';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -70,16 +71,7 @@ const Header = () => {
         </div>
         
         <div className="flex items-center space-x-1 flex-shrink-0">
-          <Button 
-            variant="ghost" 
-            size="icon"
-            className="relative text-salon-gold hover:bg-salon-gold/10 h-8 w-8 sm:h-10 sm:w-10 md:h-12 md:w-12"
-          >
-            <Bell size={isMobile ? 18 : 20} />
-            <span className="absolute -top-1 -right-1 w-3 h-3 sm:w-4 sm:h-4 bg-red-500 rounded-full text-[8px] sm:text-[10px] flex items-center justify-center text-white font-bold">
-              2
-            </span>
-          </Button>
+          <NotificationsDropdown size={isMobile ? 'sm' : 'default'} />
           
           <CartIcon itemCount={getTotalItems()} size={isMobile ? 'sm' : 'default'} />
           
