@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { ArrowLeft, Minus, Plus, Trash2 } from 'lucide-react';
+import { ArrowLeft, Minus, Plus, Trash2, ShoppingCart as ShoppingCartIcon } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -29,10 +29,8 @@ const Cart = () => {
   };
 
   const handleCheckout = () => {
-    toast({
-      title: "Redirecionando para pagamento",
-      description: "Finalizando sua compra...",
-    });
+    // Redirecionar para o carrinho do Supabase que tem a funcionalidade completa de finalização
+    navigate('/carrinho');
   };
 
   return (
@@ -55,12 +53,14 @@ const Cart = () => {
 
       {cart.length === 0 ? (
         <div className="text-center py-12">
-          <p className="text-muted-foreground mb-4">Seu carrinho está vazio</p>
+          <ShoppingCartIcon size={64} className="text-muted-foreground mx-auto mb-4" />
+          <h2 className="text-xl font-semibold text-white mb-2">Seu carrinho está vazio</h2>
+          <p className="text-muted-foreground mb-6">Adicione produtos à sua compra para continuar</p>
           <Button 
             onClick={() => navigate('/loja')}
-            className="w-full h-14 bg-gradient-to-r from-salon-gold to-salon-copper hover:from-salon-copper hover:to-salon-gold text-salon-dark font-bold rounded-2xl"
+            className="bg-salon-gold hover:bg-salon-copper text-salon-dark font-bold"
           >
-            Continuar Comprando
+            Ir às Compras
           </Button>
         </div>
       ) : (
