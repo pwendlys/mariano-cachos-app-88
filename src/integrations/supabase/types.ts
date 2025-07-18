@@ -330,6 +330,54 @@ export type Database = {
           },
         ]
       }
+      fluxo_caixa: {
+        Row: {
+          categoria: string
+          cliente_nome: string | null
+          created_at: string
+          data: string
+          descricao: string
+          id: string
+          metadata: Json | null
+          origem_id: string | null
+          origem_tipo: string | null
+          profissional_nome: string | null
+          tipo: string
+          updated_at: string
+          valor: number
+        }
+        Insert: {
+          categoria: string
+          cliente_nome?: string | null
+          created_at?: string
+          data?: string
+          descricao: string
+          id?: string
+          metadata?: Json | null
+          origem_id?: string | null
+          origem_tipo?: string | null
+          profissional_nome?: string | null
+          tipo: string
+          updated_at?: string
+          valor: number
+        }
+        Update: {
+          categoria?: string
+          cliente_nome?: string | null
+          created_at?: string
+          data?: string
+          descricao?: string
+          id?: string
+          metadata?: Json | null
+          origem_id?: string | null
+          origem_tipo?: string | null
+          profissional_nome?: string | null
+          tipo?: string
+          updated_at?: string
+          valor?: number
+        }
+        Relationships: []
+      }
       historico_atendimentos: {
         Row: {
           agendamento_id: string | null

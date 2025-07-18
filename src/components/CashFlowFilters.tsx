@@ -14,8 +14,8 @@ interface CashFlowFiltersProps {
   endDate: Date | undefined;
   onStartDateChange: (date: Date | undefined) => void;
   onEndDateChange: (date: Date | undefined) => void;
-  filterType: 'all' | 'income' | 'expense';
-  onFilterTypeChange: (type: 'all' | 'income' | 'expense') => void;
+  filterType: 'all' | 'entrada' | 'saida';
+  onFilterTypeChange: (type: 'all' | 'entrada' | 'saida') => void;
   onClearFilters: () => void;
 }
 
@@ -106,13 +106,13 @@ const CashFlowFilters: React.FC<CashFlowFiltersProps> = ({
                     <span>Todos</span>
                   </div>
                 </SelectItem>
-                <SelectItem value="income">
+                <SelectItem value="entrada">
                   <div className="flex items-center gap-2">
                     <TrendingUp size={16} className="text-green-400" />
                     <span>Receitas</span>
                   </div>
                 </SelectItem>
-                <SelectItem value="expense">
+                <SelectItem value="saida">
                   <div className="flex items-center gap-2">
                     <TrendingDown size={16} className="text-red-400" />
                     <span>Despesas</span>
