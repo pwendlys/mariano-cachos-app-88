@@ -60,9 +60,31 @@ export const useNotifications = () => {
     }
   };
 
-  const getUnreadCount = () => {
-    return notifications.filter(notif => !notif.lida).length;
+  const markAllAsRead = async () => {
+    if (!user?.id) return;
+
+    try {
+      const unreadNotifications = notifications.filter(notif => !notif.lida);
+      
+      if (unreadNotifications.length === 0) return;
+
+      const { error } = await supabase
+        .from('notificacoes')
+        .update({ lida: true })
+        .eq('user_id', user.id)
+        .eq('lida', false);
+
+      if (error) throw error;
+
+      setNotifications(prev =>
+        prev.map(notif => ({ ...notif, lida: true }))
+      );
+    } catch (error) {
+      console.error('Erro ao marcar todas as notificações como lidas:', error);
+    }
   };
+
+  const unreadCount = notifications.filter(notif => !notif.lida).length;
 
   // Buscar notificações apenas quando o usuário estiver disponível
   useEffect(() => {
@@ -99,8 +121,9 @@ export const useNotifications = () => {
   return {
     notifications,
     loading,
+    unreadCount,
     markAsRead,
-    getUnreadCount,
+    markAllAsRead,
     refetch: fetchNotifications
   };
 };
