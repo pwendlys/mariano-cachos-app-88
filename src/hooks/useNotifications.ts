@@ -1,71 +1,39 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
-import type { Tables } from '@/integrations/supabase/types';
 
-export interface Notification {
+interface Notification {
   id: string;
-  tipo: 'agendamento_aprovado' | 'compra_concluida';
+  tipo: string;
   titulo: string;
   mensagem: string;
   lida: boolean;
-  data_criacao: string;
-  metadata: any;
   created_at: string;
+  metadata?: any;
 }
-
-// Type for the raw notification data from Supabase
-type SupabaseNotification = Tables<'notificacoes'>;
 
 export const useNotifications = () => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [unreadCount, setUnreadCount] = useState(0);
-  const { toast } = useToast();
+  const [loading, setLoading] = useState(false);
   const { user } = useAuth();
-
-  // Helper function to transform Supabase data to our Notification type
-  const transformNotification = (data: SupabaseNotification): Notification => ({
-    id: data.id,
-    tipo: data.tipo as 'agendamento_aprovado' | 'compra_concluida',
-    titulo: data.titulo,
-    mensagem: data.mensagem,
-    lida: data.lida || false,
-    data_criacao: data.data_criacao || data.created_at || '',
-    metadata: data.metadata,
-    created_at: data.created_at || '',
-  });
 
   const fetchNotifications = async () => {
     if (!user?.id) return;
 
     try {
-      console.log('🔔 [useNotifications] Fetching notifications for user:', user.id);
-      
+      setLoading(true);
       const { data, error } = await supabase
         .from('notificacoes')
         .select('*')
         .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .limit(50);
 
-      if (error) {
-        console.error('❌ [useNotifications] Error fetching notifications:', error);
-        throw error;
-      }
-
-      console.log('✅ [useNotifications] Notifications fetched:', data);
-      const transformedNotifications = (data || []).map(transformNotification);
-      setNotifications(transformedNotifications);
-      setUnreadCount(transformedNotifications.filter(n => !n.lida).length);
-    } catch (error: any) {
-      console.error('❌ [useNotifications] Error in fetchNotifications:', error);
-      toast({
-        title: "Erro ao carregar notificações",
-        description: error.message || "Não foi possível carregar as notificações.",
-        variant: "destructive",
-      });
+      if (error) throw error;
+      setNotifications(data || []);
+    } catch (error) {
+      console.error('Erro ao buscar notificações:', error);
     } finally {
       setLoading(false);
     }
@@ -73,121 +41,66 @@ export const useNotifications = () => {
 
   const markAsRead = async (notificationId: string) => {
     try {
-      console.log('📖 [useNotifications] Marking notification as read:', notificationId);
-      
       const { error } = await supabase
         .from('notificacoes')
         .update({ lida: true })
         .eq('id', notificationId);
 
-      if (error) {
-        console.error('❌ [useNotifications] Error marking notification as read:', error);
-        throw error;
-      }
+      if (error) throw error;
 
-      // Update local state
-      setNotifications(prev => 
-        prev.map(n => 
-          n.id === notificationId ? { ...n, lida: true } : n
+      setNotifications(prev =>
+        prev.map(notif =>
+          notif.id === notificationId
+            ? { ...notif, lida: true }
+            : notif
         )
       );
-      setUnreadCount(prev => Math.max(0, prev - 1));
-      
-      console.log('✅ [useNotifications] Notification marked as read');
-    } catch (error: any) {
-      console.error('❌ [useNotifications] Error in markAsRead:', error);
-      toast({
-        title: "Erro",
-        description: "Não foi possível marcar a notificação como lida.",
-        variant: "destructive",
-      });
+    } catch (error) {
+      console.error('Erro ao marcar notificação como lida:', error);
     }
   };
 
-  const markAllAsRead = async () => {
-    if (!user?.id) return;
-
-    try {
-      console.log('📖 [useNotifications] Marking all notifications as read');
-      
-      const { error } = await supabase
-        .from('notificacoes')
-        .update({ lida: true })
-        .eq('user_id', user.id)
-        .eq('lida', false);
-
-      if (error) {
-        console.error('❌ [useNotifications] Error marking all notifications as read:', error);
-        throw error;
-      }
-
-      // Update local state
-      setNotifications(prev => 
-        prev.map(n => ({ ...n, lida: true }))
-      );
-      setUnreadCount(0);
-      
-      console.log('✅ [useNotifications] All notifications marked as read');
-    } catch (error: any) {
-      console.error('❌ [useNotifications] Error in markAllAsRead:', error);
-      toast({
-        title: "Erro",
-        description: "Não foi possível marcar todas as notificações como lidas.",
-        variant: "destructive",
-      });
-    }
+  const getUnreadCount = () => {
+    return notifications.filter(notif => !notif.lida).length;
   };
 
+  // Buscar notificações apenas quando o usuário estiver disponível
+  useEffect(() => {
+    if (user?.id) {
+      fetchNotifications();
+    }
+  }, [user?.id]); // Dependência específica e estável
+
+  // Setup real-time listener apenas uma vez
   useEffect(() => {
     if (!user?.id) return;
 
-    console.log('🚀 [useNotifications] Setting up notifications for user:', user.id);
-    
-    // Fetch initial notifications
-    fetchNotifications();
-
-    // Set up real-time subscription for new notifications
     const channel = supabase
-      .channel('user-notifications')
+      .channel('notifications')
       .on(
         'postgres_changes',
         {
-          event: 'INSERT',
+          event: '*',
           schema: 'public',
           table: 'notificacoes',
           filter: `user_id=eq.${user.id}`
         },
-        (payload) => {
-          console.log('📡 [useNotifications] New notification received:', payload);
-          const newNotification = transformNotification(payload.new as SupabaseNotification);
-          
-          // Add to local state
-          setNotifications(prev => [newNotification, ...prev]);
-          setUnreadCount(prev => prev + 1);
-          
-          // Show toast notification
-          toast({
-            title: newNotification.titulo,
-            description: newNotification.mensagem,
-          });
+        () => {
+          fetchNotifications();
         }
       )
-      .subscribe((status) => {
-        console.log('📡 [useNotifications] Subscription status:', status);
-      });
+      .subscribe();
 
     return () => {
-      console.log('🧹 [useNotifications] Cleaning up notifications subscription');
       supabase.removeChannel(channel);
     };
-  }, [user?.id]);
+  }, [user?.id]); // Dependência específica e estável
 
   return {
     notifications,
     loading,
-    unreadCount,
     markAsRead,
-    markAllAsRead,
-    fetchNotifications,
+    getUnreadCount,
+    refetch: fetchNotifications
   };
 };

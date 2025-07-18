@@ -9,7 +9,7 @@ import SchedulingSteps from '@/components/SchedulingSteps';
 
 const Scheduling = () => {
   const { toast } = useToast();
-  const { services, loading, createAppointment } = useSupabaseScheduling();
+  const { services, loading, createMultipleAppointments } = useSupabaseScheduling();
   const { addAppointment, isSlotAvailable } = useScheduling();
   
   const [currentStep, setCurrentStep] = useState(1);
@@ -62,11 +62,7 @@ const Scheduling = () => {
       observations
     });
 
-    // Para agendamentos com múltiplos serviços, vamos criar um agendamento para o primeiro serviço
-    // como uma implementação simplificada
-    const firstServiceId = selectedServices[0];
-    
-    if (!firstServiceId) {
+    if (selectedServices.length === 0) {
       toast({
         title: "Erro",
         description: "Selecione pelo menos um serviço",
@@ -75,8 +71,8 @@ const Scheduling = () => {
       return;
     }
 
-    const success = await createAppointment({
-      serviceId: firstServiceId,
+    const success = await createMultipleAppointments({
+      serviceIds: selectedServices,
       data: selectedDate,
       horario: selectedTime,
       clientName,
@@ -120,7 +116,7 @@ const Scheduling = () => {
           Agende Seu Horário
         </h1>
         <p className="text-muted-foreground">
-          Escolha o melhor momento para cuidar dos seus cachos
+          Escolha múltiplos serviços para o melhor cuidado dos seus cachos
         </p>
       </div>
 

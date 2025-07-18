@@ -1,9 +1,10 @@
+
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Calendar, Clock, User, MessageSquare, Check, Plus, Image } from 'lucide-react';
+import { Calendar, Clock, User, MessageSquare, Check, Plus, Image, AlertCircle } from 'lucide-react';
 import { useSupabaseScheduling } from '@/hooks/useSupabaseScheduling';
 import { useProfessionals } from '@/hooks/useProfessionals';
 
@@ -42,7 +43,7 @@ const SchedulingSteps: React.FC<SchedulingStepsProps> = ({
   onClientPhoneChange,
   onObservationsChange,
 }) => {
-  const { services, loading } = useSupabaseScheduling();
+  const { services, loading, getSlotStatus } = useSupabaseScheduling();
   const { getActiveProfessionals } = useProfessionals();
 
   console.log('🔄 [SchedulingSteps] Current services count:', services.length);
@@ -97,6 +98,50 @@ const SchedulingSteps: React.FC<SchedulingStepsProps> = ({
     return activeProfessionals.find(p => p.id === selectedProfessional);
   };
 
+  const getTimeSlotButtonClass = (time: string) => {
+    if (!selectedDate) {
+      return 'border-salon-gold/30 text-salon-gold hover:bg-salon-gold/10';
+    }
+
+    const status = getSlotStatus(selectedDate, time);
+    
+    if (selectedTime === time) {
+      return 'bg-salon-gold text-salon-dark hover:bg-salon-copper';
+    }
+    
+    switch (status) {
+      case 'ocupado':
+        return 'bg-red-600/20 border-red-600/50 text-red-400 hover:bg-red-600/30';
+      case 'pendente':
+        return 'bg-yellow-600/20 border-yellow-600/50 text-yellow-400 hover:bg-yellow-600/30';
+      default:
+        return 'border-salon-gold/30 text-salon-gold hover:bg-salon-gold/10';
+    }
+  };
+
+  const canSelectTime = (time: string) => {
+    if (!selectedDate || selectedServices.length === 0) return false;
+    
+    const totalDuration = getTotalDuration();
+    const status = getSlotStatus(selectedDate, time);
+    
+    return status === 'livre' && totalDuration > 0;
+  };
+
+  const getTimeSlotLabel = (time: string) => {
+    if (!selectedDate) return time;
+    
+    const status = getSlotStatus(selectedDate, time);
+    switch (status) {
+      case 'ocupado':
+        return `${time} (Ocupado)`;
+      case 'pendente':
+        return `${time} (Aguardando)`;
+      default:
+        return time;
+    }
+  };
+
   // Step 1: Select Services
   if (currentStep === 1) {
     return (
@@ -111,6 +156,12 @@ const SchedulingSteps: React.FC<SchedulingStepsProps> = ({
               </span>
             )}
           </CardTitle>
+          {selectedServices.length > 0 && (
+            <div className="text-sm text-salon-copper flex items-center gap-2">
+              <AlertCircle size={16} />
+              <span>Você pode selecionar múltiplos serviços para o mesmo agendamento</span>
+            </div>
+          )}
         </CardHeader>
         <CardContent className="space-y-4">
           {loading && services.length === 0 ? (
@@ -134,7 +185,6 @@ const SchedulingSteps: React.FC<SchedulingStepsProps> = ({
                 onClick={() => onServiceToggle(service.id)}
               >
                 <div className="flex items-center space-x-4 mb-2">
-                  {/* Service Image */}
                   {service.imagem ? (
                     <img 
                       src={service.imagem} 
@@ -276,7 +326,7 @@ const SchedulingSteps: React.FC<SchedulingStepsProps> = ({
     );
   }
 
-  // Step 4: Select Time
+  // Step 4: Select Time - Showing all slots with status
   if (currentStep === 4) {
     return (
       <Card className="glass-card border-salon-gold/20">
@@ -290,23 +340,42 @@ const SchedulingSteps: React.FC<SchedulingStepsProps> = ({
               </span>
             )}
           </CardTitle>
+          <div className="text-sm text-salon-copper mt-2">
+            <div className="flex gap-4 flex-wrap">
+              <div className="flex items-center gap-1">
+                <div className="w-3 h-3 bg-salon-gold/30 border border-salon-gold/50 rounded"></div>
+                <span>Disponível</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <div className="w-3 h-3 bg-yellow-600/30 border border-yellow-600/50 rounded"></div>
+                <span>Aguardando Aprovação</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <div className="w-3 h-3 bg-red-600/30 border border-red-600/50 rounded"></div>
+                <span>Ocupado</span>
+              </div>
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-3 gap-3">
-            {baseAvailableTimes.map((time) => (
-              <Button
-                key={time}
-                variant={selectedTime === time ? "default" : "outline"}
-                className={`h-14 text-lg ${
-                  selectedTime === time
-                    ? 'bg-salon-gold text-salon-dark hover:bg-salon-copper'
-                    : 'border-salon-gold/30 text-salon-gold hover:bg-salon-gold/10'
-                }`}
-                onClick={() => onTimeSelect(time)}
-              >
-                {time}
-              </Button>
-            ))}
+            {baseAvailableTimes.map((time) => {
+              const canSelect = canSelectTime(time);
+              const buttonClass = getTimeSlotButtonClass(time);
+              const label = getTimeSlotLabel(time);
+              
+              return (
+                <Button
+                  key={time}
+                  variant="outline"
+                  className={`h-14 text-sm transition-all ${buttonClass}`}
+                  onClick={() => canSelect ? onTimeSelect(time) : null}
+                  disabled={!canSelect}
+                >
+                  {label}
+                </Button>
+              );
+            })}
           </div>
         </CardContent>
       </Card>
@@ -358,7 +427,6 @@ const SchedulingSteps: React.FC<SchedulingStepsProps> = ({
           </CardContent>
         </Card>
 
-        {/* Booking Summary */}
         <Card className="glass-card border-salon-gold/20">
           <CardHeader>
             <CardTitle className="text-salon-gold">Resumo do Agendamento</CardTitle>

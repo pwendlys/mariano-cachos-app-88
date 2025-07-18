@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -141,8 +142,8 @@ export const useSupabaseScheduling = () => {
     }
   };
 
-  const createAppointment = async (appointmentData: {
-    serviceId: string;
+  const createMultipleAppointments = async (appointmentData: {
+    serviceIds: string[];
     data: string;
     horario: string;
     clientName: string;
@@ -157,7 +158,7 @@ export const useSupabaseScheduling = () => {
   }): Promise<boolean> => {
     setLoading(true);
     try {
-      console.log('📅 [useSupabaseScheduling] Creating appointment with data:', appointmentData);
+      console.log('📅 [useSupabaseScheduling] Creating multiple appointments with data:', appointmentData);
       
       const clientId = await createOrGetClient({
         nome: appointmentData.clientName,
@@ -169,20 +170,24 @@ export const useSupabaseScheduling = () => {
         throw new Error('Não foi possível criar/obter cliente');
       }
 
-      const service = services.find(s => s.id === appointmentData.serviceId);
-      if (!service) {
-        throw new Error('Serviço não encontrado');
-      }
+      // Calculate total duration and price
+      let totalDuration = 0;
+      let totalPrice = 0;
+      let currentTime = appointmentData.horario;
 
-      console.log('✅ [useSupabaseScheduling] Creating appointment for client:', clientId, 'service:', service.id);
+      const appointmentsToCreate = [];
 
-      const { error } = await supabase
-        .from('agendamentos')
-        .insert([{
+      for (const serviceId of appointmentData.serviceIds) {
+        const service = services.find(s => s.id === serviceId);
+        if (!service) {
+          throw new Error(`Serviço ${serviceId} não encontrado`);
+        }
+
+        appointmentsToCreate.push({
           cliente_id: clientId,
-          servico_id: appointmentData.serviceId,
+          servico_id: serviceId,
           data: appointmentData.data,
-          horario: appointmentData.horario,
+          horario: currentTime,
           valor: service.preco,
           observacoes: appointmentData.observacoes,
           status: 'pendente',
@@ -192,32 +197,102 @@ export const useSupabaseScheduling = () => {
           qr_code_data: appointmentData.qr_code_data,
           transaction_id: appointmentData.transaction_id,
           comprovante_pix: appointmentData.comprovante_pix
-        }]);
+        });
+
+        totalDuration += service.duracao;
+        totalPrice += service.preco;
+
+        // Calculate next time slot
+        const [hour, minute] = currentTime.split(':').map(Number);
+        const nextTimeInMinutes = (hour * 60 + minute) + service.duracao;
+        const nextHour = Math.floor(nextTimeInMinutes / 60);
+        const nextMinute = nextTimeInMinutes % 60;
+        currentTime = `${nextHour.toString().padStart(2, '0')}:${nextMinute.toString().padStart(2, '0')}`;
+      }
+
+      console.log('✅ [useSupabaseScheduling] Creating appointments for client:', clientId);
+
+      const { error } = await supabase
+        .from('agendamentos')
+        .insert(appointmentsToCreate);
 
       if (error) {
-        console.error('❌ [useSupabaseScheduling] Error creating appointment:', error);
+        console.error('❌ [useSupabaseScheduling] Error creating appointments:', error);
         throw error;
       }
 
-      console.log('✅ [useSupabaseScheduling] Appointment created successfully');
+      console.log('✅ [useSupabaseScheduling] Multiple appointments created successfully');
       
       toast({
-        title: "Agendamento enviado! ✨",
-        description: "Seu agendamento foi enviado e o sinal foi processado. Aguarde a aprovação do administrador.",
+        title: "Agendamentos enviados! ✨",
+        description: `${appointmentData.serviceIds.length} serviços agendados. Aguarde a aprovação do administrador.`,
       });
 
       return true;
     } catch (error: any) {
-      console.error('❌ [useSupabaseScheduling] Error in createAppointment:', error);
+      console.error('❌ [useSupabaseScheduling] Error in createMultipleAppointments:', error);
       toast({
-        title: "Erro ao criar agendamento",
-        description: error.message || "Não foi possível criar o agendamento.",
+        title: "Erro ao criar agendamentos",
+        description: error.message || "Não foi possível criar os agendamentos.",
         variant: "destructive",
       });
       return false;
     } finally {
       setLoading(false);
     }
+  };
+
+  const createAppointment = async (appointmentData: {
+    serviceId: string;
+    data: string;
+    horario: string;
+    clientName: string;
+    clientEmail: string;
+    clientPhone: string;
+    observacoes?: string;
+    chave_pix?: string;
+    chave_pix_abacate?: string;
+    qr_code_data?: string;
+    transaction_id?: string;
+    comprovante_pix?: string;
+  }): Promise<boolean> => {
+    return createMultipleAppointments({
+      serviceIds: [appointmentData.serviceId],
+      data: appointmentData.data,
+      horario: appointmentData.horario,
+      clientName: appointmentData.clientName,
+      clientEmail: appointmentData.clientEmail,
+      clientPhone: appointmentData.clientPhone,
+      observacoes: appointmentData.observacoes,
+      chave_pix: appointmentData.chave_pix,
+      chave_pix_abacate: appointmentData.chave_pix_abacate,
+      qr_code_data: appointmentData.qr_code_data,
+      transaction_id: appointmentData.transaction_id,
+      comprovante_pix: appointmentData.comprovante_pix
+    });
+  };
+
+  const getSlotStatus = (date: string, time: string): 'livre' | 'ocupado' | 'pendente' => {
+    const [startHour, startMinute] = time.split(':').map(Number);
+    const startTimeInMinutes = startHour * 60 + startMinute;
+
+    const appointment = appointments.find(apt => {
+      if (apt.data !== date) return false;
+      
+      const [aptHour, aptMinute] = apt.horario.split(':').map(Number);
+      const aptStartTime = aptHour * 60 + aptMinute;
+      const aptEndTime = aptStartTime + (apt.servico?.duracao || 0);
+      
+      // Check if the time slot overlaps with this appointment
+      return startTimeInMinutes >= aptStartTime && startTimeInMinutes < aptEndTime;
+    });
+
+    if (!appointment) return 'livre';
+    
+    if (appointment.status === 'confirmado') return 'ocupado';
+    if (appointment.status === 'pendente') return 'pendente';
+    
+    return 'livre';
   };
 
   const isSlotAvailable = (date: string, time: string, serviceDuration: number): boolean => {
@@ -236,8 +311,7 @@ export const useSupabaseScheduling = () => {
       const aptEndTime = aptStartTime + (appointment.servico?.duracao || 0);
 
       if (
-        (startTimeInMinutes < aptEndTime && endTimeInMinutes > aptStartTime) ||
-        (aptStartTime < endTimeInMinutes && aptEndTime > startTimeInMinutes)
+        (startTimeInMinutes < aptEndTime && endTimeInMinutes > aptStartTime)
       ) {
         return false;
       }
@@ -246,35 +320,12 @@ export const useSupabaseScheduling = () => {
     return true;
   };
 
-  const getSlotStatus = (date: string, time: string): 'livre' | 'ocupado' | 'pendente' => {
-    const [startHour, startMinute] = time.split(':').map(Number);
-    const startTimeInMinutes = startHour * 60 + startMinute;
-
-    const appointment = appointments.find(apt => {
-      if (apt.data !== date) return false;
-      
-      const [aptHour, aptMinute] = apt.horario.split(':').map(Number);
-      const aptStartTime = aptHour * 60 + aptMinute;
-      
-      return aptStartTime === startTimeInMinutes;
-    });
-
-    if (!appointment) return 'livre';
-    
-    if (appointment.status === 'confirmado') return 'ocupado';
-    if (appointment.status === 'pendente') return 'pendente';
-    
-    return 'livre';
-  };
-
   useEffect(() => {
     console.log('🚀 [useSupabaseScheduling] Hook initialized, setting up real-time subscriptions...');
     
-    // Buscar dados iniciais
     fetchServices();
     fetchAppointments();
 
-    // Configurar listeners para mudanças em tempo real com nomes únicos
     const servicesChannel = supabase
       .channel('scheduling-services-changes')
       .on(
@@ -286,12 +337,10 @@ export const useSupabaseScheduling = () => {
         },
         (payload) => {
           console.log('📡 [useSupabaseScheduling] Real-time change detected in servicos:', payload);
-          fetchServices(); // Refetch services quando houver mudanças
+          fetchServices();
         }
       )
-      .subscribe((status) => {
-        console.log('📡 [useSupabaseScheduling] Services subscription status:', status);
-      });
+      .subscribe();
 
     const appointmentsChannel = supabase
       .channel('scheduling-appointments-changes')
@@ -304,12 +353,10 @@ export const useSupabaseScheduling = () => {
         },
         (payload) => {
           console.log('📡 [useSupabaseScheduling] Real-time change detected in agendamentos:', payload);
-          fetchAppointments(); // Refetch appointments quando houver mudanças
+          fetchAppointments();
         }
       )
-      .subscribe((status) => {
-        console.log('📡 [useSupabaseScheduling] Appointments subscription status:', status);
-      });
+      .subscribe();
 
     return () => {
       console.log('🧹 [useSupabaseScheduling] Cleaning up real-time subscriptions');
@@ -323,6 +370,7 @@ export const useSupabaseScheduling = () => {
     appointments,
     loading,
     createAppointment,
+    createMultipleAppointments,
     isSlotAvailable,
     getSlotStatus,
     fetchServices,
