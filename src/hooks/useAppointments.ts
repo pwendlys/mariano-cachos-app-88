@@ -28,6 +28,7 @@ export const useAppointments = () => {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [selectedStatus, setSelectedStatus] = useState<string | null>(null);
   const { toast } = useToast();
 
   const fetchAppointments = async (filterDate?: Date | null) => {
@@ -70,6 +71,10 @@ export const useAppointments = () => {
   const handleDateChange = (date: Date | null) => {
     setSelectedDate(date);
     fetchAppointments(date);
+  };
+
+  const handleStatusFilter = (status: string | null) => {
+    setSelectedStatus(status);
   };
 
   const handleStatusChange = async (appointmentId: string, newStatus: string) => {
@@ -141,8 +146,10 @@ export const useAppointments = () => {
     appointments,
     loading,
     selectedDate,
+    selectedStatus,
     fetchAppointments,
     handleDateChange,
+    handleStatusFilter,
     handleStatusChange,
     handleDateTimeUpdate
   };
