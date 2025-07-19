@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { QrCode, CreditCard, X, Loader2, CheckCircle, User, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -48,7 +47,7 @@ const PIXPaymentPopup: React.FC<PIXPaymentPopupProps> = ({
   // Pre-fill form data and determine if user data should be locked
   useEffect(() => {
     if (isOpen) {
-      const hasUserData = customerName && customerEmail && customerPhone;
+      const hasUserData = Boolean(customerName && customerEmail && customerPhone);
       
       setFormData({
         nome: customerName || '',
