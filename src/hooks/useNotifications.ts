@@ -1,5 +1,5 @@
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -18,7 +18,7 @@ export const useNotifications = () => {
   const [loading, setLoading] = useState(false);
   const { user } = useAuth();
 
-  const fetchNotifications = useMemo(() => async () => {
+  const fetchNotifications = useCallback(async () => {
     if (!user?.id) return;
 
     try {
@@ -86,14 +86,16 @@ export const useNotifications = () => {
 
   const unreadCount = notifications.filter(notif => !notif.lida).length;
 
-  // Fetch notifications only when user is available
+  // Fetch notifications when user changes
   useEffect(() => {
     if (user?.id) {
       fetchNotifications();
+    } else {
+      setNotifications([]);
     }
   }, [user?.id, fetchNotifications]);
 
-  // Setup real-time listener only once
+  // Setup real-time listener
   useEffect(() => {
     if (!user?.id) return;
 
