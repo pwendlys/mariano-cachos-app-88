@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -18,7 +18,7 @@ export const useNotifications = () => {
   const [loading, setLoading] = useState(false);
   const { user } = useAuth();
 
-  const fetchNotifications = async () => {
+  const fetchNotifications = useMemo(() => async () => {
     if (!user?.id) return;
 
     try {
@@ -37,7 +37,7 @@ export const useNotifications = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user?.id]);
 
   const markAsRead = async (notificationId: string) => {
     try {
@@ -86,19 +86,19 @@ export const useNotifications = () => {
 
   const unreadCount = notifications.filter(notif => !notif.lida).length;
 
-  // Buscar notificações apenas quando o usuário estiver disponível
+  // Fetch notifications only when user is available
   useEffect(() => {
     if (user?.id) {
       fetchNotifications();
     }
-  }, [user?.id]); // Dependência específica e estável
+  }, [user?.id, fetchNotifications]);
 
-  // Setup real-time listener apenas uma vez
+  // Setup real-time listener only once
   useEffect(() => {
     if (!user?.id) return;
 
     const channel = supabase
-      .channel('notifications')
+      .channel(`notifications-${user.id}`)
       .on(
         'postgres_changes',
         {
@@ -116,7 +116,7 @@ export const useNotifications = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user?.id]); // Dependência específica e estável
+  }, [user?.id, fetchNotifications]);
 
   return {
     notifications,

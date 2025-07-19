@@ -57,7 +57,8 @@ export const useSupabaseScheduling = () => {
         .from('servicos')
         .select('*')
         .eq('ativo', true)
-        .order('nome');
+        .order('categoria', { ascending: true })
+        .order('nome', { ascending: true });
 
       if (error) {
         console.error('❌ [useSupabaseScheduling] Error fetching services:', error);
@@ -170,11 +171,8 @@ export const useSupabaseScheduling = () => {
         throw new Error('Não foi possível criar/obter cliente');
       }
 
-      // Calculate total duration and price
-      let totalDuration = 0;
-      let totalPrice = 0;
+      // Calculate appointments with correct timing
       let currentTime = appointmentData.horario;
-
       const appointmentsToCreate = [];
 
       for (const serviceId of appointmentData.serviceIds) {
@@ -199,9 +197,6 @@ export const useSupabaseScheduling = () => {
           comprovante_pix: appointmentData.comprovante_pix
         });
 
-        totalDuration += service.duracao;
-        totalPrice += service.preco;
-
         // Calculate next time slot
         const [hour, minute] = currentTime.split(':').map(Number);
         const nextTimeInMinutes = (hour * 60 + minute) + service.duracao;
@@ -223,9 +218,12 @@ export const useSupabaseScheduling = () => {
 
       console.log('✅ [useSupabaseScheduling] Multiple appointments created successfully');
       
+      // Refresh appointments data
+      await fetchAppointments();
+      
       toast({
         title: "Agendamentos enviados! ✨",
-        description: `${appointmentData.serviceIds.length} serviços agendados. Aguarde a aprovação do administrador.`,
+        description: `${appointmentData.serviceIds.length} serviço${appointmentData.serviceIds.length > 1 ? 's' : ''} agendado${appointmentData.serviceIds.length > 1 ? 's' : ''}. Aguarde a aprovação do administrador.`,
       });
 
       return true;

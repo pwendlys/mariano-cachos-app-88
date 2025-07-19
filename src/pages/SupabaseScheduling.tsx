@@ -1,5 +1,6 @@
+
 import React, { useState, useEffect } from 'react';
-import { Calendar, Clock, User, MessageSquare, Check, Plus, Image } from 'lucide-react';
+import { Calendar, Clock, User, MessageSquare, Check, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -7,13 +8,16 @@ import { Textarea } from '@/components/ui/textarea';
 import { useSupabaseScheduling } from '@/hooks/useSupabaseScheduling';
 import { useAuth } from '@/hooks/useAuth';
 import PIXPaymentPopup from '@/components/PIXPaymentPopup';
+import ServiceSelectionCard from '@/components/ServiceSelectionCard';
+import TimeSlotGrid from '@/components/TimeSlotGrid';
+import AppointmentSummaryCard from '@/components/AppointmentSummaryCard';
 
 const SupabaseScheduling = () => {
-  const { services, createAppointment, isSlotAvailable, getSlotStatus, loading } = useSupabaseScheduling();
+  const { services, createMultipleAppointments, isSlotAvailable, getSlotStatus, loading } = useSupabaseScheduling();
   const { user } = useAuth();
   
   const [currentStep, setCurrentStep] = useState(1);
-  const [selectedService, setSelectedService] = useState('');
+  const [selectedServices, setSelectedServices] = useState<string[]>([]);
   const [selectedDate, setSelectedDate] = useState('');
   const [selectedTime, setSelectedTime] = useState('');
   const [clientName, setClientName] = useState('');
@@ -34,61 +38,29 @@ const SupabaseScheduling = () => {
     }
   }, [user]);
 
-  // Log services when they change
-  useEffect(() => {
-    console.log('Services updated:', services);
-  }, [services]);
-
   const baseAvailableTimes = [
     '09:00', '09:30', '10:00', '10:30', '11:00', '11:30',
     '14:00', '14:30', '15:00', '15:30', '16:00', '16:30', '17:00'
   ];
 
-  const getSelectedService = () => {
-    return services.find(s => s.id === selectedService);
+  const getSelectedServicesData = () => {
+    return services.filter(s => selectedServices.includes(s.id));
   };
 
-  const getAvailableTimes = () => {
-    return baseAvailableTimes;
+  const getTotalServiceDuration = () => {
+    return getSelectedServicesData().reduce((total, service) => total + service.duracao, 0);
   };
 
-  const getTimeButtonClass = (time: string) => {
-    if (!selectedDate) {
-      return 'border-salon-gold/30 text-salon-gold hover:bg-salon-gold/10';
-    }
-
-    const status = getSlotStatus(selectedDate, time);
-    
-    if (selectedTime === time) {
-      return 'bg-salon-gold text-salon-dark hover:bg-salon-copper';
-    }
-    
-    switch (status) {
-      case 'ocupado':
-        return 'bg-red-600/20 border-red-600/50 text-red-400 hover:bg-red-600/30';
-      case 'pendente':
-        return 'bg-yellow-600/20 border-yellow-600/50 text-yellow-400 hover:bg-yellow-600/30';
-      default:
-        return 'border-salon-gold/30 text-salon-gold hover:bg-salon-gold/10';
-    }
+  const getTotalServicePrice = () => {
+    return getSelectedServicesData().reduce((total, service) => total + service.preco, 0);
   };
 
-  const canSelectTime = (time: string) => {
-    if (!selectedDate || !selectedService) return false;
-    
-    const service = getSelectedService();
-    if (!service) return false;
-    
-    return isSlotAvailable(selectedDate, time, service.duracao);
-  };
-
-  const formatDuration = (minutes: number) => {
-    const hours = Math.floor(minutes / 60);
-    const mins = minutes % 60;
-    if (hours > 0) {
-      return mins > 0 ? `${hours}h ${mins}min` : `${hours}h`;
-    }
-    return `${mins}min`;
+  const handleServiceToggle = (serviceId: string) => {
+    setSelectedServices(prev => 
+      prev.includes(serviceId) 
+        ? prev.filter(id => id !== serviceId)
+        : [...prev, serviceId]
+    );
   };
 
   const handleNextStep = () => {
@@ -108,12 +80,12 @@ const SupabaseScheduling = () => {
   };
 
   const handlePaymentConfirm = async (pixKey: string, qrCodeData?: string, transactionId?: string): Promise<boolean> => {
-    if (!selectedService || !selectedDate || !selectedTime || !clientName || !clientEmail || !clientPhone) {
+    if (!selectedServices.length || !selectedDate || !selectedTime || !clientName || !clientEmail || !clientPhone) {
       return false;
     }
 
-    const success = await createAppointment({
-      serviceId: selectedService,
+    const success = await createMultipleAppointments({
+      serviceIds: selectedServices,
       data: selectedDate,
       horario: selectedTime,
       clientName,
@@ -130,7 +102,7 @@ const SupabaseScheduling = () => {
     if (success) {
       // Reset form
       setCurrentStep(1);
-      setSelectedService('');
+      setSelectedServices([]);
       setSelectedDate('');
       setSelectedTime('');
       if (!user) {
@@ -167,7 +139,7 @@ const SupabaseScheduling = () => {
           Agende Seu Horário
         </h1>
         <p className="text-muted-foreground">
-          Sistema integrado com banco de dados
+          Escolha múltiplos serviços para um cuidado completo
         </p>
       </div>
 
@@ -191,14 +163,25 @@ const SupabaseScheduling = () => {
         </div>
       </div>
 
-      {/* Step 1: Select Service */}
+      {/* Step 1: Select Services */}
       {currentStep === 1 && (
         <Card className="glass-card border-salon-gold/20">
           <CardHeader>
             <CardTitle className="text-salon-gold flex items-center gap-2">
               <User size={20} />
-              Escolha seu Serviço
+              Escolha seus Serviços
+              {selectedServices.length > 0 && (
+                <span className="text-sm bg-salon-gold/20 text-salon-gold px-2 py-1 rounded-full">
+                  {selectedServices.length} selecionado{selectedServices.length > 1 ? 's' : ''}
+                </span>
+              )}
             </CardTitle>
+            {selectedServices.length > 0 && (
+              <p className="text-salon-copper text-sm">
+                Duração total: {Math.floor(getTotalServiceDuration() / 60)}h {getTotalServiceDuration() % 60}min • 
+                Valor: R$ {getTotalServicePrice().toFixed(2)}
+              </p>
+            )}
           </CardHeader>
           <CardContent className="space-y-4">
             {services.length === 0 ? (
@@ -208,53 +191,12 @@ const SupabaseScheduling = () => {
               </div>
             ) : (
               services.map((service) => (
-                <div
+                <ServiceSelectionCard
                   key={service.id}
-                  className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${
-                    selectedService === service.id
-                      ? 'border-salon-gold bg-salon-gold/10'
-                      : 'border-salon-gold/20 hover:border-salon-gold/40'
-                  }`}
-                  onClick={() => setSelectedService(service.id)}
-                >
-                  <div className="flex items-center space-x-4 mb-2">
-                    {/* Service Image */}
-                    {service.imagem ? (
-                      <img 
-                        src={service.imagem} 
-                        alt={service.nome}
-                        className="w-16 h-16 object-cover rounded-lg border border-salon-gold/30 flex-shrink-0"
-                      />
-                    ) : (
-                      <div className="w-16 h-16 bg-salon-gold/10 rounded-lg border border-salon-gold/30 flex items-center justify-center flex-shrink-0">
-                        <Image className="text-salon-gold/40" size={20} />
-                      </div>
-                    )}
-                    
-                    <div className="flex-1">
-                      <div className="flex items-center justify-between mb-2">
-                        <h3 className="font-semibold text-white text-lg">{service.nome}</h3>
-                        {selectedService === service.id ? (
-                          <Check className="text-salon-gold" size={20} />
-                        ) : (
-                          <Plus className="text-salon-gold/60" size={20} />
-                        )}
-                      </div>
-                      
-                      <div className="flex items-center justify-between">
-                        <span className="text-salon-gold font-bold text-lg">R$ {service.preco.toFixed(2)}</span>
-                        <div className="flex items-center space-x-1 text-salon-copper">
-                          <Clock size={16} />
-                          <span className="text-sm">{formatDuration(service.duracao)}</span>
-                        </div>
-                      </div>
-                      
-                      <div className="mt-2">
-                        <span className="text-xs text-salon-copper capitalize">{service.categoria}</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+                  service={service}
+                  isSelected={selectedServices.includes(service.id)}
+                  onToggle={handleServiceToggle}
+                />
               ))
             )}
           </CardContent>
@@ -289,48 +231,21 @@ const SupabaseScheduling = () => {
             <CardTitle className="text-salon-gold flex items-center gap-2">
               <Clock size={20} />
               Escolha o Horário
-              {getSelectedService() && (
-                <span className="text-sm text-salon-copper ml-2">
-                  ({formatDuration(getSelectedService()!.duracao)})
-                </span>
-              )}
+              <span className="text-sm text-salon-copper ml-2">
+                (Duração: {Math.floor(getTotalServiceDuration() / 60)}h {getTotalServiceDuration() % 60}min)
+              </span>
             </CardTitle>
-            <div className="text-sm text-salon-copper mt-2">
-              <div className="flex gap-4 flex-wrap">
-                <div className="flex items-center gap-1">
-                  <div className="w-3 h-3 bg-salon-gold/30 border border-salon-gold/50 rounded"></div>
-                  <span>Livre</span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <div className="w-3 h-3 bg-yellow-600/30 border border-yellow-600/50 rounded"></div>
-                  <span>Aguardando Aprovação</span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <div className="w-3 h-3 bg-red-600/30 border border-red-600/50 rounded"></div>
-                  <span>Ocupado</span>
-                </div>
-              </div>
-            </div>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-3 gap-3">
-              {getAvailableTimes().map((time) => {
-                const canSelect = canSelectTime(time);
-                const buttonClass = getTimeButtonClass(time);
-                
-                return (
-                  <Button
-                    key={time}
-                    variant="outline"
-                    className={`h-14 text-lg transition-all ${buttonClass}`}
-                    onClick={() => canSelect ? setSelectedTime(time) : null}
-                    disabled={!canSelect}
-                  >
-                    {time}
-                  </Button>
-                );
-              })}
-            </div>
+            <TimeSlotGrid
+              availableTimes={baseAvailableTimes}
+              selectedTime={selectedTime}
+              selectedDate={selectedDate}
+              serviceDuration={getTotalServiceDuration()}
+              onTimeSelect={setSelectedTime}
+              getSlotStatus={getSlotStatus}
+              isSlotAvailable={isSlotAvailable}
+            />
           </CardContent>
         </Card>
       )}
@@ -406,51 +321,17 @@ const SupabaseScheduling = () => {
           </Card>
 
           {/* Booking Summary */}
-          <Card className="glass-card border-salon-gold/20">
-            <CardHeader>
-              <CardTitle className="text-salon-gold">Resumo do Agendamento</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {getSelectedService() && (
-                <>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Serviço:</span>
-                    <span className="text-white font-medium">{getSelectedService()!.nome}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Data:</span>
-                    <span className="text-white font-medium">{selectedDate}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Horário:</span>
-                    <span className="text-white font-medium">{selectedTime}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Duração:</span>
-                    <span className="text-white font-medium">{formatDuration(getSelectedService()!.duracao)}</span>
-                  </div>
-                  <div className="flex justify-between items-center pt-2 border-t border-salon-gold/30">
-                    <span className="text-muted-foreground">Valor Total:</span>
-                    <span className="text-salon-gold font-bold text-xl">
-                      R$ {getSelectedService()!.preco.toFixed(2)}
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center text-sm">
-                    <span className="text-muted-foreground">Sinal (PIX):</span>
-                    <span className="text-salon-copper font-medium">
-                      R$ {DEPOSIT_AMOUNT.toFixed(2)}
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center text-sm">
-                    <span className="text-muted-foreground">Restante no dia:</span>
-                    <span className="text-white font-medium">
-                      R$ {(getSelectedService()!.preco - DEPOSIT_AMOUNT).toFixed(2)}
-                    </span>
-                  </div>
-                </>
-              )}
-            </CardContent>
-          </Card>
+          <AppointmentSummaryCard
+            services={services}
+            selectedServiceIds={selectedServices}
+            selectedDate={selectedDate}
+            selectedTime={selectedTime}
+            clientName={clientName}
+            clientEmail={clientEmail}
+            clientPhone={clientPhone}
+            observations={observations}
+            depositAmount={DEPOSIT_AMOUNT}
+          />
         </div>
       )}
 
@@ -471,7 +352,7 @@ const SupabaseScheduling = () => {
           <Button
             onClick={handleNextStep}
             disabled={
-              (currentStep === 1 && !selectedService) ||
+              (currentStep === 1 && selectedServices.length === 0) ||
               (currentStep === 2 && !selectedDate) ||
               (currentStep === 3 && !selectedTime) ||
               loading
@@ -501,7 +382,7 @@ const SupabaseScheduling = () => {
         isOpen={showPixPopup}
         onClose={() => setShowPixPopup(false)}
         amount={DEPOSIT_AMOUNT}
-        serviceName={getSelectedService()?.nome || ''}
+        serviceName={`${selectedServices.length} serviço${selectedServices.length > 1 ? 's' : ''} selecionado${selectedServices.length > 1 ? 's' : ''}`}
         customerName={clientName}
         customerEmail={clientEmail}
         customerPhone={clientPhone}
