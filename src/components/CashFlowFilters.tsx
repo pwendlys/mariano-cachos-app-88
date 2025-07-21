@@ -3,11 +3,12 @@ import React from 'react';
 import { Calendar, Filter, TrendingUp, TrendingDown, DollarSign } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Select, SelectContent, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
+import SelectDebugger from './SelectDebugger';
 
 interface CashFlowFiltersProps {
   startDate: Date | undefined;
@@ -109,24 +110,24 @@ const CashFlowFilters: React.FC<CashFlowFiltersProps> = ({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent className="glass-card border-salon-gold/30">
-                <SelectItem value="all">
+                <SelectDebugger value="all">
                   <div className="flex items-center gap-2">
                     <DollarSign size={16} />
                     <span>Todos</span>
                   </div>
-                </SelectItem>
-                <SelectItem value="entrada">
+                </SelectDebugger>
+                <SelectDebugger value="entrada">
                   <div className="flex items-center gap-2">
                     <TrendingUp size={16} className="text-green-400" />
                     <span>Receitas</span>
                   </div>
-                </SelectItem>
-                <SelectItem value="saida">
+                </SelectDebugger>
+                <SelectDebugger value="saida">
                   <div className="flex items-center gap-2">
                     <TrendingDown size={16} className="text-red-400" />
                     <span>Despesas</span>
                   </div>
-                </SelectItem>
+                </SelectDebugger>
               </SelectContent>
             </Select>
           </div>

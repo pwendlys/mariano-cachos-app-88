@@ -1,92 +1,120 @@
 
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import React, { useState } from 'react';
+import { Plus, Edit2, Trash2, Save, X, Calculator, TrendingUp, TrendingDown, DollarSign } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { DollarSign, User, TrendingUp, Calendar, CheckCircle, Clock, X } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { useToast } from '@/hooks/use-toast';
 import { useSupabaseCommissions } from '@/hooks/useSupabaseCommissions';
-import { useSupabaseProfessionals } from '@/hooks/useSupabaseProfessionals';
+import { useProfessionals } from '@/hooks/useProfessionals';
 import { format } from 'date-fns';
+import SelectDebugger from './SelectDebugger';
 
 const CommissionManagement = () => {
-  const { commissions, loading, fetchCommissions, updateCommissionStatus } = useSupabaseCommissions();
-  const { professionals } = useSupabaseProfessionals();
-  const [selectedProfessional, setSelectedProfessional] = useState<string>('');
-  const [selectedStatus, setSelectedStatus] = useState<string>('');
-  const [selectedType, setSelectedType] = useState<string>('');
-  const [dateRange, setDateRange] = useState({
-    startDate: '',
-    endDate: ''
+  const { commissions, loading, fetchCommissions, addCommission, updateCommission, deleteCommission } = useSupabaseCommissions();
+  const { professionals, getActiveProfessionals } = useProfessionals();
+  const { toast } = useToast();
+  
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [selectedCommission, setSelectedCommission] = useState<any>(null);
+  const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false);
+  const [editingCommission, setEditingCommission] = useState<string | null>(null);
+  
+  const [formData, setFormData] = useState({
+    profissional_id: '',
+    tipo_origem: 'manual' as 'manual' | 'agendamento' | 'venda',
+    valor_base: 0,
+    percentual_comissao: 0,
+    data_referencia: new Date().toISOString().split('T')[0],
+    observacoes: ''
   });
 
-  useEffect(() => {
-    fetchCommissions({
-      profissional_id: selectedProfessional || undefined,
-      status: selectedStatus || undefined,
-      tipo_origem: selectedType || undefined,
-      data_inicio: dateRange.startDate || undefined,
-      data_fim: dateRange.endDate || undefined
-    });
-  }, [selectedProfessional, selectedStatus, selectedType, dateRange]);
+  const handleAddCommission = async () => {
+    if (!formData.profissional_id || formData.valor_base <= 0 || formData.percentual_comissao <= 0) {
+      toast({
+        title: "Campos obrigatórios",
+        description: "Por favor, preencha todos os campos obrigatórios.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      const valorComissao = (formData.valor_base * formData.percentual_comissao) / 100;
+      
+      await addCommission({
+        profissional_id: formData.profissional_id,
+        tipo_origem: formData.tipo_origem,
+        valor_base: formData.valor_base,
+        percentual_comissao: formData.percentual_comissao,
+        valor_comissao: valorComissao,
+        data_referencia: formData.data_referencia,
+        observacoes: formData.observacoes
+      });
+      
+      setIsAddDialogOpen(false);
+      setFormData({
+        profissional_id: '',
+        tipo_origem: 'manual',
+        valor_base: 0,
+        percentual_comissao: 0,
+        data_referencia: new Date().toISOString().split('T')[0],
+        observacoes: ''
+      });
+      
+      fetchCommissions();
+    } catch (error) {
+      // Error handled in hook
+    }
+  };
+
+  const showDetails = (commission: any) => {
+    setSelectedCommission(commission);
+    setIsDetailsDialogOpen(true);
+  };
+
+  const getProfessionalName = (professionalId: string) => {
+    const professional = professionals.find(p => p.id === professionalId);
+    return professional?.nome || 'Profissional não encontrado';
+  };
+
+  const getOriginTypeLabel = (tipo_origem: string) => {
+    const labels = {
+      'manual': 'Manual',
+      'agendamento': 'Agendamento',
+      'venda': 'Venda'
+    };
+    return labels[tipo_origem as keyof typeof labels] || tipo_origem;
+  };
 
   const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'calculada':
-        return 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30';
-      case 'paga':
-        return 'bg-green-500/20 text-green-400 border-green-500/30';
-      case 'cancelada':
-        return 'bg-red-500/20 text-red-400 border-red-500/30';
-      default:
-        return 'bg-gray-500/20 text-gray-400 border-gray-500/30';
-    }
-  };
-
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'calculada':
-        return <Clock size={14} />;
-      case 'paga':
-        return <CheckCircle size={14} />;
-      case 'cancelada':
-        return <X size={14} />;
-      default:
-        return <Clock size={14} />;
-    }
-  };
-
-  const getTypeColor = (type: string) => {
-    switch (type) {
-      case 'agendamento':
-        return 'bg-blue-500/20 text-blue-400 border-blue-500/30';
-      case 'venda':
-        return 'bg-purple-500/20 text-purple-400 border-purple-500/30';
-      default:
-        return 'bg-gray-500/20 text-gray-400 border-gray-500/30';
-    }
-  };
-
-  const handleStatusChange = async (commissionId: string, newStatus: 'calculada' | 'paga' | 'cancelada') => {
-    await updateCommissionStatus(commissionId, newStatus);
+    const colors = {
+      'calculada': 'bg-green-500/20 text-green-400 border-green-500/30',
+      'paga': 'bg-blue-500/20 text-blue-400 border-blue-500/30',
+      'cancelada': 'bg-red-500/20 text-red-400 border-red-500/30'
+    };
+    return colors[status as keyof typeof colors] || colors['calculada'];
   };
 
   const getTotalCommissions = () => {
-    return commissions.reduce((total, commission) => total + Number(commission.valor_comissao), 0);
+    return commissions.reduce((sum, commission) => sum + Number(commission.valor_comissao), 0);
   };
 
-  const getPendingCommissions = () => {
+  const getTotalCommissionsThisMonth = () => {
+    const currentMonth = new Date().getMonth();
+    const currentYear = new Date().getFullYear();
     return commissions
-      .filter(c => c.status === 'calculada')
-      .reduce((total, commission) => total + Number(commission.valor_comissao), 0);
+      .filter(c => {
+        const commissionDate = new Date(c.data_referencia);
+        return commissionDate.getMonth() === currentMonth && commissionDate.getFullYear() === currentYear;
+      })
+      .reduce((sum, commission) => sum + Number(commission.valor_comissao), 0);
   };
 
-  const getPaidCommissions = () => {
-    return commissions
-      .filter(c => c.status === 'paga')
-      .reduce((total, commission) => total + Number(commission.valor_comissao), 0);
-  };
+  const activeProfessionals = getActiveProfessionals();
 
   if (loading) {
     return (
@@ -98,8 +126,126 @@ const CommissionManagement = () => {
 
   return (
     <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <h2 className="text-xl font-semibold text-salon-gold">Comissões</h2>
+        <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+          <DialogTrigger asChild>
+            <Button className="bg-salon-gold hover:bg-salon-copper text-salon-dark font-medium">
+              <Plus className="mr-2" size={16} />
+              Nova Comissão
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="glass-card border-salon-gold/30 text-white max-w-md">
+            <DialogHeader>
+              <DialogTitle className="text-salon-gold">Nova Comissão</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-2">Profissional *</label>
+                <Select value={formData.profissional_id} onValueChange={(value) => setFormData({...formData, profissional_id: value})}>
+                  <SelectTrigger className="glass-card border-salon-gold/30 bg-transparent text-white">
+                    <SelectValue placeholder="Selecione um profissional" />
+                  </SelectTrigger>
+                  <SelectContent className="glass-card border-salon-gold/30">
+                    {activeProfessionals.map((professional) => (
+                      <SelectDebugger key={professional.id} value={professional.id}>
+                        {professional.nome}
+                      </SelectDebugger>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium mb-2">Tipo de Origem *</label>
+                <Select value={formData.tipo_origem} onValueChange={(value: 'manual' | 'agendamento' | 'venda') => setFormData({...formData, tipo_origem: value})}>
+                  <SelectTrigger className="glass-card border-salon-gold/30 bg-transparent text-white">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="glass-card border-salon-gold/30">
+                    <SelectDebugger value="manual">Manual</SelectDebugger>
+                    <SelectDebugger value="agendamento">Agendamento</SelectDebugger>
+                    <SelectDebugger value="venda">Venda</SelectDebugger>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium mb-2">Valor Base *</label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={formData.valor_base}
+                    onChange={(e) => setFormData({...formData, valor_base: parseFloat(e.target.value) || 0})}
+                    placeholder="0.00"
+                    className="glass-card border-salon-gold/30 bg-transparent text-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-2">Percentual (%) *</label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    max="100"
+                    value={formData.percentual_comissao}
+                    onChange={(e) => setFormData({...formData, percentual_comissao: parseFloat(e.target.value) || 0})}
+                    placeholder="0.00"
+                    className="glass-card border-salon-gold/30 bg-transparent text-white"
+                  />
+                </div>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium mb-2">Data de Referência *</label>
+                <Input
+                  type="date"
+                  value={formData.data_referencia}
+                  onChange={(e) => setFormData({...formData, data_referencia: e.target.value})}
+                  className="glass-card border-salon-gold/30 bg-transparent text-white"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium mb-2">Observações</label>
+                <Input
+                  value={formData.observacoes}
+                  onChange={(e) => setFormData({...formData, observacoes: e.target.value})}
+                  placeholder="Observações sobre a comissão"
+                  className="glass-card border-salon-gold/30 bg-transparent text-white"
+                />
+              </div>
+              
+              <div className="bg-salon-gold/10 p-3 rounded text-sm">
+                <p className="text-salon-gold">
+                  Valor da Comissão: R$ {((formData.valor_base * formData.percentual_comissao) / 100).toFixed(2)}
+                </p>
+              </div>
+              
+              <div className="flex space-x-3">
+                <Button 
+                  onClick={handleAddCommission}
+                  className="flex-1 bg-salon-gold hover:bg-salon-copper text-salon-dark font-medium"
+                >
+                  Adicionar Comissão
+                </Button>
+                <Button 
+                  variant="outline"
+                  onClick={() => setIsAddDialogOpen(false)}
+                  className="border-salon-gold/30 text-salon-gold hover:bg-salon-gold/10"
+                >
+                  Cancelar
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      </div>
+
       {/* Statistics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Card className="glass-card border-salon-gold/20">
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
@@ -109,115 +255,35 @@ const CommissionManagement = () => {
                   R$ {getTotalCommissions().toFixed(2)}
                 </p>
               </div>
-              <DollarSign className="text-salon-gold" size={24} />
+              <Calculator className="text-salon-gold" size={24} />
             </div>
           </CardContent>
         </Card>
 
-        <Card className="glass-card border-yellow-500/20">
+        <Card className="glass-card border-salon-gold/20">
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-yellow-400">Pendentes</p>
-                <p className="text-2xl font-bold text-yellow-400">
-                  R$ {getPendingCommissions().toFixed(2)}
+                <p className="text-sm text-salon-copper">Este Mês</p>
+                <p className="text-2xl font-bold text-salon-gold">
+                  R$ {getTotalCommissionsThisMonth().toFixed(2)}
                 </p>
               </div>
-              <Clock className="text-yellow-400" size={24} />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="glass-card border-green-500/20">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-green-400">Pagas</p>
-                <p className="text-2xl font-bold text-green-400">
-                  R$ {getPaidCommissions().toFixed(2)}
-                </p>
-              </div>
-              <CheckCircle className="text-green-400" size={24} />
+              <TrendingUp className="text-salon-gold" size={24} />
             </div>
           </CardContent>
         </Card>
       </div>
-
-      {/* Filters */}
-      <Card className="glass-card border-salon-gold/20">
-        <CardHeader>
-          <CardTitle className="text-salon-gold">Filtros</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div>
-              <label className="block text-sm font-medium mb-2 text-white">Profissional</label>
-              <Select value={selectedProfessional} onValueChange={setSelectedProfessional}>
-                <SelectTrigger className="glass-card border-salon-gold/30 bg-transparent text-white">
-                  <SelectValue placeholder="Todos" />
-                </SelectTrigger>
-                <SelectContent className="glass-card border-salon-gold/30">
-                  <SelectItem value="">Todos</SelectItem>
-                  {professionals.map((prof) => (
-                    <SelectItem key={prof.id} value={prof.id}>
-                      {prof.nome}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium mb-2 text-white">Status</label>
-              <Select value={selectedStatus} onValueChange={setSelectedStatus}>
-                <SelectTrigger className="glass-card border-salon-gold/30 bg-transparent text-white">
-                  <SelectValue placeholder="Todos" />
-                </SelectTrigger>
-                <SelectContent className="glass-card border-salon-gold/30">
-                  <SelectItem value="">Todos</SelectItem>
-                  <SelectItem value="calculada">Calculada</SelectItem>
-                  <SelectItem value="paga">Paga</SelectItem>
-                  <SelectItem value="cancelada">Cancelada</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium mb-2 text-white">Tipo</label>
-              <Select value={selectedType} onValueChange={setSelectedType}>
-                <SelectTrigger className="glass-card border-salon-gold/30 bg-transparent text-white">
-                  <SelectValue placeholder="Todos" />
-                </SelectTrigger>
-                <SelectContent className="glass-card border-salon-gold/30">
-                  <SelectItem value="">Todos</SelectItem>
-                  <SelectItem value="agendamento">Agendamento</SelectItem>
-                  <SelectItem value="venda">Venda</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium mb-2 text-white">Data Início</label>
-              <Input
-                type="date"
-                value={dateRange.startDate}
-                onChange={(e) => setDateRange({...dateRange, startDate: e.target.value})}
-                className="glass-card border-salon-gold/30 bg-transparent text-white"
-              />
-            </div>
-          </div>
-        </CardContent>
-      </Card>
 
       {/* Commissions List */}
       <div className="space-y-4">
         {commissions.length === 0 ? (
           <Card className="glass-card border-salon-gold/20">
             <CardContent className="p-8 text-center">
-              <TrendingUp className="mx-auto mb-4 text-salon-gold opacity-50" size={48} />
+              <Calculator className="mx-auto mb-4 text-salon-gold opacity-50" size={48} />
               <p className="text-salon-copper text-lg">Nenhuma comissão encontrada</p>
               <p className="text-sm text-muted-foreground">
-                As comissões aparecerão aqui quando os serviços forem concluídos ou vendas finalizadas.
+                As comissões aparecerão aqui automaticamente conforme os serviços forem realizados.
               </p>
             </CardContent>
           </Card>
@@ -228,84 +294,45 @@ const CommissionManagement = () => {
                 <div className="flex items-center justify-between">
                   <div className="flex-1">
                     <div className="flex items-center space-x-3 mb-2">
-                      <div className="flex items-center space-x-1">
-                        <User size={16} className="text-salon-gold" />
-                        <span className="font-medium text-white">
-                          {commission.profissional.nome}
-                        </span>
+                      <div className="p-2 rounded-full bg-salon-gold/20">
+                        <DollarSign className="text-salon-gold" size={16} />
                       </div>
-                      <Badge className={getTypeColor(commission.tipo_origem)}>
-                        {commission.tipo_origem === 'agendamento' ? 'Serviço' : 'Produto'}
-                      </Badge>
-                      <Badge className={getStatusColor(commission.status)}>
-                        <div className="flex items-center space-x-1">
-                          {getStatusIcon(commission.status)}
-                          <span className="capitalize">{commission.status}</span>
-                        </div>
-                      </Badge>
+                      <div>
+                        <h3 className="font-medium text-white">{getProfessionalName(commission.profissional_id)}</h3>
+                        <p className="text-sm text-salon-copper">
+                          {format(new Date(commission.data_referencia), 'dd/MM/yyyy')} • {getOriginTypeLabel(commission.tipo_origem)}
+                        </p>
+                      </div>
                     </div>
                     
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm">
-                      <div>
-                        <p className="text-salon-copper">Data</p>
-                        <p className="text-white">
-                          {format(new Date(commission.data_referencia), 'dd/MM/yyyy')}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-salon-copper">Valor Base</p>
-                        <p className="text-white">R$ {Number(commission.valor_base).toFixed(2)}</p>
-                      </div>
-                      <div>
-                        <p className="text-salon-copper">Percentual</p>
-                        <p className="text-white">{commission.percentual_comissao}%</p>
-                      </div>
-                      <div>
-                        <p className="text-salon-copper">Comissão</p>
-                        <p className="text-salon-gold font-medium">
-                          R$ {Number(commission.valor_comissao).toFixed(2)}
-                        </p>
-                      </div>
+                    <div className="flex items-center space-x-3">
+                      <Badge className={getStatusColor(commission.status)}>
+                        {commission.status}
+                      </Badge>
+                      <span className="text-lg font-semibold text-salon-gold">
+                        R$ {Number(commission.valor_comissao).toFixed(2)}
+                      </span>
+                      <span className="text-sm text-salon-copper">
+                        ({commission.percentual_comissao}% de R$ {Number(commission.valor_base).toFixed(2)})
+                      </span>
                     </div>
-
+                    
                     {commission.observacoes && (
-                      <div className="mt-3 p-2 bg-salon-gold/10 rounded text-sm">
-                        <p className="text-salon-copper">Observações:</p>
-                        <p className="text-white">{commission.observacoes}</p>
-                      </div>
+                      <p className="mt-2 text-sm text-salon-copper">
+                        {commission.observacoes}
+                      </p>
                     )}
                   </div>
                   
-                  <div className="flex flex-col space-y-2 ml-4">
-                    {commission.status === 'calculada' && (
-                      <Button
-                        size="sm"
-                        onClick={() => handleStatusChange(commission.id, 'paga')}
-                        className="bg-green-500 hover:bg-green-600 text-white"
-                      >
-                        Marcar como Paga
-                      </Button>
-                    )}
-                    {commission.status === 'calculada' && (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleStatusChange(commission.id, 'cancelada')}
-                        className="border-red-400/30 text-red-400 hover:bg-red-400/10"
-                      >
-                        Cancelar
-                      </Button>
-                    )}
-                    {commission.status === 'paga' && (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleStatusChange(commission.id, 'calculada')}
-                        className="border-yellow-400/30 text-yellow-400 hover:bg-yellow-400/10"
-                      >
-                        Marcar Pendente
-                      </Button>
-                    )}
+                  <div className="flex items-center space-x-2">
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => showDetails(commission)}
+                      className="border-salon-gold/30 text-salon-gold hover:bg-salon-gold/10"
+                    >
+                      <Edit2 size={16} />
+                    </Button>
                   </div>
                 </div>
               </CardContent>
@@ -313,6 +340,66 @@ const CommissionManagement = () => {
           ))
         )}
       </div>
+
+      {/* Details Dialog */}
+      <Dialog open={isDetailsDialogOpen} onOpenChange={setIsDetailsDialogOpen}>
+        <DialogContent className="glass-card border-salon-gold/30 text-white max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-salon-gold">Detalhes da Comissão</DialogTitle>
+          </DialogHeader>
+          {selectedCommission && (
+            <div className="space-y-4">
+              <div>
+                <p className="text-sm text-salon-copper">Profissional</p>
+                <p className="text-white">{getProfessionalName(selectedCommission.profissional_id)}</p>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm text-salon-copper">Tipo de Origem</p>
+                  <p className="text-white">{getOriginTypeLabel(selectedCommission.tipo_origem)}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-salon-copper">Status</p>
+                  <Badge className={getStatusColor(selectedCommission.status)}>
+                    {selectedCommission.status}
+                  </Badge>
+                </div>
+              </div>
+              
+              <div>
+                <p className="text-sm text-salon-copper">Data de Referência</p>
+                <p className="text-white">{format(new Date(selectedCommission.data_referencia), 'dd/MM/yyyy')}</p>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm text-salon-copper">Valor Base</p>
+                  <p className="text-white">R$ {Number(selectedCommission.valor_base).toFixed(2)}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-salon-copper">Percentual</p>
+                  <p className="text-white">{selectedCommission.percentual_comissao}%</p>
+                </div>
+              </div>
+              
+              <div>
+                <p className="text-sm text-salon-copper">Valor da Comissão</p>
+                <p className="text-lg font-semibold text-salon-gold">
+                  R$ {Number(selectedCommission.valor_comissao).toFixed(2)}
+                </p>
+              </div>
+              
+              {selectedCommission.observacoes && (
+                <div>
+                  <p className="text-sm text-salon-copper">Observações</p>
+                  <p className="text-white">{selectedCommission.observacoes}</p>
+                </div>
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
