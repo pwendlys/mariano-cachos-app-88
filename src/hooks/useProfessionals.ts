@@ -36,16 +36,24 @@ const initialProfessionals: Professional[] = [
 export const useProfessionals = () => {
   const [professionals, setProfessionals] = useState<Professional[]>(() => {
     const stored = localStorage.getItem('salon-professionals');
-    return stored ? JSON.parse(stored) : initialProfessionals;
+    const parsedProfessionals = stored ? JSON.parse(stored) : initialProfessionals;
+    
+    // Filter out any professionals with empty IDs
+    const validProfessionals = parsedProfessionals.filter((prof: Professional) => prof.id && prof.id.trim() !== '');
+    console.log('Loaded professionals, filtered out empty IDs:', validProfessionals);
+    
+    return validProfessionals;
   });
 
   useEffect(() => {
-    localStorage.setItem('salon-professionals', JSON.stringify(professionals));
+    // Filter out any professionals with empty IDs before saving
+    const validProfessionals = professionals.filter(prof => prof.id && prof.id.trim() !== '');
+    localStorage.setItem('salon-professionals', JSON.stringify(validProfessionals));
   }, [professionals]);
 
   const addProfessional = (professional: Professional) => {
     console.log('Adding professional:', professional);
-    if (!professional.id || professional.id === '') {
+    if (!professional.id || professional.id.trim() === '') {
       console.error('Professional ID cannot be empty');
       return;
     }
@@ -54,8 +62,12 @@ export const useProfessionals = () => {
 
   const updateProfessional = (professionalId: string, updatedProfessional: Professional) => {
     console.log('Updating professional:', professionalId, updatedProfessional);
-    if (!professionalId || professionalId === '') {
+    if (!professionalId || professionalId.trim() === '') {
       console.error('Professional ID cannot be empty');
+      return;
+    }
+    if (!updatedProfessional.id || updatedProfessional.id.trim() === '') {
+      console.error('Updated professional ID cannot be empty');
       return;
     }
     setProfessionals(prev => prev.map(prof => prof.id === professionalId ? updatedProfessional : prof));
@@ -63,7 +75,7 @@ export const useProfessionals = () => {
 
   const deleteProfessional = (professionalId: string) => {
     console.log('Deleting professional:', professionalId);
-    if (!professionalId || professionalId === '') {
+    if (!professionalId || professionalId.trim() === '') {
       console.error('Professional ID cannot be empty');
       return;
     }
@@ -71,11 +83,11 @@ export const useProfessionals = () => {
   };
 
   const getActiveProfessionals = () => {
-    return professionals.filter(prof => prof.isActive);
+    return professionals.filter(prof => prof.isActive && prof.id && prof.id.trim() !== '');
   };
 
   const getProfessionalById = (professionalId: string) => {
-    if (!professionalId || professionalId === '') {
+    if (!professionalId || professionalId.trim() === '') {
       console.warn('getProfessionalById called with empty ID');
       return undefined;
     }
@@ -83,7 +95,7 @@ export const useProfessionals = () => {
   };
 
   return {
-    professionals,
+    professionals: professionals.filter(prof => prof.id && prof.id.trim() !== ''), // Always filter out empty IDs
     addProfessional,
     updateProfessional,
     deleteProfessional,

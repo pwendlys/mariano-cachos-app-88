@@ -8,11 +8,11 @@ interface SelectDebuggerProps {
 }
 
 const SelectDebugger: React.FC<SelectDebuggerProps> = ({ value, children }) => {
-  console.log('SelectItem value:', value, 'isEmpty:', value === '');
+  console.log('SelectItem value:', value, 'type:', typeof value, 'isEmpty:', value === '', 'isNull:', value === null, 'isUndefined:', value === undefined);
   
-  if (value === '') {
-    console.error('SelectItem with empty string value detected!');
-    return <SelectItem value="default">{children}</SelectItem>;
+  if (!value || value === '' || value.trim() === '') {
+    console.error('SelectItem with invalid value detected! Value:', value);
+    return null; // Don't render the SelectItem at all if value is invalid
   }
   
   return <SelectItem value={value}>{children}</SelectItem>;
