@@ -58,12 +58,11 @@ export const useSupabaseCommissions = () => {
   }) => {
     try {
       setLoading(true);
+      
+      // First get commissions
       let query = supabase
         .from('comissoes')
-        .select(`
-          *,
-          profissional:profissionais(nome, email)
-        `)
+        .select('*')
         .order('data_referencia', { ascending: false });
 
       if (filters?.profissional_id) {
@@ -82,9 +81,28 @@ export const useSupabaseCommissions = () => {
         query = query.lte('data_referencia', filters.data_fim);
       }
 
-      const { data, error } = await query;
+      const { data: commissionsData, error } = await query;
       if (error) throw error;
-      setCommissions(data || []);
+
+      // Get all professionals
+      const { data: profissionaisData, error: profError } = await supabase
+        .from('profissionais')
+        .select('id, nome, email');
+
+      if (profError) throw profError;
+
+      // Create a map for quick lookup
+      const profissionaisMap = new Map(
+        profissionaisData?.map(p => [p.id, { nome: p.nome, email: p.email }]) || []
+      );
+
+      // Combine data manually
+      const commissionsWithDetails: CommissionWithDetails[] = (commissionsData || []).map(commission => ({
+        ...commission,
+        profissional: profissionaisMap.get(commission.profissional_id) || { nome: 'N/A', email: 'N/A' }
+      }));
+
+      setCommissions(commissionsWithDetails);
     } catch (error) {
       console.error('Erro ao buscar comissões:', error);
       toast({
@@ -99,16 +117,33 @@ export const useSupabaseCommissions = () => {
 
   const fetchConfigs = async () => {
     try {
-      const { data, error } = await supabase
+      // First get configs
+      const { data: configsData, error } = await supabase
         .from('configuracoes_comissao')
-        .select(`
-          *,
-          profissional:profissionais(nome, email)
-        `)
+        .select('*')
         .order('profissional_id');
 
       if (error) throw error;
-      setConfigs(data || []);
+
+      // Get all professionals
+      const { data: profissionaisData, error: profError } = await supabase
+        .from('profissionais')
+        .select('id, nome, email');
+
+      if (profError) throw profError;
+
+      // Create a map for quick lookup
+      const profissionaisMap = new Map(
+        profissionaisData?.map(p => [p.id, { nome: p.nome, email: p.email }]) || []
+      );
+
+      // Combine data manually
+      const configsWithDetails: CommissionConfigWithDetails[] = (configsData || []).map(config => ({
+        ...config,
+        profissional: profissionaisMap.get(config.profissional_id) || { nome: 'N/A', email: 'N/A' }
+      }));
+
+      setConfigs(configsWithDetails);
     } catch (error) {
       console.error('Erro ao buscar configurações:', error);
       toast({

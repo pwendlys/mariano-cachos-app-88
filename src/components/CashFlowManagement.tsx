@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Plus, TrendingUp, TrendingDown, DollarSign, Eye, Filter } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -9,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { useSupabaseCashFlow, CashFlowFilters } from '@/hooks/useSupabaseCashFlow';
+import { useSupabaseCashFlow, CashFlowFilters as CashFlowFiltersType } from '@/hooks/useSupabaseCashFlow';
 import CashFlowFilters from '@/components/CashFlowFilters';
 import { format } from 'date-fns';
 
@@ -20,7 +19,7 @@ const CashFlowManagement = () => {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [selectedEntry, setSelectedEntry] = useState<any>(null);
   const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false);
-  const [filters, setFilters] = useState<CashFlowFilters>({
+  const [filters, setFilters] = useState<CashFlowFiltersType>({
     filterType: 'all'
   });
   
@@ -35,7 +34,7 @@ const CashFlowManagement = () => {
     observacoes: ''
   });
 
-  const handleFilterChange = (newFilters: CashFlowFilters) => {
+  const handleFilterChange = (newFilters: CashFlowFiltersType) => {
     setFilters(newFilters);
     fetchEntries(newFilters);
   };

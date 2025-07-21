@@ -40,28 +40,46 @@ export const useAppointments = () => {
     try {
       setLoading(true);
       
+      // Get appointments with cliente and servico relations
       let query = supabase
         .from('agendamentos')
         .select(`
           *,
           cliente:clientes(nome, email, telefone),
-          servico:servicos(nome, categoria),
-          profissional:profissionais(nome, email)
+          servico:servicos(nome, categoria)
         `);
 
-      // Aplicar filtro de data se fornecido
+      // Apply date filter if provided
       if (filterDate) {
         const formattedDate = filterDate.toISOString().split('T')[0];
         query = query.eq('data', formattedDate);
       }
 
-      const { data, error } = await query
+      const { data: appointmentsData, error } = await query
         .order('data', { ascending: true })
         .order('horario', { ascending: true });
 
       if (error) throw error;
 
-      setAppointments(data || []);
+      // Get all professionals
+      const { data: profissionaisData, error: profError } = await supabase
+        .from('profissionais')
+        .select('id, nome, email');
+
+      if (profError) throw profError;
+
+      // Create a map for quick lookup
+      const profissionaisMap = new Map(
+        profissionaisData?.map(p => [p.id, { nome: p.nome, email: p.email }]) || []
+      );
+
+      // Combine data manually
+      const appointmentsWithDetails: Appointment[] = (appointmentsData || []).map(appointment => ({
+        ...appointment,
+        profissional: appointment.profissional_id ? profissionaisMap.get(appointment.profissional_id) : undefined
+      }));
+
+      setAppointments(appointmentsWithDetails);
     } catch (error) {
       console.error('Erro ao buscar agendamentos:', error);
       toast({
