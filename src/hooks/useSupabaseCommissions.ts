@@ -96,9 +96,11 @@ export const useSupabaseCommissions = () => {
         profissionaisData?.map(p => [p.id, { nome: p.nome, email: p.email }]) || []
       );
 
-      // Combine data manually
+      // Combine data manually with proper type assertions
       const commissionsWithDetails: CommissionWithDetails[] = (commissionsData || []).map(commission => ({
         ...commission,
+        tipo_origem: commission.tipo_origem as 'agendamento' | 'venda',
+        status: commission.status as 'calculada' | 'paga' | 'cancelada',
         profissional: profissionaisMap.get(commission.profissional_id) || { nome: 'N/A', email: 'N/A' }
       }));
 
@@ -137,9 +139,12 @@ export const useSupabaseCommissions = () => {
         profissionaisData?.map(p => [p.id, { nome: p.nome, email: p.email }]) || []
       );
 
-      // Combine data manually
+      // Combine data manually with proper type assertions
       const configsWithDetails: CommissionConfigWithDetails[] = (configsData || []).map(config => ({
         ...config,
+        tipo_comissao: config.tipo_comissao as 'percentual' | 'fixo',
+        ativo: config.ativo || false,
+        categoria_servico: config.categoria_servico || undefined,
         profissional: profissionaisMap.get(config.profissional_id) || { nome: 'N/A', email: 'N/A' }
       }));
 
