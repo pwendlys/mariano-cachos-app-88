@@ -9,13 +9,13 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { useSupabaseCommissions } from '@/hooks/useSupabaseCommissions';
-import { useProfessionals } from '@/hooks/useProfessionals';
+import { useSupabaseProfessionals } from '@/hooks/useSupabaseProfessionals';
 import { format } from 'date-fns';
 import SelectDebugger from './SelectDebugger';
 
 const CommissionManagement = () => {
   const { commissions, loading, fetchCommissions, addCommission, updateCommission, deleteCommission } = useSupabaseCommissions();
-  const { professionals, getActiveProfessionals } = useProfessionals();
+  const { professionals, getActiveProfessionals } = useSupabaseProfessionals();
   const { toast } = useToast();
   
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
@@ -48,11 +48,13 @@ const CommissionManagement = () => {
       await addCommission({
         profissional_id: formData.profissional_id,
         tipo_origem: formData.tipo_origem,
+        origem_id: crypto.randomUUID(),
         valor_base: formData.valor_base,
         percentual_comissao: formData.percentual_comissao,
         valor_comissao: valorComissao,
         data_referencia: formData.data_referencia,
-        observacoes: formData.observacoes
+        observacoes: formData.observacoes,
+        status: 'calculada'
       });
       
       setIsAddDialogOpen(false);

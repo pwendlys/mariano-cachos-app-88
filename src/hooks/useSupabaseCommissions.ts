@@ -6,7 +6,7 @@ import { useToast } from '@/hooks/use-toast';
 export interface Commission {
   id: string;
   profissional_id: string;
-  tipo_origem: 'agendamento' | 'venda';
+  tipo_origem: 'agendamento' | 'venda' | 'manual';
   origem_id: string;
   valor_base: number;
   percentual_comissao: number;
@@ -99,7 +99,7 @@ export const useSupabaseCommissions = () => {
       // Combine data manually with proper type assertions
       const commissionsWithDetails: CommissionWithDetails[] = (commissionsData || []).map(commission => ({
         ...commission,
-        tipo_origem: commission.tipo_origem as 'agendamento' | 'venda',
+        tipo_origem: commission.tipo_origem as 'agendamento' | 'venda' | 'manual',
         status: commission.status as 'calculada' | 'paga' | 'cancelada',
         profissional: profissionaisMap.get(commission.profissional_id) || { nome: 'N/A', email: 'N/A' }
       }));
@@ -156,6 +156,99 @@ export const useSupabaseCommissions = () => {
         description: "Não foi possível carregar as configurações de comissão",
         variant: "destructive",
       });
+    }
+  };
+
+  const addCommission = async (commissionData: Omit<Commission, 'id' | 'created_at' | 'updated_at'>) => {
+    try {
+      const { data, error } = await supabase
+        .from('comissoes')
+        .insert({
+          profissional_id: commissionData.profissional_id,
+          tipo_origem: commissionData.tipo_origem,
+          origem_id: commissionData.origem_id || crypto.randomUUID(),
+          valor_base: commissionData.valor_base,
+          percentual_comissao: commissionData.percentual_comissao,
+          valor_comissao: commissionData.valor_comissao,
+          data_referencia: commissionData.data_referencia,
+          status: commissionData.status || 'calculada',
+          observacoes: commissionData.observacoes
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      toast({
+        title: "Comissão criada!",
+        description: "A comissão foi adicionada com sucesso.",
+      });
+
+      await fetchCommissions();
+      return data;
+    } catch (error) {
+      console.error('Erro ao criar comissão:', error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível criar a comissão",
+        variant: "destructive",
+      });
+      throw error;
+    }
+  };
+
+  const updateCommission = async (id: string, updates: Partial<Commission>) => {
+    try {
+      const { data, error } = await supabase
+        .from('comissoes')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      toast({
+        title: "Comissão atualizada!",
+        description: "A comissão foi atualizada com sucesso.",
+      });
+
+      await fetchCommissions();
+      return data;
+    } catch (error) {
+      console.error('Erro ao atualizar comissão:', error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível atualizar a comissão",
+        variant: "destructive",
+      });
+      throw error;
+    }
+  };
+
+  const deleteCommission = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('comissoes')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Comissão removida",
+        description: "A comissão foi excluída do sistema.",
+      });
+
+      await fetchCommissions();
+    } catch (error) {
+      console.error('Erro ao deletar comissão:', error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível remover a comissão",
+        variant: "destructive",
+      });
+      throw error;
     }
   };
 
@@ -259,6 +352,9 @@ export const useSupabaseCommissions = () => {
     loading,
     fetchCommissions,
     fetchConfigs,
+    addCommission,
+    updateCommission,
+    deleteCommission,
     addConfig,
     updateConfig,
     updateCommissionStatus,
