@@ -13,6 +13,7 @@ interface Appointment {
   chave_pix: string;
   comprovante_pix: string;
   observacoes?: string;
+  profissional_id?: string;
   cliente: {
     nome: string;
     email: string;
@@ -21,6 +22,10 @@ interface Appointment {
   servico: {
     nome: string;
     categoria: string;
+  };
+  profissional?: {
+    nome: string;
+    email: string;
   };
 }
 
@@ -40,7 +45,8 @@ export const useAppointments = () => {
         .select(`
           *,
           cliente:clientes(nome, email, telefone),
-          servico:servicos(nome, categoria)
+          servico:servicos(nome, categoria),
+          profissional:profissionais(nome, email)
         `);
 
       // Aplicar filtro de data se fornecido
@@ -109,6 +115,31 @@ export const useAppointments = () => {
     }
   };
 
+  const handleProfessionalAssignment = async (appointmentId: string, professionalId: string) => {
+    try {
+      const { error } = await supabase
+        .from('agendamentos')
+        .update({ profissional_id: professionalId })
+        .eq('id', appointmentId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Profissional atribuído",
+        description: "O profissional foi atribuído ao agendamento com sucesso",
+      });
+      
+      fetchAppointments(selectedDate);
+    } catch (error) {
+      console.error('Erro ao atribuir profissional:', error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível atribuir o profissional",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleDateTimeUpdate = async (appointmentId: string, newDate: string, newTime: string) => {
     try {
       const { error } = await supabase
@@ -151,6 +182,7 @@ export const useAppointments = () => {
     handleDateChange,
     handleStatusFilter,
     handleStatusChange,
+    handleProfessionalAssignment,
     handleDateTimeUpdate
   };
 };

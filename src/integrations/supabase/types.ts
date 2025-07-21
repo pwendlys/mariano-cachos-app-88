@@ -49,6 +49,7 @@ export type Database = {
           horario: string
           id: string
           observacoes: string | null
+          profissional_id: string | null
           qr_code_data: string | null
           servico_id: string
           status: string
@@ -67,6 +68,7 @@ export type Database = {
           horario: string
           id?: string
           observacoes?: string | null
+          profissional_id?: string | null
           qr_code_data?: string | null
           servico_id: string
           status?: string
@@ -85,6 +87,7 @@ export type Database = {
           horario?: string
           id?: string
           observacoes?: string | null
+          profissional_id?: string | null
           qr_code_data?: string | null
           servico_id?: string
           status?: string
@@ -192,6 +195,84 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      comissoes: {
+        Row: {
+          created_at: string
+          data_referencia: string
+          id: string
+          observacoes: string | null
+          origem_id: string
+          percentual_comissao: number
+          profissional_id: string
+          status: string
+          tipo_origem: string
+          updated_at: string
+          valor_base: number
+          valor_comissao: number
+        }
+        Insert: {
+          created_at?: string
+          data_referencia: string
+          id?: string
+          observacoes?: string | null
+          origem_id: string
+          percentual_comissao: number
+          profissional_id: string
+          status?: string
+          tipo_origem: string
+          updated_at?: string
+          valor_base: number
+          valor_comissao: number
+        }
+        Update: {
+          created_at?: string
+          data_referencia?: string
+          id?: string
+          observacoes?: string | null
+          origem_id?: string
+          percentual_comissao?: number
+          profissional_id?: string
+          status?: string
+          tipo_origem?: string
+          updated_at?: string
+          valor_base?: number
+          valor_comissao?: number
+        }
+        Relationships: []
+      }
+      configuracoes_comissao: {
+        Row: {
+          ativo: boolean | null
+          categoria_servico: string | null
+          created_at: string
+          id: string
+          profissional_id: string
+          tipo_comissao: string
+          updated_at: string
+          valor_comissao: number
+        }
+        Insert: {
+          ativo?: boolean | null
+          categoria_servico?: string | null
+          created_at?: string
+          id?: string
+          profissional_id: string
+          tipo_comissao: string
+          updated_at?: string
+          valor_comissao: number
+        }
+        Update: {
+          ativo?: boolean | null
+          categoria_servico?: string | null
+          created_at?: string
+          id?: string
+          profissional_id?: string
+          tipo_comissao?: string
+          updated_at?: string
+          valor_comissao?: number
+        }
+        Relationships: []
       }
       cupons: {
         Row: {
@@ -608,6 +689,45 @@ export type Database = {
         }
         Relationships: []
       }
+      profissionais: {
+        Row: {
+          ativo: boolean | null
+          avatar: string | null
+          created_at: string
+          email: string
+          especialidades: string[] | null
+          id: string
+          nome: string
+          percentual_comissao_padrao: number | null
+          telefone: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean | null
+          avatar?: string | null
+          created_at?: string
+          email: string
+          especialidades?: string[] | null
+          id?: string
+          nome: string
+          percentual_comissao_padrao?: number | null
+          telefone: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean | null
+          avatar?: string | null
+          created_at?: string
+          email?: string
+          especialidades?: string[] | null
+          id?: string
+          nome?: string
+          percentual_comissao_padrao?: number | null
+          telefone?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       saldos_clientes: {
         Row: {
           cliente_id: string | null
@@ -729,6 +849,7 @@ export type Database = {
           data_venda: string
           desconto: number | null
           id: string
+          profissional_id: string | null
           status: string
           total: number
           total_final: number
@@ -740,6 +861,7 @@ export type Database = {
           data_venda?: string
           desconto?: number | null
           id?: string
+          profissional_id?: string | null
           status?: string
           total: number
           total_final: number
@@ -751,6 +873,7 @@ export type Database = {
           data_venda?: string
           desconto?: number | null
           id?: string
+          profissional_id?: string | null
           status?: string
           total?: number
           total_final?: number

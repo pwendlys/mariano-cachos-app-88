@@ -1,207 +1,47 @@
 
-import React, { useState, useMemo } from 'react';
-import { Plus, DollarSign, TrendingUp, TrendingDown, Calendar, Edit, Trash2, CalendarIcon, Package, Scissors } from 'lucide-react';
+import React, { useState } from 'react';
+import { Plus, TrendingUp, TrendingDown, DollarSign, Eye, Filter } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Label } from '@/components/ui/label';
-import { Calendar as CalendarComponent } from '@/components/ui/calendar';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { useSharedServices } from '@/hooks/useSharedServices';
-import { useSharedProducts } from '@/hooks/useSharedProducts';
-import { useProfessionals } from '@/hooks/useProfessionals';
-import { useDebtCollection } from '@/hooks/useDebtCollection';
-import { useSupabaseCashFlow, type CashFlowEntry } from '@/hooks/useSupabaseCashFlow';
-import CashFlowFilters from './CashFlowFilters';
+import { useSupabaseCashFlow, CashFlowFilters } from '@/hooks/useSupabaseCashFlow';
+import CashFlowFilters from '@/components/CashFlowFilters';
 import { format } from 'date-fns';
-import { cn } from '@/lib/utils';
 
-const CashFlowManagement: React.FC = () => {
+const CashFlowManagement = () => {
+  const { entries, loading, fetchEntries, addEntry } = useSupabaseCashFlow();
   const { toast } = useToast();
-  const { services } = useSharedServices();
-  const { products } = useSharedProducts();
-  const { professionals, getProfessionalById } = useProfessionals();
-  const { dividas, getTotals } = useDebtCollection();
-  const { entries, loading, fetchEntries, addEntry, updateEntry, deleteEntry } = useSupabaseCashFlow();
   
-  // Estados para filtros
-  const [startDate, setStartDate] = useState<Date | undefined>();
-  const [endDate, setEndDate] = useState<Date | undefined>();
-  const [filterType, setFilterType] = useState<'all' | 'entrada' | 'saida'>('all');
-
-  const [editingEntry, setEditingEntry] = useState<CashFlowEntry | null>(null);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [selectedEntry, setSelectedEntry] = useState<any>(null);
+  const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false);
+  const [filters, setFilters] = useState<CashFlowFilters>({
+    filterType: 'all'
+  });
+  
   const [formData, setFormData] = useState({
-    tipo: 'entrada',
+    tipo: 'entrada' as 'entrada' | 'saida',
     categoria: '',
     descricao: '',
-    valor: '',
+    valor: 0,
+    data: new Date().toISOString().split('T')[0],
     cliente_nome: '',
     profissional_nome: '',
-    data: new Date().toISOString().split('T')[0]
+    observacoes: ''
   });
 
-  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
-  const [importType, setImportType] = useState<'manual' | 'service' | 'product'>('manual');
-  const [selectedServiceId, setSelectedServiceId] = useState<string>('');
-  const [selectedProductId, setSelectedProductId] = useState<string>('');
-
-  const incomeCategories = ['Serviços', 'Produtos', 'Cobrança', 'Outros'];
-  const expenseCategories = ['Alimentação', 'Utilidades', 'Produtos', 'Transporte', 'Manutenção', 'Comissões', 'Outros'];
-
-  // Filtrar entradas com base nos filtros selecionados
-  const filteredEntries = useMemo(() => {
-    return entries.filter(entry => {
-      // Filtro por tipo
-      if (filterType !== 'all' && entry.tipo !== filterType) {
-        return false;
-      }
-
-      // Filtro por data
-      const entryDate = new Date(entry.data);
-      if (startDate && entryDate < startDate) {
-        return false;
-      }
-      if (endDate && entryDate > endDate) {
-        return false;
-      }
-
-      return true;
-    });
-  }, [entries, filterType, startDate, endDate]);
-
-  // Aplicar filtros quando mudarem
-  React.useEffect(() => {
-    fetchEntries({ startDate, endDate, filterType });
-  }, [startDate, endDate, filterType]);
-
-  // Limpar filtros
-  const handleClearFilters = () => {
-    setStartDate(undefined);
-    setEndDate(undefined);
-    setFilterType('all');
+  const handleFilterChange = (newFilters: CashFlowFilters) => {
+    setFilters(newFilters);
+    fetchEntries(newFilters);
   };
 
-  const handleAdd = () => {
-    setEditingEntry(null);
-    setSelectedDate(new Date());
-    setImportType('manual');
-    setSelectedServiceId('');
-    setSelectedProductId('');
-    setFormData({
-      tipo: 'entrada',
-      categoria: '',
-      descricao: '',
-      valor: '',
-      cliente_nome: '',
-      profissional_nome: '',
-      data: new Date().toISOString().split('T')[0]
-    });
-    setIsDialogOpen(true);
-  };
-
-  const handleEdit = (entry: CashFlowEntry) => {
-    // Não permitir edição de lançamentos automáticos
-    if (entry.origem_tipo && entry.origem_tipo !== 'manual') {
-      toast({
-        title: "Lançamento automático",
-        description: "Este lançamento foi criado automaticamente e não pode ser editado.",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    setEditingEntry(entry);
-    setSelectedDate(new Date(entry.data));
-    setImportType('manual');
-    setFormData({
-      tipo: entry.tipo,
-      categoria: entry.categoria,
-      descricao: entry.descricao,
-      valor: entry.valor.toString(),
-      cliente_nome: entry.cliente_nome || '',
-      profissional_nome: entry.profissional_nome || '',
-      data: entry.data
-    });
-    setIsDialogOpen(true);
-  };
-
-  const handleImportTypeChange = (type: 'manual' | 'service' | 'product') => {
-    setImportType(type);
-    setSelectedServiceId('');
-    setSelectedProductId('');
-    
-    if (type === 'manual') {
-      setFormData(prev => ({
-        ...prev,
-        tipo: 'entrada',
-        categoria: '',
-        descricao: '',
-        valor: '',
-        cliente_nome: '',
-        profissional_nome: ''
-      }));
-    } else if (type === 'service') {
-      setFormData(prev => ({
-        ...prev,
-        tipo: 'entrada',
-        categoria: 'Serviços',
-        descricao: '',
-        valor: '',
-        cliente_nome: '',
-        profissional_nome: ''
-      }));
-    } else if (type === 'product') {
-      setFormData(prev => ({
-        ...prev,
-        tipo: 'entrada',
-        categoria: 'Produtos',
-        descricao: '',
-        valor: '',
-        cliente_nome: ''
-      }));
-    }
-  };
-
-  const handleServiceSelect = (serviceId: string) => {
-    setSelectedServiceId(serviceId);
-    const service = services.find(s => s.id === serviceId);
-    if (service) {
-      setFormData(prev => ({
-        ...prev,
-        descricao: service.name,
-        valor: service.price.toString()
-      }));
-    }
-  };
-
-  const handleProductSelect = (productId: string) => {
-    setSelectedProductId(productId);
-    const product = products.find(p => p.id === productId);
-    if (product) {
-      setFormData(prev => ({
-        ...prev,
-        descricao: product.name,
-        valor: product.price.toString()
-      }));
-    }
-  };
-
-  const handleDateSelect = (date: Date | undefined) => {
-    if (date) {
-      setSelectedDate(date);
-      setFormData(prev => ({
-        ...prev,
-        data: date.toISOString().split('T')[0]
-      }));
-    }
-  };
-
-  const handleSave = async () => {
-    if (!formData.categoria || !formData.descricao || !formData.valor) {
+  const handleAddEntry = async () => {
+    if (!formData.categoria || !formData.descricao || formData.valor <= 0) {
       toast({
         title: "Campos obrigatórios",
         description: "Por favor, preencha todos os campos obrigatórios.",
@@ -210,58 +50,78 @@ const CashFlowManagement: React.FC = () => {
       return;
     }
 
-    const entryData = {
-      data: formData.data,
-      tipo: formData.tipo as 'entrada' | 'saida',
-      categoria: formData.categoria,
-      descricao: formData.descricao,
-      valor: parseFloat(formData.valor),
-      cliente_nome: formData.cliente_nome || null,
-      profissional_nome: formData.profissional_nome || null,
-      origem_tipo: 'manual',
-      origem_id: null,
-      metadata: {}
-    };
-
-    if (editingEntry) {
-      const result = await updateEntry(editingEntry.id, entryData);
-      if (result) {
-        setIsDialogOpen(false);
-      }
-    } else {
-      const result = await addEntry(entryData);
-      if (result) {
-        setIsDialogOpen(false);
-      }
-    }
-  };
-
-  const handleDelete = async (entryId: string) => {
-    const entry = entries.find(e => e.id === entryId);
-    
-    // Não permitir exclusão de lançamentos automáticos
-    if (entry?.origem_tipo && entry.origem_tipo !== 'manual') {
-      toast({
-        title: "Lançamento automático",
-        description: "Este lançamento foi criado automaticamente e não pode ser excluído.",
-        variant: "destructive"
+    try {
+      await addEntry({
+        tipo: formData.tipo,
+        categoria: formData.categoria,
+        descricao: formData.descricao,
+        valor: formData.valor,
+        data: formData.data,
+        cliente_nome: formData.cliente_nome || null,
+        profissional_nome: formData.profissional_nome || null,
+        origem_tipo: 'manual',
+        origem_id: null,
+        metadata: formData.observacoes ? { observacoes: formData.observacoes } : {}
       });
-      return;
+      
+      setIsAddDialogOpen(false);
+      setFormData({
+        tipo: 'entrada',
+        categoria: '',
+        descricao: '',
+        valor: 0,
+        data: new Date().toISOString().split('T')[0],
+        cliente_nome: '',
+        profissional_nome: '',
+        observacoes: ''
+      });
+      
+      fetchEntries(filters);
+    } catch (error) {
+      // Error handled in hook
     }
-
-    await deleteEntry(entryId);
   };
 
-  // Calcular totais baseados nas entradas filtradas
-  const filteredIncome = filteredEntries.filter(e => e.tipo === 'entrada').reduce((sum, e) => sum + Number(e.valor), 0);
-  const filteredExpenses = filteredEntries.filter(e => e.tipo === 'saida').reduce((sum, e) => sum + Number(e.valor), 0);
-  const filteredBalance = filteredIncome - filteredExpenses;
+  const showDetails = (entry: any) => {
+    setSelectedEntry(entry);
+    setIsDetailsDialogOpen(true);
+  };
 
-  // Manter os totais do dia de hoje para os cards originais
-  const todayEntries = entries.filter(entry => entry.data === new Date().toISOString().split('T')[0]);
-  const todayIncome = todayEntries.filter(e => e.tipo === 'entrada').reduce((sum, e) => sum + Number(e.valor), 0);
-  const todayExpenses = todayEntries.filter(e => e.tipo === 'saida').reduce((sum, e) => sum + Number(e.valor), 0);
-  const todayBalance = todayIncome - todayExpenses;
+  const getCategoryColor = (categoria: string) => {
+    const colors = {
+      'Serviços': 'bg-blue-500/20 text-blue-400 border-blue-500/30',
+      'Produtos': 'bg-purple-500/20 text-purple-400 border-purple-500/30',
+      'Comissões': 'bg-orange-500/20 text-orange-400 border-orange-500/30',
+      'Despesas': 'bg-red-500/20 text-red-400 border-red-500/30',
+      'Outros': 'bg-gray-500/20 text-gray-400 border-gray-500/30'
+    };
+    return colors[categoria as keyof typeof colors] || colors['Outros'];
+  };
+
+  const getOriginTypeLabel = (origem_tipo: string | null) => {
+    const labels = {
+      'agendamento': 'Agendamento',
+      'venda': 'Venda',
+      'comissao_agendamento': 'Comissão Serviço',
+      'comissao_venda': 'Comissão Produto',
+      'manual': 'Manual'
+    };
+    return labels[origem_tipo as keyof typeof labels] || 'Não informado';
+  };
+
+  const getTotalBalance = () => {
+    const entradas = entries.filter(e => e.tipo === 'entrada').reduce((sum, e) => sum + Number(e.valor), 0);
+    const saidas = entries.filter(e => e.tipo === 'saida').reduce((sum, e) => sum + Number(e.valor), 0);
+    return entradas - saidas;
+  };
+
+  const getTotalEntradas = () => {
+    return entries.filter(e => e.tipo === 'entrada').reduce((sum, e) => sum + Number(e.valor), 0);
+  };
+
+  const getTotalSaidas = () => {
+    return entries.filter(e => e.tipo === 'saida').reduce((sum, e) => sum + Number(e.valor), 0);
+  };
 
   if (loading) {
     return (
@@ -275,200 +135,118 @@ const CashFlowManagement: React.FC = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-xl font-semibold text-salon-gold">Fluxo de Caixa</h2>
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
           <DialogTrigger asChild>
-            <Button 
-              onClick={handleAdd}
-              className="bg-salon-gold hover:bg-salon-copper text-salon-dark font-medium h-12 px-6"
-            >
+            <Button className="bg-salon-gold hover:bg-salon-copper text-salon-dark font-medium">
               <Plus className="mr-2" size={16} />
               Novo Lançamento
             </Button>
           </DialogTrigger>
-          
-          <DialogContent className="glass-card border-salon-gold/30 text-white max-w-md max-h-[90vh] overflow-y-auto">
+          <DialogContent className="glass-card border-salon-gold/30 text-white max-w-md">
             <DialogHeader>
-              <DialogTitle className="text-salon-gold">
-                {editingEntry ? 'Editar Lançamento' : 'Novo Lançamento'}
-              </DialogTitle>
+              <DialogTitle className="text-salon-gold">Novo Lançamento</DialogTitle>
             </DialogHeader>
-            
             <div className="space-y-4">
-              <div>
-                <Label className="block text-sm font-medium mb-2">Data</Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className={cn(
-                        "w-full justify-start text-left font-normal glass-card border-salon-gold/30 bg-transparent text-white h-12",
-                        !selectedDate && "text-muted-foreground"
-                      )}
-                    >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {selectedDate ? format(selectedDate, "dd/MM/yyyy") : <span>Selecionar data</span>}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0 glass-card border-salon-gold/30" align="start">
-                    <CalendarComponent
-                      mode="single"
-                      selected={selectedDate}
-                      onSelect={handleDateSelect}
-                      initialFocus
-                      className="pointer-events-auto"
-                    />
-                  </PopoverContent>
-                </Popover>
-              </div>
-
-              <div>
-                <Label className="block text-sm font-medium mb-2">Origem dos Dados</Label>
-                <Select value={importType} onValueChange={handleImportTypeChange}>
-                  <SelectTrigger className="glass-card border-salon-gold/30 bg-transparent text-white h-12">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="glass-card border-salon-gold/30">
-                    <SelectItem value="manual">Manual</SelectItem>
-                    <SelectItem value="service">Importar Serviço</SelectItem>
-                    <SelectItem value="product">Importar Produto</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {importType === 'service' && (
+              <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label className="block text-sm font-medium mb-2">Selecionar Serviço</Label>
-                  <Select value={selectedServiceId} onValueChange={handleServiceSelect}>
-                    <SelectTrigger className="glass-card border-salon-gold/30 bg-transparent text-white h-12">
-                      <SelectValue placeholder="Escolha um serviço" />
+                  <label className="block text-sm font-medium mb-2">Tipo *</label>
+                  <Select value={formData.tipo} onValueChange={(value: 'entrada' | 'saida') => setFormData({...formData, tipo: value})}>
+                    <SelectTrigger className="glass-card border-salon-gold/30 bg-transparent text-white">
+                      <SelectValue />
                     </SelectTrigger>
                     <SelectContent className="glass-card border-salon-gold/30">
-                      {services.map(service => (
-                        <SelectItem key={service.id} value={service.id}>
-                          <div className="flex items-center gap-2">
-                            <Scissors size={16} />
-                            <span>{service.name} - R$ {service.price.toFixed(2)}</span>
-                          </div>
-                        </SelectItem>
-                      ))}
+                      <SelectItem value="entrada">Entrada</SelectItem>
+                      <SelectItem value="saida">Saída</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
-              )}
-
-              {importType === 'product' && (
                 <div>
-                  <Label className="block text-sm font-medium mb-2">Selecionar Produto</Label>
-                  <Select value={selectedProductId} onValueChange={handleProductSelect}>
-                    <SelectTrigger className="glass-card border-salon-gold/30 bg-transparent text-white h-12">
-                      <SelectValue placeholder="Escolha um produto" />
-                    </SelectTrigger>
-                    <SelectContent className="glass-card border-salon-gold/30">
-                      {products.map(product => (
-                        <SelectItem key={product.id} value={product.id}>
-                          <div className="flex items-center gap-2">
-                            <Package size={16} />
-                            <span>{product.name} - R$ {product.price.toFixed(2)}</span>
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <label className="block text-sm font-medium mb-2">Data *</label>
+                  <Input
+                    type="date"
+                    value={formData.data}
+                    onChange={(e) => setFormData({...formData, data: e.target.value})}
+                    className="glass-card border-salon-gold/30 bg-transparent text-white"
+                  />
                 </div>
-              )}
-
-              <div>
-                <Label className="block text-sm font-medium mb-2">Tipo *</Label>
-                <Select 
-                  value={formData.tipo} 
-                  onValueChange={(value) => setFormData({...formData, tipo: value, categoria: importType === 'service' ? 'Serviços' : importType === 'product' ? 'Produtos' : ''})}
-                  disabled={importType !== 'manual'}
-                >
-                  <SelectTrigger className="glass-card border-salon-gold/30 bg-transparent text-white h-12">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="glass-card border-salon-gold/30">
-                    <SelectItem value="entrada">Receita</SelectItem>
-                    <SelectItem value="saida">Despesa</SelectItem>
-                  </SelectContent>
-                </Select>
               </div>
-
+              
               <div>
-                <Label className="block text-sm font-medium mb-2">Categoria *</Label>
-                <Select 
-                  value={formData.categoria} 
-                  onValueChange={(value) => setFormData({...formData, categoria: value})}
-                  disabled={importType !== 'manual'}
-                >
-                  <SelectTrigger className="glass-card border-salon-gold/30 bg-transparent text-white h-12">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="glass-card border-salon-gold/30">
-                    {(formData.tipo === 'entrada' ? incomeCategories : expenseCategories).map(cat => (
-                      <SelectItem key={cat} value={cat}>{cat}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <label className="block text-sm font-medium mb-2">Categoria *</label>
+                <Input
+                  value={formData.categoria}
+                  onChange={(e) => setFormData({...formData, categoria: e.target.value})}
+                  placeholder="Ex: Despesas, Outros"
+                  className="glass-card border-salon-gold/30 bg-transparent text-white"
+                />
               </div>
-
+              
               <div>
-                <Label className="block text-sm font-medium mb-2">Descrição *</Label>
+                <label className="block text-sm font-medium mb-2">Descrição *</label>
                 <Input
                   value={formData.descricao}
                   onChange={(e) => setFormData({...formData, descricao: e.target.value})}
-                  placeholder="Ex: Corte + Finalização"
-                  className="glass-card border-salon-gold/30 bg-transparent text-white h-12"
+                  placeholder="Descrição do lançamento"
+                  className="glass-card border-salon-gold/30 bg-transparent text-white"
                 />
               </div>
-
+              
               <div>
-                <Label className="block text-sm font-medium mb-2">Valor (R$) *</Label>
+                <label className="block text-sm font-medium mb-2">Valor *</label>
                 <Input
                   type="number"
                   step="0.01"
+                  min="0"
                   value={formData.valor}
-                  onChange={(e) => setFormData({...formData, valor: e.target.value})}
+                  onChange={(e) => setFormData({...formData, valor: parseFloat(e.target.value) || 0})}
                   placeholder="0.00"
-                  className="glass-card border-salon-gold/30 bg-transparent text-white h-12"
+                  className="glass-card border-salon-gold/30 bg-transparent text-white"
                 />
               </div>
-
-              {formData.tipo === 'entrada' && (
-                <>
-                  <div>
-                    <Label className="block text-sm font-medium mb-2">Cliente</Label>
-                    <Input
-                      value={formData.cliente_nome}
-                      onChange={(e) => setFormData({...formData, cliente_nome: e.target.value})}
-                      placeholder="Nome do cliente"
-                      className="glass-card border-salon-gold/30 bg-transparent text-white h-12"
-                    />
-                  </div>
-
-                  <div>
-                    <Label className="block text-sm font-medium mb-2">Profissional</Label>
-                    <Input
-                      value={formData.profissional_nome}
-                      onChange={(e) => setFormData({...formData, profissional_nome: e.target.value})}
-                      placeholder="Nome do profissional"
-                      className="glass-card border-salon-gold/30 bg-transparent text-white h-12"
-                    />
-                  </div>
-                </>
-              )}
               
-              <div className="flex space-x-3 pt-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium mb-2">Cliente</label>
+                  <Input
+                    value={formData.cliente_nome}
+                    onChange={(e) => setFormData({...formData, cliente_nome: e.target.value})}
+                    placeholder="Nome do cliente"
+                    className="glass-card border-salon-gold/30 bg-transparent text-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-2">Profissional</label>
+                  <Input
+                    value={formData.profissional_nome}
+                    onChange={(e) => setFormData({...formData, profissional_nome: e.target.value})}
+                    placeholder="Nome do profissional"
+                    className="glass-card border-salon-gold/30 bg-transparent text-white"
+                  />
+                </div>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium mb-2">Observações</label>
+                <Textarea
+                  value={formData.observacoes}
+                  onChange={(e) => setFormData({...formData, observacoes: e.target.value})}
+                  placeholder="Observações adicionais"
+                  className="glass-card border-salon-gold/30 bg-transparent text-white"
+                  rows={3}
+                />
+              </div>
+              
+              <div className="flex space-x-3">
                 <Button 
-                  onClick={handleSave}
-                  className="flex-1 bg-salon-gold hover:bg-salon-copper text-salon-dark font-medium h-12"
+                  onClick={handleAddEntry}
+                  className="flex-1 bg-salon-gold hover:bg-salon-copper text-salon-dark font-medium"
                 >
-                  {editingEntry ? 'Atualizar' : 'Adicionar'}
+                  Adicionar Lançamento
                 </Button>
                 <Button 
                   variant="outline"
-                  onClick={() => setIsDialogOpen(false)}
-                  className="border-salon-gold/30 text-salon-gold hover:bg-salon-gold/10 h-12"
+                  onClick={() => setIsAddDialogOpen(false)}
+                  className="border-salon-gold/30 text-salon-gold hover:bg-salon-gold/10"
                 >
                   Cancelar
                 </Button>
@@ -478,217 +256,200 @@ const CashFlowManagement: React.FC = () => {
         </Dialog>
       </div>
 
-      {/* Filtros */}
-      <CashFlowFilters
-        startDate={startDate}
-        endDate={endDate}
-        onStartDateChange={setStartDate}
-        onEndDateChange={setEndDate}
-        filterType={filterType}
-        onFilterTypeChange={setFilterType}
-        onClearFilters={handleClearFilters}
-      />
-
-      {/* Resumo do Dia */}
+      {/* Statistics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card className="glass-card border-green-500/20">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-green-400 flex items-center gap-2 text-sm">
-              <TrendingUp size={16} />
-              Receitas Hoje
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-white">
-              R$ {todayIncome.toFixed(2)}
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-green-400">Total Entradas</p>
+                <p className="text-2xl font-bold text-green-400">
+                  R$ {getTotalEntradas().toFixed(2)}
+                </p>
+              </div>
+              <TrendingUp className="text-green-400" size={24} />
             </div>
           </CardContent>
         </Card>
 
         <Card className="glass-card border-red-500/20">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-red-400 flex items-center gap-2 text-sm">
-              <TrendingDown size={16} />
-              Despesas Hoje
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-white">
-              R$ {todayExpenses.toFixed(2)}
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-red-400">Total Saídas</p>
+                <p className="text-2xl font-bold text-red-400">
+                  R$ {getTotalSaidas().toFixed(2)}
+                </p>
+              </div>
+              <TrendingDown className="text-red-400" size={24} />
             </div>
           </CardContent>
         </Card>
 
-        <Card className={`glass-card ${todayBalance >= 0 ? 'border-salon-gold/20' : 'border-red-500/20'}`}>
-          <CardHeader className="pb-3">
-            <CardTitle className={`flex items-center gap-2 text-sm ${todayBalance >= 0 ? 'text-salon-gold' : 'text-red-400'}`}>
-              <DollarSign size={16} />
-              Saldo Hoje
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className={`text-2xl font-bold ${todayBalance >= 0 ? 'text-salon-gold' : 'text-red-400'}`}>
-              R$ {todayBalance.toFixed(2)}
+        <Card className={`glass-card ${getTotalBalance() >= 0 ? 'border-salon-gold/20' : 'border-red-500/20'}`}>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-salon-copper">Saldo Total</p>
+                <p className={`text-2xl font-bold ${getTotalBalance() >= 0 ? 'text-salon-gold' : 'text-red-400'}`}>
+                  R$ {getTotalBalance().toFixed(2)}
+                </p>
+              </div>
+              <DollarSign className={getTotalBalance() >= 0 ? 'text-salon-gold' : 'text-red-400'} size={24} />
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Resumo de Cobranças */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card className="glass-card border-orange-500/20">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-orange-400 flex items-center gap-2 text-sm">
-              <DollarSign size={16} />
-              Em Aberto
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-white">
-              R$ {getTotals.totalEmAberto.toFixed(2)}
-            </div>
-          </CardContent>
-        </Card>
+      {/* Filters */}
+      <CashFlowFilters
+        startDate={filters.startDate}
+        endDate={filters.endDate}
+        onStartDateChange={(date) => handleFilterChange({...filters, startDate: date})}
+        onEndDateChange={(date) => handleFilterChange({...filters, endDate: date})}
+        filterType={filters.filterType}
+        onFilterTypeChange={(type) => handleFilterChange({...filters, filterType: type})}
+        onClearFilters={() => handleFilterChange({ filterType: 'all' })}
+      />
 
-        <Card className="glass-card border-green-500/20">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-green-400 flex items-center gap-2 text-sm">
-              <DollarSign size={16} />
-              Recebido
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-white">
-              R$ {getTotals.totalRecebido.toFixed(2)}
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="glass-card border-yellow-500/20">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-yellow-400 flex items-center gap-2 text-sm">
-              <DollarSign size={16} />
-              Parcelado
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-white">
-              R$ {getTotals.totalParcelado.toFixed(2)}
-            </div>
-          </CardContent>
-        </Card>
+      {/* Entries List */}
+      <div className="space-y-4">
+        {entries.length === 0 ? (
+          <Card className="glass-card border-salon-gold/20">
+            <CardContent className="p-8 text-center">
+              <DollarSign className="mx-auto mb-4 text-salon-gold opacity-50" size={48} />
+              <p className="text-salon-copper text-lg">Nenhum lançamento encontrado</p>
+              <p className="text-sm text-muted-foreground">
+                Os lançamentos aparecerão aqui automaticamente conforme as vendas e serviços forem realizados.
+              </p>
+            </CardContent>
+          </Card>
+        ) : (
+          entries.map((entry) => (
+            <Card key={entry.id} className="glass-card border-salon-gold/20">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex-1">
+                    <div className="flex items-center space-x-3 mb-2">
+                      <div className={`p-2 rounded-full ${entry.tipo === 'entrada' ? 'bg-green-500/20' : 'bg-red-500/20'}`}>
+                        {entry.tipo === 'entrada' ? 
+                          <TrendingUp className="text-green-400" size={16} /> : 
+                          <TrendingDown className="text-red-400" size={16} />
+                        }
+                      </div>
+                      <div>
+                        <h3 className="font-medium text-white">{entry.descricao}</h3>
+                        <p className="text-sm text-salon-copper">
+                          {format(new Date(entry.data), 'dd/MM/yyyy')} • {getOriginTypeLabel(entry.origem_tipo)}
+                        </p>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center space-x-3">
+                      <Badge className={getCategoryColor(entry.categoria)}>
+                        {entry.categoria}
+                      </Badge>
+                      <span className={`text-lg font-semibold ${
+                        entry.tipo === 'entrada' ? 'text-green-400' : 'text-red-400'
+                      }`}>
+                        {entry.tipo === 'entrada' ? '+' : '-'}R$ {Number(entry.valor).toFixed(2)}
+                      </span>
+                    </div>
+                    
+                    {(entry.cliente_nome || entry.profissional_nome) && (
+                      <div className="mt-2 flex items-center space-x-4 text-sm text-salon-copper">
+                        {entry.cliente_nome && <span>Cliente: {entry.cliente_nome}</span>}
+                        {entry.profissional_nome && <span>Profissional: {entry.profissional_nome}</span>}
+                      </div>
+                    )}
+                  </div>
+                  
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => showDetails(entry)}
+                    className="border-salon-gold/30 text-salon-gold hover:bg-salon-gold/10"
+                  >
+                    <Eye size={16} />
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          ))
+        )}
       </div>
 
-      {/* Resumo dos Filtros */}
-      {(startDate || endDate || filterType !== 'all') && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Card className="glass-card border-green-500/20">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-green-400 flex items-center gap-2 text-sm">
-                <TrendingUp size={16} />
-                Receitas (Filtradas)
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-white">
-                R$ {filteredIncome.toFixed(2)}
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="glass-card border-red-500/20">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-red-400 flex items-center gap-2 text-sm">
-                <TrendingDown size={16} />
-                Despesas (Filtradas)
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-white">
-                R$ {filteredExpenses.toFixed(2)}
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className={`glass-card ${filteredBalance >= 0 ? 'border-salon-gold/20' : 'border-red-500/20'}`}>
-            <CardHeader className="pb-3">
-              <CardTitle className={`flex items-center gap-2 text-sm ${filteredBalance >= 0 ? 'text-salon-gold' : 'text-red-400'}`}>
-                <DollarSign size={16} />
-                Saldo (Filtrado)
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className={`text-2xl font-bold ${filteredBalance >= 0 ? 'text-salon-gold' : 'text-red-400'}`}>
-                R$ {filteredBalance.toFixed(2)}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      )}
-
-      {/* Lista de Lançamentos */}
-      <Card className="glass-card border-salon-gold/20">
-        <CardHeader>
-          <CardTitle className="text-salon-gold flex items-center gap-2">
-            <Calendar size={20} />
-            {(startDate || endDate || filterType !== 'all') ? 'Lançamentos Filtrados' : 'Lançamentos Recentes'}
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          {filteredEntries.length === 0 ? (
-            <p className="text-muted-foreground text-center py-8">
-              Nenhum lançamento encontrado com os filtros aplicados
-            </p>
-          ) : (
-            filteredEntries.map((entry) => (
-              <div key={entry.id} className="flex items-center justify-between p-4 glass-card rounded-lg">
-                <div className="flex items-center space-x-4">
-                  <div className={`w-2 h-12 rounded-full ${entry.tipo === 'entrada' ? 'bg-green-500' : 'bg-red-500'}`} />
-                  <div>
-                    <p className="text-white font-medium">{entry.descricao}</p>
-                    <p className="text-sm text-muted-foreground">{entry.categoria}</p>
-                    <p className="text-xs text-salon-copper">{format(new Date(entry.data), "dd/MM/yyyy")}</p>
-                    {entry.cliente_nome && (
-                      <p className="text-xs text-salon-copper">Cliente: {entry.cliente_nome}</p>
-                    )}
-                    {entry.profissional_nome && (
-                      <p className="text-xs text-salon-gold">Por: {entry.profissional_nome}</p>
-                    )}
-                    {entry.origem_tipo && entry.origem_tipo !== 'manual' && (
-                      <p className="text-xs text-blue-400">Automático ({entry.origem_tipo})</p>
-                    )}
-                  </div>
+      {/* Details Dialog */}
+      <Dialog open={isDetailsDialogOpen} onOpenChange={setIsDetailsDialogOpen}>
+        <DialogContent className="glass-card border-salon-gold/30 text-white max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-salon-gold">Detalhes do Lançamento</DialogTitle>
+          </DialogHeader>
+          {selectedEntry && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm text-salon-copper">Tipo</p>
+                  <p className="text-white capitalize">{selectedEntry.tipo}</p>
                 </div>
-                <div className="flex items-center space-x-2">
-                  <div className="text-right">
-                    <p className={`font-bold ${entry.tipo === 'entrada' ? 'text-green-400' : 'text-red-400'}`}>
-                      {entry.tipo === 'entrada' ? '+' : '-'} R$ {Number(entry.valor).toFixed(2)}
-                    </p>
-                  </div>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={() => handleEdit(entry)}
-                    className="border-salon-gold/30 text-salon-gold hover:bg-salon-gold/10 h-10 w-10"
-                    disabled={entry.origem_tipo !== 'manual' && entry.origem_tipo != null}
-                  >
-                    <Edit size={14} />
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={() => handleDelete(entry.id)}
-                    className="border-red-400/30 text-red-400 hover:bg-red-400/10 h-10 w-10"
-                    disabled={entry.origem_tipo !== 'manual' && entry.origem_tipo != null}
-                  >
-                    <Trash2 size={14} />
-                  </Button>
+                <div>
+                  <p className="text-sm text-salon-copper">Data</p>
+                  <p className="text-white">{format(new Date(selectedEntry.data), 'dd/MM/yyyy')}</p>
                 </div>
               </div>
-            ))
+              
+              <div>
+                <p className="text-sm text-salon-copper">Categoria</p>
+                <p className="text-white">{selectedEntry.categoria}</p>
+              </div>
+              
+              <div>
+                <p className="text-sm text-salon-copper">Descrição</p>
+                <p className="text-white">{selectedEntry.descricao}</p>
+              </div>
+              
+              <div>
+                <p className="text-sm text-salon-copper">Valor</p>
+                <p className={`text-lg font-semibold ${
+                  selectedEntry.tipo === 'entrada' ? 'text-green-400' : 'text-red-400'
+                }`}>
+                  R$ {Number(selectedEntry.valor).toFixed(2)}
+                </p>
+              </div>
+              
+              <div>
+                <p className="text-sm text-salon-copper">Origem</p>
+                <p className="text-white">{getOriginTypeLabel(selectedEntry.origem_tipo)}</p>
+              </div>
+              
+              {selectedEntry.cliente_nome && (
+                <div>
+                  <p className="text-sm text-salon-copper">Cliente</p>
+                  <p className="text-white">{selectedEntry.cliente_nome}</p>
+                </div>
+              )}
+              
+              {selectedEntry.profissional_nome && (
+                <div>
+                  <p className="text-sm text-salon-copper">Profissional</p>
+                  <p className="text-white">{selectedEntry.profissional_nome}</p>
+                </div>
+              )}
+              
+              {selectedEntry.metadata && Object.keys(selectedEntry.metadata).length > 0 && (
+                <div>
+                  <p className="text-sm text-salon-copper">Informações Adicionais</p>
+                  <div className="bg-salon-gold/10 p-3 rounded text-sm">
+                    <pre className="text-white whitespace-pre-wrap">
+                      {JSON.stringify(selectedEntry.metadata, null, 2)}
+                    </pre>
+                  </div>
+                </div>
+              )}
+            </div>
           )}
-        </CardContent>
-      </Card>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

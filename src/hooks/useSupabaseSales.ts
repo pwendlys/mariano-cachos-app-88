@@ -6,6 +6,7 @@ import { CartItem } from '@/hooks/useSharedCart';
 
 export interface SaleData {
   cliente_id?: string;
+  profissional_id?: string;
   total: number;
   desconto?: number;
   total_final: number;
@@ -28,11 +29,12 @@ export const useSupabaseSales = () => {
     cartItems: CartItem[], 
     paymentMethod?: string, 
     discount: number = 0,
-    couponId?: string
+    couponId?: string,
+    professionalId?: string
   ) => {
     try {
       setLoading(true);
-      console.log('Iniciando criação de venda:', { cartItems, paymentMethod, discount, couponId });
+      console.log('Iniciando criação de venda:', { cartItems, paymentMethod, discount, couponId, professionalId });
       
       const total = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
       const finalTotal = total - discount;
@@ -46,6 +48,7 @@ export const useSupabaseSales = () => {
           total_final: finalTotal,
           forma_pagamento: paymentMethod,
           cupom_id: couponId,
+          profissional_id: professionalId,
           status: 'pendente'
         })
         .select()
@@ -164,7 +167,7 @@ export const useSupabaseSales = () => {
 
       toast({
         title: "Compra finalizada! 🎉",
-        description: `Compra de R$ ${finalTotal.toFixed(2)} realizada com sucesso. Estoque atualizado automaticamente.`,
+        description: `Compra de R$ ${finalTotal.toFixed(2)} realizada com sucesso. ${professionalId ? 'Comissão calculada automaticamente.' : ''}`,
       });
 
       return sale;
