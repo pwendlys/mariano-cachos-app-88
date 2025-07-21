@@ -44,14 +44,29 @@ export const useProfessionals = () => {
   }, [professionals]);
 
   const addProfessional = (professional: Professional) => {
+    console.log('Adding professional:', professional);
+    if (!professional.id || professional.id === '') {
+      console.error('Professional ID cannot be empty');
+      return;
+    }
     setProfessionals(prev => [...prev, professional]);
   };
 
   const updateProfessional = (professionalId: string, updatedProfessional: Professional) => {
+    console.log('Updating professional:', professionalId, updatedProfessional);
+    if (!professionalId || professionalId === '') {
+      console.error('Professional ID cannot be empty');
+      return;
+    }
     setProfessionals(prev => prev.map(prof => prof.id === professionalId ? updatedProfessional : prof));
   };
 
   const deleteProfessional = (professionalId: string) => {
+    console.log('Deleting professional:', professionalId);
+    if (!professionalId || professionalId === '') {
+      console.error('Professional ID cannot be empty');
+      return;
+    }
     setProfessionals(prev => prev.filter(prof => prof.id !== professionalId));
   };
 
@@ -60,6 +75,10 @@ export const useProfessionals = () => {
   };
 
   const getProfessionalById = (professionalId: string) => {
+    if (!professionalId || professionalId === '') {
+      console.warn('getProfessionalById called with empty ID');
+      return undefined;
+    }
     return professionals.find(prof => prof.id === professionalId);
   };
 

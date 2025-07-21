@@ -28,6 +28,15 @@ const CashFlowFilters: React.FC<CashFlowFiltersProps> = ({
   onFilterTypeChange,
   onClearFilters
 }) => {
+  console.log('CashFlowFilters - filterType:', filterType);
+  
+  const handleFilterTypeChange = (value: string) => {
+    console.log('CashFlowFilters - changing filterType to:', value);
+    if (value === 'all' || value === 'entrada' || value === 'saida') {
+      onFilterTypeChange(value);
+    }
+  };
+
   return (
     <Card className="glass-card border-salon-gold/20">
       <CardContent className="p-4">
@@ -95,7 +104,7 @@ const CashFlowFilters: React.FC<CashFlowFiltersProps> = ({
           {/* Tipo */}
           <div className="flex items-center gap-2">
             <span className="text-white text-sm">Tipo:</span>
-            <Select value={filterType} onValueChange={onFilterTypeChange}>
+            <Select value={filterType} onValueChange={handleFilterTypeChange}>
               <SelectTrigger className="glass-card border-salon-gold/30 bg-transparent text-white h-10 w-36">
                 <SelectValue />
               </SelectTrigger>
