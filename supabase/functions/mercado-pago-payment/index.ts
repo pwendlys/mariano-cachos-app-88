@@ -37,9 +37,15 @@ Deno.serve(async (req) => {
       if (action === 'create_payment') {
         const { amount, description, customerEmail, customerName, customerPhone, metadata } = data as PaymentRequest
 
-        console.log('Creating Mercado Pago payment preference:', { amount, description, customerEmail })
+        console.log('Creating Mercado Pago payment preference:', { 
+          amount, 
+          description, 
+          customerEmail,
+          customerName,
+          customerPhone 
+        })
 
-        // Create payment preference
+        // Create payment preference with all required fields
         const preference = {
           items: [
             {
@@ -50,38 +56,56 @@ Deno.serve(async (req) => {
             }
           ],
           payer: {
-            email: customerEmail,
             name: customerName,
+            email: customerEmail,
             phone: {
-              number: customerPhone
+              area_code: customerPhone.replace(/\D/g, '').substring(0, 2),
+              number: customerPhone.replace(/\D/g, '').substring(2)
             }
           },
           payment_methods: {
             excluded_payment_types: [],
+            excluded_payment_methods: [],
             installments: 12
           },
-          notification_url: `${supabaseUrl}/functions/v1/mercado-pago-payment`,
+          back_urls: {
+            success: `${supabaseUrl.replace('https://', 'https://5010c013-bcd1-4c5e-b37c-bf5b28967d09.lovableproject.com')}/agendamento?payment=success`,
+            failure: `${supabaseUrl.replace('https://', 'https://5010c013-bcd1-4c5e-b37c-bf5b28967d09.lovableproject.com')}/agendamento?payment=failure`,
+            pending: `${supabaseUrl.replace('https://', 'https://5010c013-bcd1-4c5e-b37c-bf5b28967d09.lovableproject.com')}/agendamento?payment=pending`
+          },
+          notification_url: `${supabaseUrl}/functions/v1/mercado-pago-payment?action=webhook`,
           external_reference: JSON.stringify(metadata),
           auto_return: 'approved',
-          statement_descriptor: 'SALON_AGENDAMENTO'
+          statement_descriptor: 'SALON_AGENDAMENTO',
+          expires: true,
+          expiration_date_from: new Date().toISOString(),
+          expiration_date_to: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() // 24 hours
         }
+
+        console.log('Sending preference to Mercado Pago API:', JSON.stringify(preference, null, 2))
 
         const response = await fetch('https://api.mercadopago.com/checkout/preferences', {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${mercadoPagoAccessToken}`,
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            'X-Idempotency-Key': crypto.randomUUID()
           },
           body: JSON.stringify(preference)
         })
 
+        const responseText = await response.text()
+        console.log('Mercado Pago API response status:', response.status)
+        console.log('Mercado Pago API response body:', responseText)
+
         if (!response.ok) {
-          throw new Error(`Mercado Pago API error: ${response.status}`)
+          console.error(`Mercado Pago API error: ${response.status} - ${responseText}`)
+          throw new Error(`Mercado Pago API error: ${response.status} - ${responseText}`)
         }
 
-        const preferenceData = await response.json()
+        const preferenceData = JSON.parse(responseText)
 
-        console.log('Payment preference created:', preferenceData.id)
+        console.log('Payment preference created successfully:', preferenceData.id)
 
         return new Response(
           JSON.stringify({
