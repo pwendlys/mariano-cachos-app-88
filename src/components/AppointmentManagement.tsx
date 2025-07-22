@@ -7,7 +7,7 @@ import AppointmentCard from '@/components/AppointmentCard';
 import AppointmentDateFilter from '@/components/AppointmentDateFilter';
 import { useAppointments } from '@/hooks/useAppointments';
 
-const AppointmentManagement: React.FC = () => {
+export const AppointmentManagement: React.FC = () => {
   const { 
     appointments, 
     loading, 

@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
-import { Header } from '@/components/Header';
-import { BottomNavigation } from '@/components/BottomNavigation';
+import Header from '@/components/Header';
+import BottomNavigation from '@/components/BottomNavigation';
 import { AppointmentManagement } from '@/components/AppointmentManagement';
 import { ServiceManagement } from '@/components/ServiceManagement';
 import { ProductManagement } from '@/components/ProductManagement';
