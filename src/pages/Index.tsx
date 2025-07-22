@@ -1,214 +1,202 @@
 
-import React, { useState, useEffect } from 'react';
-import Header from '@/components/Header';
-import BottomNavigation from '@/components/BottomNavigation';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import React from 'react';
+import { Calendar, ShoppingBag, Star, Sparkles, Award, Users } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Scissors, Star, Users, Award, Calendar, ShoppingBag, ArrowRight } from 'lucide-react';
-import { Link } from 'react-router-dom';
-import { useReviews } from '@/hooks/useReviews';
+import { Card, CardContent } from '@/components/ui/card';
+import { useBannerSettings } from '@/hooks/useBannerSettings';
+import { useSharedServices } from '@/hooks/useSharedServices';
 
-interface PublicReview {
-  id: string;
-  nota: number;
-  comentario?: string;
-  created_at: string;
-  cliente: {
-    nome: string;
+const Index = () => {
+  const navigate = useNavigate();
+  const { bannerSettings } = useBannerSettings();
+  const { services } = useSharedServices();
+
+  const testimonials = [
+    {
+      name: 'Camila Santos',
+      text: 'Marcos transformou completamente meu cabelo! Agora ele tem vida própria.',
+      rating: 5,
+    },
+    {
+      name: 'Juliana Costa',
+      text: 'Melhor profissional que já conheci. Entende tudo de cabelo crespo!',
+      rating: 5,
+    },
+  ];
+
+  const formatDuration = (minutes: number) => {
+    const hours = Math.floor(minutes / 60);
+    const mins = minutes % 60;
+    if (hours > 0) {
+      return mins > 0 ? `${hours}h ${mins}min` : `${hours}h`;
+    }
+    return `${mins}min`;
   };
-}
 
-export default function Index() {
-  const [publicReviews, setPublicReviews] = useState<PublicReview[]>([]);
-  const [averageRating, setAverageRating] = useState(0);
-  const [totalClients, setTotalClients] = useState(0);
-  const { getPublicReviews, getAverageRating, getTotalClients } = useReviews();
-
-  useEffect(() => {
-    const loadProfileData = async () => {
-      const [reviews, average, total] = await Promise.all([
-        getPublicReviews(),
-        getAverageRating(),
-        getTotalClients()
-      ]);
-      
-      setPublicReviews(reviews);
-      setAverageRating(Math.round(average * 10) / 10);
-      setTotalClients(total);
-    };
-
-    loadProfileData();
-  }, []);
-
-  const renderStars = (rating: number) => {
-    return (
-      <div className="flex gap-1">
-        {[1, 2, 3, 4, 5].map((star) => (
-          <Star
-            key={star}
-            className={`h-4 w-4 ${
-              star <= rating
-                ? 'fill-yellow-400 text-yellow-400'
-                : 'text-gray-300'
-            }`}
-          />
-        ))}
-      </div>
-    );
+  const getServiceIcon = (serviceName: string) => {
+    if (serviceName.toLowerCase().includes('corte')) return '✂️';
+    if (serviceName.toLowerCase().includes('hidratação')) return '💧';
+    if (serviceName.toLowerCase().includes('coloração') || serviceName.toLowerCase().includes('cor')) return '🎨';
+    if (serviceName.toLowerCase().includes('finalização')) return '✨';
+    return '💅';
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-pink-50 to-purple-50">
-      <Header />
-      
-      {/* Hero Section */}
-      <section className="pt-20 pb-16 px-4">
-        <div className="max-w-4xl mx-auto text-center">
-          <div className="flex justify-center mb-6">
-            <div className="p-4 bg-white rounded-full shadow-lg">
-              <Scissors className="h-12 w-12 text-pink-500" />
+    <div className="px-4 space-y-6 animate-fade-in">
+      {/* Banner Principal Personalizável */}
+      {bannerSettings.isVisible && (
+        <div className="relative overflow-hidden rounded-3xl glass-card p-6 text-center">
+          {bannerSettings.image && (
+            <div className="absolute inset-0">
+              <img 
+                src={bannerSettings.image} 
+                alt="Banner Background" 
+                className="w-full h-full object-cover rounded-3xl opacity-30"
+              />
             </div>
-          </div>
-          
-          <h1 className="text-4xl md:text-6xl font-bold text-gray-900 mb-4">
-            Beleza & Bem-estar
-          </h1>
-          
-          <p className="text-lg md:text-xl text-gray-600 mb-8 max-w-2xl mx-auto">
-            Transforme seu visual com nossos serviços especializados. 
-            Agende seu horário e descubra uma nova versão de você!
-          </p>
-          
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link to="/supabase-scheduling">
-              <Button size="lg" className="bg-pink-500 hover:bg-pink-600 text-white px-8 py-3">
-                <Calendar className="mr-2 h-5 w-5" />
-                Agendar Horário
-              </Button>
-            </Link>
-            
-            <Link to="/supabase-store">
-              <Button variant="outline" size="lg" className="px-8 py-3">
-                <ShoppingBag className="mr-2 h-5 w-5" />
-                Ver Produtos
-              </Button>
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      {/* Stats Section */}
-      <section className="py-16 px-4">
-        <div className="max-w-6xl mx-auto">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <Card className="text-center">
-              <CardContent className="pt-6">
-                <Users className="h-12 w-12 text-pink-500 mx-auto mb-4" />
-                <div className="text-3xl font-bold text-gray-900 mb-2">{totalClients}</div>
-                <div className="text-gray-600">Clientes Felizes</div>
-              </CardContent>
-            </Card>
-            
-            <Card className="text-center">
-              <CardContent className="pt-6">
-                <Award className="h-12 w-12 text-pink-500 mx-auto mb-4" />
-                <div className="text-3xl font-bold text-gray-900 mb-2">5+</div>
-                <div className="text-gray-600">Anos de Experiência</div>
-              </CardContent>
-            </Card>
-            
-            <Card className="text-center">
-              <CardContent className="pt-6">
-                <Star className="h-12 w-12 text-pink-500 mx-auto mb-4" />
-                <div className="text-3xl font-bold text-gray-900 mb-2">{averageRating.toFixed(1)}</div>
-                <div className="text-gray-600">Avaliação Média</div>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-      </section>
-
-      {/* Reviews Section */}
-      {publicReviews.length > 0 && (
-        <section className="py-16 px-4 bg-white">
-          <div className="max-w-6xl mx-auto">
-            <div className="text-center mb-12">
-              <h2 className="text-3xl font-bold text-gray-900 mb-4">
-                O que nossos clientes dizem
-              </h2>
-              <p className="text-gray-600">
-                Depoimentos reais de quem confia no nosso trabalho
-              </p>
+          )}
+          <div className="absolute inset-0 gradient-gold opacity-10"></div>
+          <div className="relative z-10">
+            <div className="w-24 h-24 mx-auto mb-4 rounded-full gradient-gold p-1">
+              <div className="w-full h-full rounded-full bg-salon-dark flex items-center justify-center">
+                {bannerSettings.logo ? (
+                  <img 
+                    src={bannerSettings.logo} 
+                    alt="Logo" 
+                    className="w-20 h-20 object-contain rounded-full"
+                  />
+                ) : (
+                  <img 
+                    src="/lovable-uploads/6c513fb2-7005-451a-bfba-cb471f2086a3.png" 
+                    alt="Marcos Mariano Logo" 
+                    className="w-20 h-20 object-contain rounded-full"
+                  />
+                )}
+              </div>
             </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              {publicReviews.map((review) => (
-                <Card key={review.id} className="h-full">
-                  <CardContent className="pt-6">
-                    <div className="flex items-center justify-between mb-4">
-                      {renderStars(review.nota)}
-                      <Badge variant="outline">Verificado</Badge>
-                    </div>
-                    
-                    {review.comentario && (
-                      <p className="text-gray-600 mb-4 italic">
-                        "{review.comentario}"
-                      </p>
-                    )}
-                    
-                    <div className="text-sm text-gray-500">
-                      — {review.cliente.nome}
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* Services Preview */}
-      <section className="py-16 px-4">
-        <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-gray-900 mb-4">
-              Nossos Serviços
-            </h2>
-            <p className="text-gray-600">
-              Oferecemos uma gama completa de serviços de beleza
+            <h1 className="text-2xl font-bold text-gradient-gold mb-2 font-playfair">
+              {bannerSettings.title}
+            </h1>
+            <p className="text-salon-copper font-medium mb-4">
+              {bannerSettings.subtitle}
+            </p>
+            <p className="text-muted-foreground text-sm leading-relaxed">
+              "{bannerSettings.description}"
             </p>
           </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            {[
-              { name: 'Corte', icon: '✂️', description: 'Cortes modernos e clássicos' },
-              { name: 'Coloração', icon: '🎨', description: 'Cores vibrantes e naturais' },
-              { name: 'Tratamentos', icon: '💆‍♀️', description: 'Cuidados especiais' },
-              { name: 'Styling', icon: '💇‍♀️', description: 'Penteados para ocasiões especiais' }
-            ].map((service) => (
-              <Card key={service.name} className="text-center hover:shadow-lg transition-shadow">
-                <CardContent className="pt-6">
-                  <div className="text-4xl mb-4">{service.icon}</div>
-                  <h3 className="font-semibold text-lg mb-2">{service.name}</h3>
-                  <p className="text-sm text-gray-600">{service.description}</p>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-          
-          <div className="text-center">
-            <Link to="/supabase-scheduling">
-              <Button size="lg" className="bg-pink-500 hover:bg-pink-600 text-white">
-                Ver Todos os Serviços
-                <ArrowRight className="ml-2 h-5 w-5" />
-              </Button>
-            </Link>
-          </div>
         </div>
-      </section>
+      )}
 
-      <BottomNavigation />
+      {/* Quick Actions */}
+      <div className="grid grid-cols-2 gap-4">
+        <Button 
+          onClick={() => navigate('/agendamento')}
+          className="h-20 bg-gradient-to-r from-salon-gold to-salon-copper hover:from-salon-copper hover:to-salon-gold text-salon-dark font-semibold rounded-2xl flex flex-col space-y-1"
+        >
+          <Calendar size={24} />
+          <span>Agendar Horário</span>
+        </Button>
+        
+        <Button 
+          onClick={() => navigate('/loja')}
+          variant="outline"
+          className="h-20 border-salon-gold text-salon-gold hover:bg-salon-gold/10 rounded-2xl flex flex-col space-y-1"
+        >
+          <ShoppingBag size={24} />
+          <span>Nossos Produtos</span>
+        </Button>
+      </div>
+
+      {/* Serviços Especializados - Agora dinâmicos */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-xl font-bold text-gradient-gold font-playfair">
+            Serviços Especializados
+          </h2>
+          <Sparkles className="text-salon-gold" size={24} />
+        </div>
+        
+        <div className="grid grid-cols-1 gap-3">
+          {services.map((service) => (
+            <Card key={service.id} className="glass-card border-salon-gold/20 hover:border-salon-gold/40 transition-all duration-300">
+              <CardContent className="p-4 flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  {service.image ? (
+                    <img 
+                      src={service.image} 
+                      alt={service.name}
+                      className="w-12 h-12 object-cover rounded-lg"
+                    />
+                  ) : (
+                    <span className="text-2xl">{getServiceIcon(service.name)}</span>
+                  )}
+                  <div>
+                    <h3 className="font-semibold text-white">{service.name}</h3>
+                    <p className="text-sm text-muted-foreground">{formatDuration(service.duration)}</p>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <p className="text-salon-gold font-bold">R$ {service.price.toFixed(2)}</p>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </div>
+
+      {/* Depoimentos */}
+      <div className="space-y-4">
+        <h2 className="text-xl font-bold text-gradient-gold font-playfair flex items-center gap-2">
+          <Star className="text-salon-gold" size={24} />
+          O que dizem sobre nós
+        </h2>
+        
+        <div className="space-y-3">
+          {testimonials.map((testimonial, index) => (
+            <Card key={index} className="glass-card border-salon-purple/20">
+              <CardContent className="p-4">
+                <div className="flex items-center space-x-1 mb-2">
+                  {[...Array(testimonial.rating)].map((_, i) => (
+                    <Star key={i} size={16} className="text-salon-gold fill-current" />
+                  ))}
+                </div>
+                <p className="text-sm text-muted-foreground mb-2">"{testimonial.text}"</p>
+                <p className="text-salon-gold font-medium text-sm">- {testimonial.name}</p>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </div>
+
+      {/* Stats */}
+      <div className="grid grid-cols-3 gap-4">
+        <Card className="glass-card border-salon-gold/20 text-center">
+          <CardContent className="p-4">
+            <Users className="mx-auto text-salon-gold mb-2" size={24} />
+            <p className="text-2xl font-bold text-white">500+</p>
+            <p className="text-xs text-muted-foreground">Clientes Felizes</p>
+          </CardContent>
+        </Card>
+        
+        <Card className="glass-card border-salon-gold/20 text-center">
+          <CardContent className="p-4">
+            <Award className="mx-auto text-salon-gold mb-2" size={24} />
+            <p className="text-2xl font-bold text-white">5+</p>
+            <p className="text-xs text-muted-foreground">Anos de Experiência</p>
+          </CardContent>
+        </Card>
+        
+        <Card className="glass-card border-salon-gold/20 text-center">
+          <CardContent className="p-4">
+            <Star className="mx-auto text-salon-gold mb-2" size={24} />
+            <p className="text-2xl font-bold text-white">4.9</p>
+            <p className="text-xs text-muted-foreground">Avaliação Média</p>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
-}
+};
+
+export default Index;
