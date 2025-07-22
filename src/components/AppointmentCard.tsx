@@ -1,302 +1,236 @@
 
 import React, { useState } from 'react';
-import { Calendar, Clock, User, DollarSign, Eye, Edit, Save, X, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
+import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Calendar, Clock, User, Phone, MapPin, DollarSign, FileText, UserCheck } from 'lucide-react';
+import { StatusBadge } from './StatusBadge';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import StatusBadge from '@/components/StatusBadge';
-import { formatDate, getStatusBadge, getPaymentStatusBadge } from '@/lib/appointmentUtils';
-
-interface Appointment {
-  id: string;
-  data: string;
-  horario: string;
-  valor: number;
-  status: string;
-  status_pagamento: string;
-  chave_pix: string;
-  comprovante_pix: string;
-  observacoes?: string;
-  cliente: {
-    nome: string;
-    email: string;
-    telefone: string;
-  };
-  servico: {
-    nome: string;
-    categoria: string;
-  };
-}
+import { Label } from '@/components/ui/label';
+import { ReviewButton } from './ReviewButton';
 
 interface AppointmentCardProps {
-  appointment: Appointment;
+  appointment: {
+    id: string;
+    data: string;
+    horario: string;
+    valor: number;
+    status: string;
+    status_pagamento: string;
+    observacoes?: string;
+    profissional_id?: string;
+    cliente: {
+      nome: string;
+      email: string;
+      telefone: string;
+    };
+    servico: {
+      nome: string;
+      categoria: string;
+    };
+    profissional?: {
+      nome: string;
+      email: string;
+    };
+  };
+  professionals: Array<{ id: string; nome: string; email: string }>;
   onStatusChange: (appointmentId: string, newStatus: string) => void;
+  onProfessionalChange: (appointmentId: string, professionalId: string) => void;
   onDateTimeUpdate: (appointmentId: string, newDate: string, newTime: string) => void;
 }
 
-const AppointmentCard: React.FC<AppointmentCardProps> = ({ 
-  appointment, 
-  onStatusChange, 
-  onDateTimeUpdate 
+export const AppointmentCard: React.FC<AppointmentCardProps> = ({
+  appointment,
+  professionals,
+  onStatusChange,
+  onProfessionalChange,
+  onDateTimeUpdate
 }) => {
-  const [isEditing, setIsEditing] = useState(false);
-  const [editDate, setEditDate] = useState(appointment.data);
-  const [editTime, setEditTime] = useState(appointment.horario);
+  const [isEditingDateTime, setIsEditingDateTime] = useState(false);
+  const [newDate, setNewDate] = useState(appointment.data);
+  const [newTime, setNewTime] = useState(appointment.horario);
 
-  const handleSaveDateTime = () => {
-    if (editDate && editTime) {
-      onDateTimeUpdate(appointment.id, editDate, editTime);
-      setIsEditing(false);
-    }
+  const handleDateTimeSubmit = () => {
+    onDateTimeUpdate(appointment.id, newDate, newTime);
+    setIsEditingDateTime(false);
   };
 
-  const handleCancelEdit = () => {
-    setEditDate(appointment.data);
-    setEditTime(appointment.horario);
-    setIsEditing(false);
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency: 'BRL'
+    }).format(value / 100);
   };
 
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'confirmado':
-        return <CheckCircle size={16} className="text-green-500" />;
-      case 'rejeitado':
-        return <XCircle size={16} className="text-red-500" />;
-      case 'concluido':
-        return <CheckCircle size={16} className="text-blue-500" />;
-      default:
-        return <AlertCircle size={16} className="text-yellow-500" />;
-    }
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'confirmado':
-        return 'border-green-500/50 bg-green-500/10';
-      case 'rejeitado':
-        return 'border-red-500/50 bg-red-500/10';
-      case 'concluido':
-        return 'border-blue-500/50 bg-blue-500/10';
-      default:
-        return 'border-yellow-500/50 bg-yellow-500/10';
-    }
-  };
+  // Check if review is available (appointment is completed)
+  const canReview = appointment.status === 'concluido';
 
   return (
-    <Card className={`glass-card border-salon-gold/20 ${getStatusColor(appointment.status)}`}>
-      <CardHeader>
-        <div className="flex items-start justify-between">
-          <div className="flex-1">
-            <CardTitle className="text-salon-gold flex items-center gap-2">
-              <User size={18} />
-              {appointment.cliente.nome}
-              {getStatusIcon(appointment.status)}
-            </CardTitle>
-            <p className="text-sm text-salon-copper mt-1">
-              {appointment.cliente.email} • {appointment.cliente.telefone}
-            </p>
-          </div>
-          <div className="flex gap-2">
-            <StatusBadge status={appointment.status} getStatusBadge={getStatusBadge} />
-            <StatusBadge status={appointment.status_pagamento} getStatusBadge={getPaymentStatusBadge} />
-          </div>
-        </div>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="space-y-2">
-            {isEditing ? (
-              <div className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <Calendar size={16} className="text-salon-gold" />
-                  <Input
-                    type="date"
-                    value={editDate}
-                    onChange={(e) => setEditDate(e.target.value)}
-                    className="glass-card border-salon-gold/30 bg-transparent text-white text-sm h-8"
-                  />
-                </div>
-                <div className="flex items-center gap-2">
-                  <Clock size={16} className="text-salon-copper" />
-                  <Input
-                    type="time"
-                    value={editTime}
-                    onChange={(e) => setEditTime(e.target.value)}
-                    className="glass-card border-salon-gold/30 bg-transparent text-white text-sm h-8"
-                  />
-                </div>
-                <div className="flex gap-1">
-                  <Button
-                    onClick={handleSaveDateTime}
-                    size="sm"
-                    className="bg-green-600 hover:bg-green-700 text-white h-7 px-3 text-xs"
-                  >
-                    <Save size={12} />
-                  </Button>
-                  <Button
-                    onClick={handleCancelEdit}
-                    variant="outline"
-                    size="sm"
-                    className="border-red-400/30 text-red-400 hover:bg-red-400/10 h-7 px-3 text-xs"
-                  >
-                    <X size={12} />
-                  </Button>
-                </div>
-              </div>
-            ) : (
-              <div className="space-y-2">
-                <div className="flex items-center gap-2 text-white">
-                  <Calendar size={16} />
-                  <span className="font-medium">{formatDate(appointment.data)}</span>
-                  <Button
-                    onClick={() => setIsEditing(true)}
-                    variant="ghost"
-                    size="sm"
-                    className="h-6 w-6 p-0 text-salon-gold hover:bg-salon-gold/10 ml-2"
-                    title="Editar data e horário"
-                  >
-                    <Edit size={12} />
-                  </Button>
-                </div>
-                <div className="flex items-center gap-2 text-white">
-                  <Clock size={16} />
-                  <span className="font-medium">{appointment.horario}</span>
-                </div>
-              </div>
-            )}
+    <Card className="hover:shadow-md transition-shadow">
+      <CardContent className="p-6">
+        <div className="flex items-start justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <StatusBadge status={appointment.status} />
+            <Badge variant={appointment.status_pagamento === 'pago' ? 'default' : 'secondary'}>
+              {appointment.status_pagamento === 'pago' ? 'Pago' : 'Pendente'}
+            </Badge>
           </div>
           
-          <div className="space-y-2">
-            <div className="text-white">
-              <strong className="text-salon-gold">Serviço:</strong> {appointment.servico.nome}
+          <div className="flex gap-2">
+            {canReview && (
+              <ReviewButton
+                agendamentoId={appointment.id}
+                clienteId={appointment.cliente.email} // Using email as client identifier
+                serviceName={appointment.servico.nome}
+              />
+            )}
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+          <div className="space-y-3">
+            <div className="flex items-center gap-2 text-sm">
+              <User className="h-4 w-4 text-muted-foreground" />
+              <span className="font-medium">{appointment.cliente.nome}</span>
             </div>
-            <div className="text-white">
-              <strong className="text-salon-gold">Categoria:</strong> {appointment.servico.categoria}
+            
+            <div className="flex items-center gap-2 text-sm">
+              <Phone className="h-4 w-4 text-muted-foreground" />
+              <span>{appointment.cliente.telefone}</span>
             </div>
-            <div className="flex items-center gap-2 text-salon-gold">
-              <DollarSign size={16} />
-              <span className="font-bold text-lg">R$ {appointment.valor.toFixed(2)}</span>
+
+            <div className="flex items-center gap-2 text-sm">
+              <MapPin className="h-4 w-4 text-muted-foreground" />
+              <span>{appointment.servico.nome}</span>
+              <Badge variant="outline" className="text-xs">
+                {appointment.servico.categoria}
+              </Badge>
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            <div className="flex items-center gap-2 text-sm">
+              <Calendar className="h-4 w-4 text-muted-foreground" />
+              <span>
+                {format(new Date(appointment.data), 'dd/MM/yyyy', { locale: ptBR })}
+              </span>
+              <Dialog open={isEditingDateTime} onOpenChange={setIsEditingDateTime}>
+                <DialogTrigger asChild>
+                  <Button variant="ghost" size="sm" className="h-6 px-2 text-xs">
+                    Alterar
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-md">
+                  <DialogHeader>
+                    <DialogTitle>Alterar Data e Horário</DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="date">Data</Label>
+                      <Input
+                        id="date"
+                        type="date"
+                        value={newDate}
+                        onChange={(e) => setNewDate(e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="time">Horário</Label>
+                      <Input
+                        id="time"
+                        type="time"
+                        value={newTime}
+                        onChange={(e) => setNewTime(e.target.value)}
+                      />
+                    </div>
+                    <div className="flex gap-2 justify-end">
+                      <Button variant="outline" onClick={() => setIsEditingDateTime(false)}>
+                        Cancelar
+                      </Button>
+                      <Button onClick={handleDateTimeSubmit}>
+                        Salvar
+                      </Button>
+                    </div>
+                  </div>
+                </DialogContent>
+              </Dialog>
+            </div>
+            
+            <div className="flex items-center gap-2 text-sm">
+              <Clock className="h-4 w-4 text-muted-foreground" />
+              <span>{appointment.horario}</span>
+            </div>
+
+            <div className="flex items-center gap-2 text-sm">
+              <DollarSign className="h-4 w-4 text-muted-foreground" />
+              <span className="font-medium">{formatCurrency(appointment.valor)}</span>
             </div>
           </div>
         </div>
 
-        {appointment.chave_pix && (
-          <div className="border-t border-salon-gold/20 pt-4">
-            <h4 className="text-white font-medium mb-2 flex items-center gap-2">
-              <DollarSign size={16} className="text-salon-gold" />
-              Informações do Pagamento
-            </h4>
-            <div className="bg-salon-gold/10 p-3 rounded-lg space-y-1">
-              <p className="text-sm text-salon-copper">
-                <strong>Chave PIX:</strong> {appointment.chave_pix}
-              </p>
-              {appointment.comprovante_pix && (
-                <p className="text-sm text-green-400">
-                  <strong>✅ Comprovante:</strong> Enviado
-                </p>
-              )}
-            </div>
+        {appointment.profissional && (
+          <div className="flex items-center gap-2 text-sm mb-3">
+            <UserCheck className="h-4 w-4 text-muted-foreground" />
+            <span>Profissional: {appointment.profissional.nome}</span>
           </div>
         )}
 
         {appointment.observacoes && (
-          <div className="border-t border-salon-gold/20 pt-4">
-            <h4 className="text-white font-medium mb-2">Observações do Cliente</h4>
-            <div className="bg-salon-copper/10 p-3 rounded-lg">
-              <p className="text-sm text-salon-copper italic">"{appointment.observacoes}"</p>
-            </div>
+          <div className="flex items-start gap-2 text-sm mb-4">
+            <FileText className="h-4 w-4 text-muted-foreground mt-0.5" />
+            <span className="text-muted-foreground">{appointment.observacoes}</span>
           </div>
         )}
 
-        <div className="flex gap-2 pt-4 border-t border-salon-gold/20 flex-wrap">
-          <div className="flex gap-1 flex-wrap">
-            <Button
-              onClick={() => onStatusChange(appointment.id, 'pendente')}
-              variant={appointment.status === 'pendente' ? 'default' : 'outline'}
-              size="sm"
-              className={`text-xs ${
-                appointment.status === 'pendente' 
-                  ? 'bg-yellow-600 hover:bg-yellow-700 text-white' 
-                  : 'border-yellow-400/30 text-yellow-400 hover:bg-yellow-400/10'
-              }`}
-            >
-              <AlertCircle size={12} className="mr-1" />
-              Pendente
-            </Button>
-            <Button
-              onClick={() => onStatusChange(appointment.id, 'confirmado')}
-              variant={appointment.status === 'confirmado' ? 'default' : 'outline'}
-              size="sm"
-              className={`text-xs ${
-                appointment.status === 'confirmado' 
-                  ? 'bg-green-600 hover:bg-green-700 text-white' 
-                  : 'border-green-400/30 text-green-400 hover:bg-green-400/10'
-              }`}
-            >
-              <CheckCircle size={12} className="mr-1" />
-              Aprovar
-            </Button>
-            <Button
-              onClick={() => onStatusChange(appointment.id, 'concluido')}
-              variant={appointment.status === 'concluido' ? 'default' : 'outline'}
-              size="sm"
-              className={`text-xs ${
-                appointment.status === 'concluido' 
-                  ? 'bg-blue-600 hover:bg-blue-700 text-white' 
-                  : 'border-blue-400/30 text-blue-400 hover:bg-blue-400/10'
-              }`}
-            >
-              <CheckCircle size={12} className="mr-1" />
-              Concluído
-            </Button>
-            <Button
-              onClick={() => onStatusChange(appointment.id, 'rejeitado')}
-              variant={appointment.status === 'rejeitado' ? 'destructive' : 'outline'}
-              size="sm"
-              className={`text-xs ${
-                appointment.status === 'rejeitado' 
-                  ? 'bg-red-600 hover:bg-red-700 text-white' 
-                  : 'border-red-400/30 text-red-400 hover:bg-red-400/10'
-              }`}
-            >
-              <XCircle size={12} className="mr-1" />
-              Rejeitar
-            </Button>
-          </div>
-          
-          {appointment.comprovante_pix && (
-            <Dialog>
-              <DialogTrigger asChild>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="border-salon-gold/30 text-salon-gold hover:bg-salon-gold/10 text-xs"
-                  title="Ver comprovante"
-                >
-                  <Eye size={12} className="mr-1" />
-                  Comprovante
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Comprovante de Pagamento</DialogTitle>
-                </DialogHeader>
-                <div className="p-4">
-                  <p className="text-sm text-muted-foreground mb-4">
-                    Comprovante enviado pelo cliente
-                  </p>
-                  <div className="bg-muted p-4 rounded-lg">
-                    <p className="text-sm">Arquivo: {appointment.comprovante_pix}</p>
-                  </div>
-                </div>
-              </DialogContent>
-            </Dialog>
-          )}
+        <div className="flex flex-wrap gap-2 pt-4 border-t">
+          <Select
+            value={appointment.status}
+            onValueChange={(value) => onStatusChange(appointment.id, value)}
+          >
+            <SelectTrigger className="w-32">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="pendente">Pendente</SelectItem>
+              <SelectItem value="confirmado">Confirmado</SelectItem>
+              <SelectItem value="concluido">Concluído</SelectItem>
+              <SelectItem value="rejeitado">Rejeitado</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Select
+            value={appointment.profissional_id || ""}
+            onValueChange={(value) => onProfessionalChange(appointment.id, value)}
+          >
+            <SelectTrigger className="w-48">
+              <SelectValue placeholder="Atribuir profissional" />
+            </SelectTrigger>
+            <SelectContent>
+              {professionals.map((professional) => (
+                <SelectItem key={professional.id} value={professional.id}>
+                  {professional.nome}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
       </CardContent>
     </Card>
   );
 };
-
-export default AppointmentCard;

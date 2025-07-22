@@ -1,108 +1,91 @@
 
 import React, { useState } from 'react';
+import { Header } from '@/components/Header';
+import { BottomNavigation } from '@/components/BottomNavigation';
+import { AppointmentManagement } from '@/components/AppointmentManagement';
+import { ServiceManagement } from '@/components/ServiceManagement';
+import { ProductManagement } from '@/components/ProductManagement';
+import { ProfessionalManagement } from '@/components/ProfessionalManagement';
+import { CustomerProfileManagement } from '@/components/CustomerProfileManagement';
+import { CashFlowManagement } from '@/components/CashFlowManagement';
+import { CommissionManagement } from '@/components/CommissionManagement';
+import { DebtCollectionManagement } from '@/components/DebtCollectionManagement';
+import { TimeBlockingManagement } from '@/components/TimeBlockingManagement';
+import { ReviewManagement } from '@/components/ReviewManagement';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Settings, Users, Scissors, Package, Calendar, DollarSign, AlertTriangle, CheckCircle } from 'lucide-react';
-import MobileLayout from '@/components/MobileLayout';
-import ServiceManagement from '@/components/ServiceManagement';
-import ProductManagement from '@/components/ProductManagement';
-import ProfessionalManagement from '@/components/ProfessionalManagement';
-import TimeBlockingManagement from '@/components/TimeBlockingManagement';
-import CashFlowManagement from '@/components/CashFlowManagement';
-import CustomerProfileManagement from '@/components/CustomerProfileManagement';
-import BannerManagement from '@/components/BannerManagement';
-import AppointmentManagement from '@/components/AppointmentManagement';
-import { useIsMobile } from '@/hooks/use-mobile';
+import { ProtectedRoute } from '@/components/ProtectedRoute';
 
-const Admin = () => {
-  const [activeTab, setActiveTab] = useState('services');
-  const isMobile = useIsMobile();
-
-  const tabs = [
-    { value: 'services', label: 'Serviços', shortLabel: 'Serv', icon: Scissors },
-    { value: 'products', label: 'Produtos', shortLabel: 'Prod', icon: Package },
-    { value: 'appointments', label: 'Agendamentos', shortLabel: 'Agend', icon: CheckCircle },
-    { value: 'professionals', label: 'Profissionais', shortLabel: 'Prof', icon: Users },
-    { value: 'timeblocking', label: 'Horários', shortLabel: 'Hora', icon: Calendar },
-    { value: 'cashflow', label: 'Fluxo de Caixa', shortLabel: 'Caixa', icon: DollarSign },
-    { value: 'customers', label: 'Clientes/Atendimentos', shortLabel: 'Cli/At', icon: Users },
-    { value: 'banners', label: 'Banners', shortLabel: 'Ban', icon: Settings },
-  ];
-
+export default function Admin() {
   return (
-    <MobileLayout>
-      <div className="min-h-screen bg-gradient-to-br from-salon-dark via-salon-dark to-black p-2 sm:p-4">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-4 sm:mb-6 md:mb-8">
-            <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-salon-gold mb-1 sm:mb-2">
-              {isMobile ? 'Admin' : 'Painel Administrativo'}
+    <ProtectedRoute requiredRole="admin">
+      <div className="min-h-screen bg-gray-50">
+        <Header />
+        
+        <main className="pt-20 pb-20 px-4">
+          <div className="max-w-7xl mx-auto">
+            <h1 className="text-3xl font-bold text-gray-900 mb-8">
+              Painel Administrativo
             </h1>
-            <p className="text-xs sm:text-sm text-salon-copper">
-              {isMobile ? 'Gerencie seu salão' : 'Gerencie todos os aspectos do seu salão'}
-            </p>
-          </div>
-
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className={`
-              grid w-full mb-4 sm:mb-6 glass-card p-1 sm:p-2
-              ${isMobile ? 'grid-cols-4 gap-1' : 'grid-cols-4 md:grid-cols-8'}
-              ${isMobile ? 'h-auto' : ''}
-            `}>
-              {tabs.map((tab) => (
-                <TabsTrigger 
-                  key={tab.value}
-                  value={tab.value} 
-                  className={`
-                    data-[state=active]:bg-salon-gold/20 data-[state=active]:text-salon-gold
-                    ${isMobile ? 'flex-col p-1.5 h-auto min-h-[60px] text-[10px]' : 'flex-row p-2'}
-                    transition-all duration-200
-                  `}
-                >
-                  <tab.icon className={`${isMobile ? 'w-4 h-4 mb-1' : 'w-4 h-4 mr-2'}`} />
-                  <span className={isMobile ? 'leading-tight text-center' : 'hidden md:inline'}>
-                    {isMobile ? tab.shortLabel : tab.label}
-                  </span>
-                </TabsTrigger>
-              ))}
-            </TabsList>
-
-            <div className="space-y-4">
-              <TabsContent value="services" className="mt-0">
-                <ServiceManagement />
-              </TabsContent>
-
-              <TabsContent value="products" className="mt-0">
-                <ProductManagement />
-              </TabsContent>
-
-              <TabsContent value="appointments" className="mt-0">
+            
+            <Tabs defaultValue="appointments" className="space-y-4">
+              <TabsList className="grid w-full grid-cols-2 lg:grid-cols-5 xl:grid-cols-9">
+                <TabsTrigger value="appointments">Agendamentos</TabsTrigger>
+                <TabsTrigger value="services">Serviços</TabsTrigger>
+                <TabsTrigger value="products">Produtos</TabsTrigger>
+                <TabsTrigger value="professionals">Profissionais</TabsTrigger>
+                <TabsTrigger value="customers">Clientes</TabsTrigger>
+                <TabsTrigger value="reviews">Avaliações</TabsTrigger>
+                <TabsTrigger value="cashflow">Fluxo de Caixa</TabsTrigger>
+                <TabsTrigger value="commissions">Comissões</TabsTrigger>
+                <TabsTrigger value="collections">Cobrança</TabsTrigger>
+                <TabsTrigger value="blocking">Bloqueios</TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="appointments">
                 <AppointmentManagement />
               </TabsContent>
-
-              <TabsContent value="professionals" className="mt-0">
+              
+              <TabsContent value="services">
+                <ServiceManagement />
+              </TabsContent>
+              
+              <TabsContent value="products">
+                <ProductManagement />
+              </TabsContent>
+              
+              <TabsContent value="professionals">
                 <ProfessionalManagement />
               </TabsContent>
-
-              <TabsContent value="timeblocking" className="mt-0">
-                <TimeBlockingManagement />
-              </TabsContent>
-
-              <TabsContent value="cashflow" className="mt-0">
-                <CashFlowManagement />
-              </TabsContent>
-
-              <TabsContent value="customers" className="mt-0">
+              
+              <TabsContent value="customers">
                 <CustomerProfileManagement />
               </TabsContent>
-
-              <TabsContent value="banners" className="mt-0">
-                <BannerManagement />
+              
+              <TabsContent value="reviews">
+                <ReviewManagement />
               </TabsContent>
-            </div>
-          </Tabs>
-        </div>
+              
+              <TabsContent value="cashflow">
+                <CashFlowManagement />
+              </TabsContent>
+              
+              <TabsContent value="commissions">
+                <CommissionManagement />
+              </TabsContent>
+              
+              <TabsContent value="collections">
+                <DebtCollectionManagement />
+              </TabsContent>
+              
+              <TabsContent value="blocking">
+                <TimeBlockingManagement />
+              </TabsContent>
+            </Tabs>
+          </div>
+        </main>
+        
+        <BottomNavigation />
       </div>
-    </MobileLayout>
+    </ProtectedRoute>
   );
-};
-
-export default Admin;
+}
