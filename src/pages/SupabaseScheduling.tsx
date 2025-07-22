@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Calendar, Clock, User, MessageSquare, Check, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -6,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { useSupabaseScheduling } from '@/hooks/useSupabaseScheduling';
 import { useAuth } from '@/hooks/useAuth';
-import MercadoPagoPayment from '@/components/MercadoPagoPayment';
+import PIXPaymentPopup from '@/components/PIXPaymentPopup';
 import ServiceSelectionCard from '@/components/ServiceSelectionCard';
 import TimeSlotGrid from '@/components/TimeSlotGrid';
 import AppointmentSummaryCard from '@/components/AppointmentSummaryCard';
@@ -23,8 +24,7 @@ const SupabaseScheduling = () => {
   const [clientEmail, setClientEmail] = useState('');
   const [clientPhone, setClientPhone] = useState('');
   const [observations, setObservations] = useState('');
-  const [showMercadoPagoPayment, setShowMercadoPagoPayment] = useState(false);
-  const [tempAppointmentIds, setTempAppointmentIds] = useState<string[]>([]);
+  const [showPixPopup, setShowPixPopup] = useState(false);
 
   // Fixed deposit amount of 50 reais
   const DEPOSIT_AMOUNT = 50.00;
@@ -75,38 +75,32 @@ const SupabaseScheduling = () => {
     }
   };
 
-  const handleProceedToPayment = async () => {
-    if (!selectedServices.length || !selectedDate || !selectedTime || !clientName || !clientEmail || !clientPhone) {
-      return;
-    }
-
-    try {
-      // Create appointments first with status "pendente" and payment status "pendente"
-      const success = await createMultipleAppointments({
-        serviceIds: selectedServices,
-        data: selectedDate,
-        horario: selectedTime,
-        clientName,
-        clientEmail,
-        clientPhone,
-        observacoes: observations
-      });
-
-      if (success) {
-        // For demo purposes, we'll generate temporary IDs
-        // In a real implementation, you'd get the actual appointment IDs from the creation response
-        const appointmentIds = selectedServices.map(() => crypto.randomUUID());
-        setTempAppointmentIds(appointmentIds);
-        setShowMercadoPagoPayment(true);
-      }
-    } catch (error) {
-      console.error('Error creating appointments:', error);
-    }
+  const handleProceedToPayment = () => {
+    setShowPixPopup(true);
   };
 
-  const handlePaymentSuccess = async (): Promise<boolean> => {
-    try {
-      // Reset form after successful payment
+  const handlePaymentConfirm = async (pixKey: string, qrCodeData?: string, transactionId?: string): Promise<boolean> => {
+    if (!selectedServices.length || !selectedDate || !selectedTime || !clientName || !clientEmail || !clientPhone) {
+      return false;
+    }
+
+    const success = await createMultipleAppointments({
+      serviceIds: selectedServices,
+      data: selectedDate,
+      horario: selectedTime,
+      clientName,
+      clientEmail,
+      clientPhone,
+      observacoes: observations,
+      chave_pix: pixKey,
+      chave_pix_abacate: pixKey,
+      qr_code_data: qrCodeData,
+      transaction_id: transactionId,
+      comprovante_pix: undefined
+    });
+
+    if (success) {
+      // Reset form
       setCurrentStep(1);
       setSelectedServices([]);
       setSelectedDate('');
@@ -117,13 +111,10 @@ const SupabaseScheduling = () => {
         setClientPhone('');
       }
       setObservations('');
-      setTempAppointmentIds([]);
-      
-      return true;
-    } catch (error) {
-      console.error('Error handling payment success:', error);
-      return false;
+      setShowPixPopup(false);
     }
+
+    return success;
   };
 
   if (loading && services.length === 0) {
@@ -386,18 +377,16 @@ const SupabaseScheduling = () => {
         )}
       </div>
 
-      {/* MercadoPago Payment Modal */}
-      <MercadoPagoPayment
-        isOpen={showMercadoPagoPayment}
-        onClose={() => setShowMercadoPagoPayment(false)}
+      {/* PIX Payment Popup */}
+      <PIXPaymentPopup
+        isOpen={showPixPopup}
+        onClose={() => setShowPixPopup(false)}
         amount={DEPOSIT_AMOUNT}
         serviceName={`${selectedServices.length} serviço${selectedServices.length > 1 ? 's' : ''} selecionado${selectedServices.length > 1 ? 's' : ''}`}
         customerName={clientName}
         customerEmail={clientEmail}
         customerPhone={clientPhone}
-        appointmentIds={tempAppointmentIds}
-        serviceNames={getSelectedServicesData().map(s => s.nome)}
-        onPaymentSuccess={handlePaymentSuccess}
+        onPaymentConfirm={handlePaymentConfirm}
       />
     </div>
   );
