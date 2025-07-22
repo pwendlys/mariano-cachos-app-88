@@ -11,7 +11,7 @@ import CashFlowManagement from '@/components/CashFlowManagement';
 import CommissionManagement from '@/components/CommissionManagement';
 import DebtCollectionManagement from '@/components/DebtCollectionManagement';
 import TimeBlockingManagement from '@/components/TimeBlockingManagement';
-import ReviewManagement from '@/components/ReviewManagement';
+import { ReviewManagement } from '@/components/ReviewManagement';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import ProtectedRoute from '@/components/ProtectedRoute';
 
