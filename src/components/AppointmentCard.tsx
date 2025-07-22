@@ -49,15 +49,15 @@ interface AppointmentCardProps {
       email: string;
     };
   };
-  professionals: Array<{ id: string; nome: string; email: string }>;
+  professionals?: Array<{ id: string; nome: string; email: string }>;
   onStatusChange: (appointmentId: string, newStatus: string) => void;
-  onProfessionalChange: (appointmentId: string, professionalId: string) => void;
+  onProfessionalChange?: (appointmentId: string, professionalId: string) => void;
   onDateTimeUpdate: (appointmentId: string, newDate: string, newTime: string) => void;
 }
 
 export const AppointmentCard: React.FC<AppointmentCardProps> = ({
   appointment,
-  professionals,
+  professionals = [],
   onStatusChange,
   onProfessionalChange,
   onDateTimeUpdate
@@ -214,23 +214,27 @@ export const AppointmentCard: React.FC<AppointmentCardProps> = ({
             </SelectContent>
           </Select>
 
-          <Select
-            value={appointment.profissional_id || ""}
-            onValueChange={(value) => onProfessionalChange(appointment.id, value)}
-          >
-            <SelectTrigger className="w-48">
-              <SelectValue placeholder="Atribuir profissional" />
-            </SelectTrigger>
-            <SelectContent>
-              {professionals.map((professional) => (
-                <SelectItem key={professional.id} value={professional.id}>
-                  {professional.nome}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          {professionals.length > 0 && onProfessionalChange && (
+            <Select
+              value={appointment.profissional_id || ""}
+              onValueChange={(value) => onProfessionalChange(appointment.id, value)}
+            >
+              <SelectTrigger className="w-48">
+                <SelectValue placeholder="Atribuir profissional" />
+              </SelectTrigger>
+              <SelectContent>
+                {professionals.map((professional) => (
+                  <SelectItem key={professional.id} value={professional.id}>
+                    {professional.nome}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
         </div>
       </CardContent>
     </Card>
   );
 };
+
+export default AppointmentCard;

@@ -2,22 +2,22 @@
 import React, { useState } from 'react';
 import Header from '@/components/Header';
 import BottomNavigation from '@/components/BottomNavigation';
-import { AppointmentManagement } from '@/components/AppointmentManagement';
-import { ServiceManagement } from '@/components/ServiceManagement';
-import { ProductManagement } from '@/components/ProductManagement';
-import { ProfessionalManagement } from '@/components/ProfessionalManagement';
-import { CustomerProfileManagement } from '@/components/CustomerProfileManagement';
-import { CashFlowManagement } from '@/components/CashFlowManagement';
-import { CommissionManagement } from '@/components/CommissionManagement';
-import { DebtCollectionManagement } from '@/components/DebtCollectionManagement';
-import { TimeBlockingManagement } from '@/components/TimeBlockingManagement';
-import { ReviewManagement } from '@/components/ReviewManagement';
+import AppointmentManagement from '@/components/AppointmentManagement';
+import ServiceManagement from '@/components/ServiceManagement';
+import ProductManagement from '@/components/ProductManagement';
+import ProfessionalManagement from '@/components/ProfessionalManagement';
+import CustomerProfileManagement from '@/components/CustomerProfileManagement';
+import CashFlowManagement from '@/components/CashFlowManagement';
+import CommissionManagement from '@/components/CommissionManagement';
+import DebtCollectionManagement from '@/components/DebtCollectionManagement';
+import TimeBlockingManagement from '@/components/TimeBlockingManagement';
+import ReviewManagement from '@/components/ReviewManagement';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ProtectedRoute } from '@/components/ProtectedRoute';
+import ProtectedRoute from '@/components/ProtectedRoute';
 
 export default function Admin() {
   return (
-    <ProtectedRoute requiredRole="admin">
+    <ProtectedRoute requireAdmin>
       <div className="min-h-screen bg-gray-50">
         <Header />
         

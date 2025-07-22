@@ -3,7 +3,7 @@ import React from 'react';
 import { Calendar, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import AppointmentCard from '@/components/AppointmentCard';
+import { AppointmentCard } from '@/components/AppointmentCard';
 import AppointmentDateFilter from '@/components/AppointmentDateFilter';
 import { useAppointments } from '@/hooks/useAppointments';
 
