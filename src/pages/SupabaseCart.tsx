@@ -41,7 +41,20 @@ const SupabaseCart = () => {
 
   const handlePaymentConfirmed = async (pixKey: string, qrCodeData?: string, transactionId?: string): Promise<boolean> => {
     try {
-      await createSale(cart, 'pix', discountAmount, appliedCoupon?.id);
+      await createSale(
+        cart, 
+        'pix', 
+        discountAmount, 
+        appliedCoupon?.id,
+        undefined, // profissional_id
+        {
+          chave_pix: pixKey,
+          chave_pix_abacate: pixKey,
+          qr_code_data: qrCodeData,
+          transaction_id: transactionId
+        }
+      );
+      
       clearCart();
       removeCoupon();
       setShowPixModal(false);

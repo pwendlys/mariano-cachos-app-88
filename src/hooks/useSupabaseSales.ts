@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { CartItem } from '@/hooks/useSharedCart';
+import { CustomerData } from '@/hooks/useAbacatePayment';
 
 export interface SaleData {
   cliente_id?: string;
@@ -13,6 +14,11 @@ export interface SaleData {
   forma_pagamento?: string;
   observacoes?: string;
   cupom_id?: string;
+  chave_pix?: string;
+  chave_pix_abacate?: string;
+  qr_code_data?: string;
+  transaction_id?: string;
+  status_pagamento?: string;
   items: {
     produto_id: string;
     quantidade: number;
@@ -30,11 +36,24 @@ export const useSupabaseSales = () => {
     paymentMethod?: string, 
     discount: number = 0,
     couponId?: string,
-    professionalId?: string
+    professionalId?: string,
+    pixData?: {
+      chave_pix?: string;
+      chave_pix_abacate?: string;
+      qr_code_data?: string;
+      transaction_id?: string;
+    }
   ) => {
     try {
       setLoading(true);
-      console.log('Iniciando criação de venda:', { cartItems, paymentMethod, discount, couponId, professionalId });
+      console.log('Iniciando criação de venda:', { 
+        cartItems, 
+        paymentMethod, 
+        discount, 
+        couponId, 
+        professionalId,
+        pixData 
+      });
       
       const total = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
       const finalTotal = total - discount;
@@ -49,7 +68,12 @@ export const useSupabaseSales = () => {
           forma_pagamento: paymentMethod,
           cupom_id: couponId,
           profissional_id: professionalId,
-          status: 'pendente'
+          status: 'pendente',
+          status_pagamento: 'pendente',
+          chave_pix: pixData?.chave_pix,
+          chave_pix_abacate: pixData?.chave_pix_abacate,
+          qr_code_data: pixData?.qr_code_data,
+          transaction_id: pixData?.transaction_id
         })
         .select()
         .single();

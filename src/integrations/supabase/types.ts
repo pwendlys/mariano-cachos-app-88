@@ -843,40 +843,58 @@ export type Database = {
       }
       vendas: {
         Row: {
+          chave_pix: string | null
+          chave_pix_abacate: string | null
           cliente_id: string | null
           created_at: string
           cupom_id: string | null
           data_venda: string
           desconto: number | null
+          forma_pagamento: string | null
           id: string
           profissional_id: string | null
+          qr_code_data: string | null
           status: string
+          status_pagamento: string | null
           total: number
           total_final: number
+          transaction_id: string | null
         }
         Insert: {
+          chave_pix?: string | null
+          chave_pix_abacate?: string | null
           cliente_id?: string | null
           created_at?: string
           cupom_id?: string | null
           data_venda?: string
           desconto?: number | null
+          forma_pagamento?: string | null
           id?: string
           profissional_id?: string | null
+          qr_code_data?: string | null
           status?: string
+          status_pagamento?: string | null
           total: number
           total_final: number
+          transaction_id?: string | null
         }
         Update: {
+          chave_pix?: string | null
+          chave_pix_abacate?: string | null
           cliente_id?: string | null
           created_at?: string
           cupom_id?: string | null
           data_venda?: string
           desconto?: number | null
+          forma_pagamento?: string | null
           id?: string
           profissional_id?: string | null
+          qr_code_data?: string | null
           status?: string
+          status_pagamento?: string | null
           total?: number
           total_final?: number
+          transaction_id?: string | null
         }
         Relationships: [
           {
