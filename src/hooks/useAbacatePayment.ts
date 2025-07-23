@@ -5,6 +5,13 @@ import { useToast } from '@/hooks/use-toast';
 import { CartItem } from '@/hooks/useSharedCart';
 import { Coupon } from '@/hooks/useCoupons';
 
+export interface CustomerData {
+  nome: string;
+  email: string;
+  telefone: string;
+  cpf: string;
+}
+
 export const useAbacatePayment = () => {
   const [loading, setLoading] = useState(false);
   const [pixData, setPixData] = useState<{
@@ -20,11 +27,12 @@ export const useAbacatePayment = () => {
     paymentMethod: string,
     coupon: Coupon | null,
     discount: number,
-    finalTotal: number
+    finalTotal: number,
+    customerData: CustomerData
   ) => {
     try {
       setLoading(true);
-      console.log('Iniciando pagamento PIX:', { cartItems, paymentMethod, coupon, discount, finalTotal });
+      console.log('Iniciando pagamento PIX:', { cartItems, paymentMethod, coupon, discount, finalTotal, customerData });
 
       // Criar descrição da compra
       const itemNames = cartItems.map(item => `${item.quantity}x ${item.name}`).join(', ');
@@ -35,10 +43,10 @@ export const useAbacatePayment = () => {
         body: {
           amount: finalTotal,
           description: description,
-          customerName: 'Cliente',
-          customerEmail: 'cliente@exemplo.com',
-          customerPhone: '11999999999',
-          customerCPF: '000.000.000-00'
+          customerName: customerData.nome,
+          customerEmail: customerData.email,
+          customerPhone: customerData.telefone.replace(/\D/g, ''),
+          customerCPF: customerData.cpf.replace(/\D/g, '')
         }
       });
 

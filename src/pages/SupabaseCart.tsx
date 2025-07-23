@@ -6,17 +6,17 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useSharedCart } from '@/hooks/useSharedCart';
 import { useSupabaseSales } from '@/hooks/useSupabaseSales';
 import { useCoupons } from '@/hooks/useCoupons';
-import { useAbacatePayment } from '@/hooks/useAbacatePayment';
+import { useAbacatePayment, CustomerData } from '@/hooks/useAbacatePayment';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
 import CouponInput from '@/components/CouponInput';
-import PIXPaymentModal from '@/components/PIXPaymentModal';
+import PIXPaymentFormModal from '@/components/PIXPaymentFormModal';
 
 const SupabaseCart = () => {
   const { cart, updateQuantity, removeFromCart, clearCart, getTotalItems, getTotalPrice } = useSharedCart();
   const { createSale, loading: saleLoading } = useSupabaseSales();
   const { appliedCoupon, calculateDiscount, removeCoupon } = useCoupons();
-  const { loading: pixLoading, pixData, createPixPayment, checkPaymentStatus, clearPixData } = useAbacatePayment();
+  const { loading: pixLoading } = useAbacatePayment();
   const { toast } = useToast();
   const navigate = useNavigate();
   
@@ -36,20 +36,14 @@ const SupabaseCart = () => {
       return;
     }
 
-    try {
-      await createPixPayment(cart, 'pix', appliedCoupon, discountAmount, finalTotal);
-      setShowPixModal(true);
-    } catch (error) {
-      console.error('Erro ao gerar PIX:', error);
-    }
+    setShowPixModal(true);
   };
 
-  const handlePaymentConfirmed = async () => {
+  const handlePaymentConfirmed = async (pixKey: string, qrCodeData?: string, transactionId?: string): Promise<boolean> => {
     try {
       await createSale(cart, 'pix', discountAmount, appliedCoupon?.id);
       clearCart();
       removeCoupon();
-      clearPixData();
       setShowPixModal(false);
       
       toast({
@@ -58,6 +52,7 @@ const SupabaseCart = () => {
       });
       
       navigate('/loja');
+      return true;
     } catch (error) {
       console.error('Erro ao finalizar compra após pagamento:', error);
       toast({
@@ -65,6 +60,7 @@ const SupabaseCart = () => {
         description: "Pagamento confirmado, mas erro ao processar compra. Entre em contato conosco.",
         variant: "destructive",
       });
+      return false;
     }
   };
 
@@ -227,7 +223,7 @@ const SupabaseCart = () => {
           ) : (
             <Receipt className="mr-2" size={20} />
           )}
-          {(saleLoading || pixLoading) ? 'Gerando PIX...' : `Pagar com PIX - R$ ${finalTotal.toFixed(2)}`}
+          {(saleLoading || pixLoading) ? 'Processando...' : `Pagar com PIX - R$ ${finalTotal.toFixed(2)}`}
         </Button>
 
         <Button
@@ -239,13 +235,13 @@ const SupabaseCart = () => {
         </Button>
       </div>
 
-      {/* PIX Payment Modal */}
-      <PIXPaymentModal
+      {/* PIX Payment Form Modal */}
+      <PIXPaymentFormModal
         isOpen={showPixModal}
         onClose={() => setShowPixModal(false)}
-        pixData={pixData}
+        amount={finalTotal}
+        description={`Compra de ${getTotalItems()} ${getTotalItems() === 1 ? 'item' : 'itens'}`}
         onPaymentConfirmed={handlePaymentConfirmed}
-        checkPaymentStatus={checkPaymentStatus}
       />
     </div>
   );
