@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { ShoppingCart, Minus, Plus, Trash2, Receipt } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -6,8 +5,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useSharedCart } from '@/hooks/useSharedCart';
 import { useSupabaseSales } from '@/hooks/useSupabaseSales';
 import { useCoupons } from '@/hooks/useCoupons';
-import { useAbacatePayment, CustomerData } from '@/hooks/useAbacatePayment';
+import { useAbacatePayment } from '@/hooks/useAbacatePayment';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 import CouponInput from '@/components/CouponInput';
 import PIXPaymentFormModal from '@/components/PIXPaymentFormModal';
@@ -18,6 +18,7 @@ const SupabaseCart = () => {
   const { appliedCoupon, calculateDiscount, removeCoupon } = useCoupons();
   const { loading: pixLoading } = useAbacatePayment();
   const { toast } = useToast();
+  const { user } = useAuth();
   const navigate = useNavigate();
   
   const [showPixModal, setShowPixModal] = useState(false);
@@ -27,6 +28,7 @@ const SupabaseCart = () => {
   const finalTotal = Math.max(0, totalPrice - discountAmount);
 
   const handleFinalizeSale = async () => {
+    // Verificar se há itens no carrinho
     if (cart.length === 0) {
       toast({
         title: "Carrinho vazio",
@@ -36,11 +38,24 @@ const SupabaseCart = () => {
       return;
     }
 
+    // Verificar se o usuário está logado
+    if (!user) {
+      toast({
+        title: "Login necessário",
+        description: "Faça login para finalizar sua compra.",
+        variant: "destructive",
+      });
+      navigate('/auth');
+      return;
+    }
+
     setShowPixModal(true);
   };
 
   const handlePaymentConfirmed = async (pixKey: string, qrCodeData?: string, transactionId?: string): Promise<boolean> => {
     try {
+      console.log('Confirmando pagamento para usuário:', user?.email);
+      
       await createSale(
         cart, 
         'pix', 
@@ -69,8 +84,8 @@ const SupabaseCart = () => {
     } catch (error) {
       console.error('Erro ao finalizar compra após pagamento:', error);
       toast({
-        title: "Erro",
-        description: "Pagamento confirmado, mas erro ao processar compra. Entre em contato conosco.",
+        title: "Erro no processamento",
+        description: "Houve um erro ao processar sua compra. Tente novamente ou entre em contato conosco.",
         variant: "destructive",
       });
       return false;
@@ -102,6 +117,11 @@ const SupabaseCart = () => {
         <p className="text-muted-foreground">
           {getTotalItems()} {getTotalItems() === 1 ? 'item' : 'itens'} no carrinho
         </p>
+        {user && (
+          <p className="text-salon-gold text-sm mt-2">
+            Logado como: {user.nome}
+          </p>
+        )}
       </div>
 
       {/* Cart Items */}

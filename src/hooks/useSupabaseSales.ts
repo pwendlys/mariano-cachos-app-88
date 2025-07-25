@@ -2,8 +2,8 @@
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/useAuth';
 import { CartItem } from '@/hooks/useSharedCart';
-import { CustomerData } from '@/hooks/useAbacatePayment';
 
 export interface SaleData {
   cliente_id?: string;
@@ -30,6 +30,53 @@ export interface SaleData {
 export const useSupabaseSales = () => {
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
+  const { user } = useAuth();
+
+  const findOrCreateCliente = async (userEmail: string, userName: string): Promise<string | null> => {
+    try {
+      console.log('Buscando cliente para email:', userEmail);
+      
+      // Primeiro, tenta encontrar o cliente existente
+      const { data: existingCliente, error: searchError } = await supabase
+        .from('clientes')
+        .select('id')
+        .eq('email', userEmail)
+        .single();
+
+      if (searchError && searchError.code !== 'PGRST116') {
+        console.error('Erro ao buscar cliente:', searchError);
+        throw searchError;
+      }
+
+      if (existingCliente) {
+        console.log('Cliente existente encontrado:', existingCliente.id);
+        return existingCliente.id;
+      }
+
+      // Se não encontrou, cria um novo cliente
+      console.log('Criando novo cliente para:', userEmail);
+      const { data: newCliente, error: createError } = await supabase
+        .from('clientes')
+        .insert({
+          email: userEmail,
+          nome: userName,
+          telefone: user?.whatsapp || 'Não informado'
+        })
+        .select('id')
+        .single();
+
+      if (createError) {
+        console.error('Erro ao criar cliente:', createError);
+        throw createError;
+      }
+
+      console.log('Novo cliente criado:', newCliente.id);
+      return newCliente.id;
+    } catch (error) {
+      console.error('Erro em findOrCreateCliente:', error);
+      return null;
+    }
+  };
 
   const createSale = async (
     cartItems: CartItem[], 
@@ -52,16 +99,42 @@ export const useSupabaseSales = () => {
         discount, 
         couponId, 
         professionalId,
-        pixData 
+        pixData,
+        user: user?.email
       });
+
+      // Verificar se o usuário está logado
+      if (!user || !user.email) {
+        console.error('Usuário não está logado');
+        toast({
+          title: "Erro de autenticação",
+          description: "É necessário estar logado para finalizar a compra.",
+          variant: "destructive",
+        });
+        throw new Error('Usuário não autenticado');
+      }
+
+      // Buscar ou criar cliente
+      const clienteId = await findOrCreateCliente(user.email, user.nome);
       
+      if (!clienteId) {
+        console.error('Não foi possível obter cliente_id');
+        toast({
+          title: "Erro no cliente",
+          description: "Não foi possível processar os dados do cliente.",
+          variant: "destructive",
+        });
+        throw new Error('Erro ao processar dados do cliente');
+      }
+
       const total = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
       const finalTotal = total - discount;
 
-      // Criar a venda
+      // Criar a venda com cliente_id
       const { data: sale, error: saleError } = await supabase
         .from('vendas')
         .insert({
+          cliente_id: clienteId, // Agora sempre incluímos o cliente_id
           total,
           desconto: discount,
           total_final: finalTotal,
@@ -80,10 +153,15 @@ export const useSupabaseSales = () => {
 
       if (saleError) {
         console.error('Erro ao criar venda:', saleError);
+        toast({
+          title: "Erro na venda",
+          description: `Não foi possível processar a venda: ${saleError.message}`,
+          variant: "destructive",
+        });
         throw saleError;
       }
 
-      console.log('Venda criada:', sale);
+      console.log('Venda criada com sucesso:', sale);
 
       // Criar os itens da venda
       const saleItems = cartItems.map(item => ({
@@ -100,6 +178,11 @@ export const useSupabaseSales = () => {
 
       if (itemsError) {
         console.error('Erro ao criar itens da venda:', itemsError);
+        toast({
+          title: "Erro nos itens",
+          description: "Erro ao registrar itens da venda.",
+          variant: "destructive",
+        });
         throw itemsError;
       }
 
@@ -184,6 +267,11 @@ export const useSupabaseSales = () => {
 
       if (updateError) {
         console.error('Erro ao finalizar venda:', updateError);
+        toast({
+          title: "Erro na finalização",
+          description: "Erro ao finalizar a venda.",
+          variant: "destructive",
+        });
         throw updateError;
       }
 
