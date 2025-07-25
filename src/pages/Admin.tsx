@@ -1,107 +1,128 @@
 
 import React, { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Settings, Users, Scissors, Package, Calendar, DollarSign, AlertTriangle, CheckCircle } from 'lucide-react';
-import MobileLayout from '@/components/MobileLayout';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { ShoppingCart, Users, Calendar, DollarSign, Package, TrendingUp, Receipt, UserCheck } from 'lucide-react';
 import ServiceManagement from '@/components/ServiceManagement';
 import ProductManagement from '@/components/ProductManagement';
-import ProfessionalManagement from '@/components/ProfessionalManagement';
-import TimeBlockingManagement from '@/components/TimeBlockingManagement';
-import CashFlowManagement from '@/components/CashFlowManagement';
-import CustomerProfileManagement from '@/components/CustomerProfileManagement';
-import BannerManagement from '@/components/BannerManagement';
 import AppointmentManagement from '@/components/AppointmentManagement';
-import { useIsMobile } from '@/hooks/use-mobile';
+import ProfessionalManagement from '@/components/ProfessionalManagement';
+import CommissionManagement from '@/components/CommissionManagement';
+import CashFlowManagement from '@/components/CashFlowManagement';
+import BannerManagement from '@/components/BannerManagement';
+import ClientList from '@/components/ClientList';
+import DebtCollectionManagement from '@/components/DebtCollectionManagement';
+import { useAuth } from '@/hooks/useAuth';
 
 const Admin = () => {
-  const [activeTab, setActiveTab] = useState('services');
-  const isMobile = useIsMobile();
+  const { user } = useAuth();
+  const [activeTab, setActiveTab] = useState('appointments');
 
-  const tabs = [
-    { value: 'services', label: 'Serviços', shortLabel: 'Serv', icon: Scissors },
-    { value: 'products', label: 'Produtos', shortLabel: 'Prod', icon: Package },
-    { value: 'appointments', label: 'Agendamentos', shortLabel: 'Agend', icon: CheckCircle },
-    { value: 'professionals', label: 'Profissionais', shortLabel: 'Prof', icon: Users },
-    { value: 'timeblocking', label: 'Horários', shortLabel: 'Hora', icon: Calendar },
-    { value: 'cashflow', label: 'Fluxo de Caixa', shortLabel: 'Caixa', icon: DollarSign },
-    { value: 'customers', label: 'Clientes/Atendimentos', shortLabel: 'Cli/At', icon: Users },
-    { value: 'banners', label: 'Banners', shortLabel: 'Ban', icon: Settings },
-  ];
+  if (!user || user.tipo !== 'admin') {
+    return (
+      <div className="min-h-screen bg-salon-dark flex items-center justify-center">
+        <Card className="glass-card border-salon-gold/20">
+          <CardContent className="p-8 text-center">
+            <h2 className="text-2xl font-bold text-salon-gold mb-4">Acesso Negado</h2>
+            <p className="text-muted-foreground">
+              Você não tem permissão para acessar esta página.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
-    <MobileLayout>
-      <div className="min-h-screen bg-gradient-to-br from-salon-dark via-salon-dark to-black p-2 sm:p-4">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-4 sm:mb-6 md:mb-8">
-            <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-salon-gold mb-1 sm:mb-2">
-              {isMobile ? 'Admin' : 'Painel Administrativo'}
-            </h1>
-            <p className="text-xs sm:text-sm text-salon-copper">
-              {isMobile ? 'Gerencie seu salão' : 'Gerencie todos os aspectos do seu salão'}
-            </p>
-          </div>
-
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className={`
-              grid w-full mb-4 sm:mb-6 glass-card p-1 sm:p-2
-              ${isMobile ? 'grid-cols-4 gap-1' : 'grid-cols-4 md:grid-cols-8'}
-              ${isMobile ? 'h-auto' : ''}
-            `}>
-              {tabs.map((tab) => (
-                <TabsTrigger 
-                  key={tab.value}
-                  value={tab.value} 
-                  className={`
-                    data-[state=active]:bg-salon-gold/20 data-[state=active]:text-salon-gold
-                    ${isMobile ? 'flex-col p-1.5 h-auto min-h-[60px] text-[10px]' : 'flex-row p-2'}
-                    transition-all duration-200
-                  `}
-                >
-                  <tab.icon className={`${isMobile ? 'w-4 h-4 mb-1' : 'w-4 h-4 mr-2'}`} />
-                  <span className={isMobile ? 'leading-tight text-center' : 'hidden md:inline'}>
-                    {isMobile ? tab.shortLabel : tab.label}
-                  </span>
-                </TabsTrigger>
-              ))}
-            </TabsList>
-
-            <div className="space-y-4">
-              <TabsContent value="services" className="mt-0">
-                <ServiceManagement />
-              </TabsContent>
-
-              <TabsContent value="products" className="mt-0">
-                <ProductManagement />
-              </TabsContent>
-
-              <TabsContent value="appointments" className="mt-0">
-                <AppointmentManagement />
-              </TabsContent>
-
-              <TabsContent value="professionals" className="mt-0">
-                <ProfessionalManagement />
-              </TabsContent>
-
-              <TabsContent value="timeblocking" className="mt-0">
-                <TimeBlockingManagement />
-              </TabsContent>
-
-              <TabsContent value="cashflow" className="mt-0">
-                <CashFlowManagement />
-              </TabsContent>
-
-              <TabsContent value="customers" className="mt-0">
-                <CustomerProfileManagement />
-              </TabsContent>
-
-              <TabsContent value="banners" className="mt-0">
-                <BannerManagement />
-              </TabsContent>
-            </div>
-          </Tabs>
+    <div className="min-h-screen bg-salon-dark p-4">
+      <div className="max-w-7xl mx-auto">
+        <div className="text-center mb-8">
+          <h1 className="text-3xl font-bold text-gradient-gold mb-2 font-playfair">
+            Painel Administrativo
+          </h1>
+          <p className="text-muted-foreground">
+            Gerencie todos os aspectos do seu salão
+          </p>
         </div>
+
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="grid w-full grid-cols-4 md:grid-cols-8 lg:grid-cols-9 glass-card border-salon-gold/20">
+            <TabsTrigger value="appointments" className="flex items-center gap-2 text-xs md:text-sm">
+              <Calendar size={16} />
+              <span className="hidden sm:inline">Agendamentos</span>
+            </TabsTrigger>
+            <TabsTrigger value="services" className="flex items-center gap-2 text-xs md:text-sm">
+              <UserCheck size={16} />
+              <span className="hidden sm:inline">Serviços</span>
+            </TabsTrigger>
+            <TabsTrigger value="products" className="flex items-center gap-2 text-xs md:text-sm">
+              <Package size={16} />
+              <span className="hidden sm:inline">Produtos</span>
+            </TabsTrigger>
+            <TabsTrigger value="professionals" className="flex items-center gap-2 text-xs md:text-sm">
+              <Users size={16} />
+              <span className="hidden sm:inline">Profissionais</span>
+            </TabsTrigger>
+            <TabsTrigger value="commissions" className="flex items-center gap-2 text-xs md:text-sm">
+              <Receipt size={16} />
+              <span className="hidden sm:inline">Comissões</span>
+            </TabsTrigger>
+            <TabsTrigger value="cashflow" className="flex items-center gap-2 text-xs md:text-sm">
+              <TrendingUp size={16} />
+              <span className="hidden sm:inline">Fluxo de Caixa</span>
+            </TabsTrigger>
+            <TabsTrigger value="clients" className="flex items-center gap-2 text-xs md:text-sm">
+              <Users size={16} />
+              <span className="hidden sm:inline">Clientes</span>
+            </TabsTrigger>
+            <TabsTrigger value="debt" className="flex items-center gap-2 text-xs md:text-sm">
+              <DollarSign size={16} />
+              <span className="hidden sm:inline">Cobranças</span>
+            </TabsTrigger>
+            <TabsTrigger value="banners" className="flex items-center gap-2 text-xs md:text-sm">
+              <ShoppingCart size={16} />
+              <span className="hidden sm:inline">Banners</span>
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="appointments" className="space-y-6">
+            <AppointmentManagement />
+          </TabsContent>
+
+          <TabsContent value="services" className="space-y-6">
+            <ServiceManagement />
+          </TabsContent>
+
+          <TabsContent value="products" className="space-y-6">
+            <ProductManagement />
+          </TabsContent>
+
+          <TabsContent value="professionals" className="space-y-6">
+            <ProfessionalManagement />
+          </TabsContent>
+
+          <TabsContent value="commissions" className="space-y-6">
+            <CommissionManagement />
+          </TabsContent>
+
+          <TabsContent value="cashflow" className="space-y-6">
+            <CashFlowManagement />
+          </TabsContent>
+
+          <TabsContent value="clients" className="space-y-6">
+            <ClientList />
+          </TabsContent>
+
+          <TabsContent value="debt" className="space-y-6">
+            <DebtCollectionManagement />
+          </TabsContent>
+
+          <TabsContent value="banners" className="space-y-6">
+            <BannerManagement />
+          </TabsContent>
+        </Tabs>
       </div>
-    </MobileLayout>
+    </div>
   );
 };
 

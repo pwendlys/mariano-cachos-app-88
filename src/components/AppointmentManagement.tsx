@@ -1,199 +1,256 @@
 
-import React from 'react';
-import { Calendar, Plus } from 'lucide-react';
+import React, { useState } from 'react';
+import { Calendar, Filter, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import AppointmentCard from '@/components/AppointmentCard';
-import AppointmentDateFilter from '@/components/AppointmentDateFilter';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import AppointmentCard from './AppointmentCard';
 import { useAppointments } from '@/hooks/useAppointments';
 
-const AppointmentManagement: React.FC = () => {
-  const { 
-    appointments, 
-    loading, 
+const AppointmentManagement = () => {
+  const {
+    appointments,
+    loading,
     selectedDate,
     selectedStatus,
-    fetchAppointments, 
     handleDateChange,
     handleStatusFilter,
-    handleStatusChange, 
-    handleDateTimeUpdate 
+    handleStatusChange,
+    handleProfessionalAssignment,
+    handleDateTimeUpdate
   } = useAppointments();
+
+  const [showFilters, setShowFilters] = useState(false);
+
+  const filteredAppointments = appointments.filter(appointment => {
+    if (selectedStatus && appointment.status !== selectedStatus) {
+      return false;
+    }
+    return true;
+  });
+
+  const getStatusCount = (status: string) => {
+    return appointments.filter(app => app.status === status).length;
+  };
+
+  const formatFilterDate = (date: Date | null) => {
+    if (!date) return '';
+    return date.toISOString().split('T')[0];
+  };
+
+  const handleDateFilterChange = (dateString: string) => {
+    if (dateString) {
+      handleDateChange(new Date(dateString));
+    } else {
+      handleDateChange(null);
+    }
+  };
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center p-8">
-        <div className="text-salon-gold">Carregando agendamentos...</div>
+      <div className="space-y-6">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-salon-gold mx-auto"></div>
+          <p className="text-muted-foreground mt-2">Carregando agendamentos...</p>
+        </div>
       </div>
     );
   }
 
-  const getAppointmentStats = () => {
-    const stats = {
-      pending: appointments.filter(apt => apt.status === 'pendente').length,
-      confirmed: appointments.filter(apt => apt.status === 'confirmado').length,
-      completed: appointments.filter(apt => apt.status === 'concluido').length,
-      rejected: appointments.filter(apt => apt.status === 'rejeitado').length,
-    };
-    return stats;
-  };
-
-  const stats = getAppointmentStats();
-
-  // Filter appointments based on selected status
-  const filteredAppointments = selectedStatus 
-    ? appointments.filter(apt => apt.status === selectedStatus)
-    : appointments;
-
-  const getStatusLabel = (status: string) => {
-    const labels = {
-      pendente: 'Pendentes',
-      confirmado: 'Confirmados',
-      concluido: 'Concluídos',
-      rejeitado: 'Rejeitados'
-    };
-    return labels[status as keyof typeof labels] || status;
-  };
-
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between flex-wrap gap-4">
-        <h2 className="text-2xl font-bold text-salon-gold">Gerenciar Agendamentos</h2>
-        <div className="flex items-center gap-3">
-          <AppointmentDateFilter
-            selectedDate={selectedDate}
-            onDateChange={handleDateChange}
-          />
-          <Button
-            onClick={() => fetchAppointments(selectedDate)}
-            variant="outline"
-            className="border-salon-gold/30 text-salon-gold hover:bg-salon-gold/10"
-          >
-            Atualizar
-          </Button>
+      <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold text-salon-gold">Gerenciar Agendamentos</h2>
+          <p className="text-muted-foreground">
+            {filteredAppointments.length} agendamento{filteredAppointments.length !== 1 ? 's' : ''} encontrado{filteredAppointments.length !== 1 ? 's' : ''}
+          </p>
         </div>
-      </div>
-
-      {/* Statistics Cards - Now Clickable */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card 
-          className={`glass-card border-yellow-500/20 cursor-pointer transition-all duration-200 hover:scale-105 ${
-            selectedStatus === 'pendente' ? 'ring-2 ring-yellow-500 bg-yellow-500/20' : 'hover:bg-yellow-500/10'
-          }`}
-          onClick={() => handleStatusFilter('pendente')}
-        >
-          <CardContent className="pt-4">
-            <div className="text-center">
-              <div className="text-2xl font-bold text-yellow-500">{stats.pending}</div>
-              <div className="text-sm text-yellow-500/80">Pendentes</div>
-            </div>
-          </CardContent>
-        </Card>
         
-        <Card 
-          className={`glass-card border-green-500/20 cursor-pointer transition-all duration-200 hover:scale-105 ${
-            selectedStatus === 'confirmado' ? 'ring-2 ring-green-500 bg-green-500/20' : 'hover:bg-green-500/10'
-          }`}
-          onClick={() => handleStatusFilter('confirmado')}
-        >
-          <CardContent className="pt-4">
-            <div className="text-center">
-              <div className="text-2xl font-bold text-green-500">{stats.confirmed}</div>
-              <div className="text-sm text-green-500/80">Confirmados</div>
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card 
-          className={`glass-card border-blue-500/20 cursor-pointer transition-all duration-200 hover:scale-105 ${
-            selectedStatus === 'concluido' ? 'ring-2 ring-blue-500 bg-blue-500/20' : 'hover:bg-blue-500/10'
-          }`}
-          onClick={() => handleStatusFilter('concluido')}
-        >
-          <CardContent className="pt-4">
-            <div className="text-center">
-              <div className="text-2xl font-bold text-blue-500">{stats.completed}</div>
-              <div className="text-sm text-blue-500/80">Concluídos</div>
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card 
-          className={`glass-card border-red-500/20 cursor-pointer transition-all duration-200 hover:scale-105 ${
-            selectedStatus === 'rejeitado' ? 'ring-2 ring-red-500 bg-red-500/20' : 'hover:bg-red-500/10'
-          }`}
-          onClick={() => handleStatusFilter('rejeitado')}
-        >
-          <CardContent className="pt-4">
-            <div className="text-center">
-              <div className="text-2xl font-bold text-red-500">{stats.rejected}</div>
-              <div className="text-sm text-red-500/80">Rejeitados</div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Filter Status Indicator */}
-      {selectedStatus && (
-        <div className="flex items-center justify-between bg-salon-gold/10 p-3 rounded-lg border border-salon-gold/20">
-          <div className="text-salon-gold">
-            Mostrando apenas agendamentos: <strong>{getStatusLabel(selectedStatus)}</strong>
-          </div>
+        <div className="flex gap-2">
           <Button
-            onClick={() => handleStatusFilter(null)}
             variant="outline"
             size="sm"
+            onClick={() => setShowFilters(!showFilters)}
             className="border-salon-gold/30 text-salon-gold hover:bg-salon-gold/10"
           >
-            Mostrar Todos
+            <Filter size={16} className="mr-2" />
+            Filtros
           </Button>
         </div>
-      )}
+      </div>
 
-      {filteredAppointments.length === 0 ? (
-        <Card className="glass-card border-salon-gold/20">
-          <CardContent className="pt-6">
-            <div className="text-center text-salon-copper">
-              <Calendar size={48} className="mx-auto mb-4 opacity-50" />
-              <p className="text-lg mb-2">
-                {selectedStatus 
-                  ? `Nenhum agendamento ${getStatusLabel(selectedStatus).toLowerCase()} encontrado`
-                  : selectedDate 
-                    ? `Nenhum agendamento encontrado para ${selectedDate.toLocaleDateString('pt-BR')}`
-                    : 'Nenhum agendamento encontrado'
-                }
-              </p>
-              <p className="text-sm opacity-75">
-                {selectedStatus 
-                  ? 'Tente selecionar outro status ou clique em "Mostrar Todos"'
-                  : 'Os novos agendamentos aparecerão aqui automaticamente.'
-                }
-              </p>
+      {/* Status Overview */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <Card className="glass-card border-yellow-500/30">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-yellow-400">Pendentes</p>
+                <p className="text-2xl font-bold text-yellow-400">{getStatusCount('pendente')}</p>
+              </div>
+              <div className="h-8 w-8 rounded-full bg-yellow-500/20 flex items-center justify-center">
+                <Calendar size={16} className="text-yellow-400" />
+              </div>
             </div>
           </CardContent>
         </Card>
-      ) : (
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h3 className="text-lg font-medium text-white">
-              {filteredAppointments.length} agendamento{filteredAppointments.length > 1 ? 's' : ''} 
-              {selectedStatus && ` ${getStatusLabel(selectedStatus).toLowerCase()}`}
-              {selectedDate && ` para ${selectedDate.toLocaleDateString('pt-BR')}`}
-            </h3>
-          </div>
-          
-          <div className="grid gap-4">
-            {filteredAppointments.map((appointment) => (
-              <AppointmentCard
-                key={appointment.id}
-                appointment={appointment}
-                onStatusChange={handleStatusChange}
-                onDateTimeUpdate={handleDateTimeUpdate}
-              />
-            ))}
-          </div>
+        
+        <Card className="glass-card border-green-500/30">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-green-400">Confirmados</p>
+                <p className="text-2xl font-bold text-green-400">{getStatusCount('confirmado')}</p>
+              </div>
+              <div className="h-8 w-8 rounded-full bg-green-500/20 flex items-center justify-center">
+                <Calendar size={16} className="text-green-400" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card className="glass-card border-blue-500/30">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-blue-400">Concluídos</p>
+                <p className="text-2xl font-bold text-blue-400">{getStatusCount('concluido')}</p>
+              </div>
+              <div className="h-8 w-8 rounded-full bg-blue-500/20 flex items-center justify-center">
+                <Calendar size={16} className="text-blue-400" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card className="glass-card border-red-500/30">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-red-400">Rejeitados</p>
+                <p className="text-2xl font-bold text-red-400">{getStatusCount('rejeitado')}</p>
+              </div>
+              <div className="h-8 w-8 rounded-full bg-red-500/20 flex items-center justify-center">
+                <Calendar size={16} className="text-red-400" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Filters */}
+      {showFilters && (
+        <Card className="glass-card border-salon-gold/20">
+          <CardHeader>
+            <CardTitle className="text-salon-gold text-lg">Filtros</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-white">Data</label>
+                <Input
+                  type="date"
+                  value={formatFilterDate(selectedDate)}
+                  onChange={(e) => handleDateFilterChange(e.target.value)}
+                  className="glass-card border-salon-gold/30 bg-transparent text-white"
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-white">Status</label>
+                <Select value={selectedStatus || ''} onValueChange={(value) => handleStatusFilter(value || null)}>
+                  <SelectTrigger className="glass-card border-salon-gold/30 bg-transparent text-white">
+                    <SelectValue placeholder="Todos os status" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-salon-dark border-salon-gold/30">
+                    <SelectItem value="">Todos os status</SelectItem>
+                    <SelectItem value="pendente">Pendente</SelectItem>
+                    <SelectItem value="confirmado">Confirmado</SelectItem>
+                    <SelectItem value="concluido">Concluído</SelectItem>
+                    <SelectItem value="rejeitado">Rejeitado</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            
+            <div className="flex gap-2 mt-4">
+              {(selectedDate || selectedStatus) && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    handleDateChange(null);
+                    handleStatusFilter(null);
+                  }}
+                  className="border-salon-gold/30 text-salon-gold hover:bg-salon-gold/10"
+                >
+                  <X size={16} className="mr-2" />
+                  Limpar Filtros
+                </Button>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Active Filters */}
+      {(selectedDate || selectedStatus) && (
+        <div className="flex flex-wrap gap-2">
+          {selectedDate && (
+            <Badge variant="secondary" className="bg-salon-gold/20 text-salon-gold">
+              Data: {selectedDate.toLocaleDateString('pt-BR')}
+              <button
+                onClick={() => handleDateChange(null)}
+                className="ml-2 hover:text-salon-copper"
+              >
+                <X size={14} />
+              </button>
+            </Badge>
+          )}
+          {selectedStatus && (
+            <Badge variant="secondary" className="bg-salon-gold/20 text-salon-gold">
+              Status: {selectedStatus}
+              <button
+                onClick={() => handleStatusFilter(null)}
+                className="ml-2 hover:text-salon-copper"
+              >
+                <X size={14} />
+              </button>
+            </Badge>
+          )}
         </div>
       )}
+
+      {/* Appointments List */}
+      <div className="space-y-4">
+        {filteredAppointments.length === 0 ? (
+          <Card className="glass-card border-salon-gold/20">
+            <CardContent className="p-8 text-center">
+              <Calendar size={48} className="text-salon-gold mx-auto mb-4" />
+              <h3 className="text-lg font-semibold text-white mb-2">Nenhum agendamento encontrado</h3>
+              <p className="text-muted-foreground">
+                {selectedDate || selectedStatus 
+                  ? 'Tente ajustar os filtros para encontrar agendamentos'
+                  : 'Não há agendamentos registrados no momento'
+                }
+              </p>
+            </CardContent>
+          </Card>
+        ) : (
+          filteredAppointments.map((appointment) => (
+            <AppointmentCard
+              key={appointment.id}
+              appointment={appointment}
+              onStatusChange={handleStatusChange}
+              onDateTimeUpdate={handleDateTimeUpdate}
+              onProfessionalAssignment={handleProfessionalAssignment}
+            />
+          ))
+        )}
+      </div>
     </div>
   );
 };

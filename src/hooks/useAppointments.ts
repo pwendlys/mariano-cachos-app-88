@@ -137,14 +137,16 @@ export const useAppointments = () => {
     try {
       const { error } = await supabase
         .from('agendamentos')
-        .update({ profissional_id: professionalId })
+        .update({ profissional_id: professionalId || null })
         .eq('id', appointmentId);
 
       if (error) throw error;
 
       toast({
         title: "Profissional atribuído",
-        description: "O profissional foi atribuído ao agendamento com sucesso",
+        description: professionalId 
+          ? "O profissional foi atribuído ao agendamento com sucesso"
+          : "O profissional foi removido do agendamento",
       });
       
       fetchAppointments(selectedDate);

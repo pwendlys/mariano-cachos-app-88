@@ -1,12 +1,14 @@
 
 import React, { useState } from 'react';
-import { Calendar, Clock, User, DollarSign, Eye, Edit, Save, X, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
+import { Calendar, Clock, User, DollarSign, Eye, Edit, Save, X, CheckCircle, XCircle, AlertCircle, UserPlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import StatusBadge from '@/components/StatusBadge';
 import { formatDate, getStatusBadge, getPaymentStatusBadge } from '@/lib/appointmentUtils';
+import { useSupabaseProfessionals } from '@/hooks/useSupabaseProfessionals';
 
 interface Appointment {
   id: string;
@@ -18,6 +20,7 @@ interface Appointment {
   chave_pix: string;
   comprovante_pix: string;
   observacoes?: string;
+  profissional_id?: string;
   cliente: {
     nome: string;
     email: string;
@@ -27,22 +30,30 @@ interface Appointment {
     nome: string;
     categoria: string;
   };
+  profissional?: {
+    nome: string;
+    email: string;
+  };
 }
 
 interface AppointmentCardProps {
   appointment: Appointment;
   onStatusChange: (appointmentId: string, newStatus: string) => void;
   onDateTimeUpdate: (appointmentId: string, newDate: string, newTime: string) => void;
+  onProfessionalAssignment: (appointmentId: string, professionalId: string) => void;
 }
 
 const AppointmentCard: React.FC<AppointmentCardProps> = ({ 
   appointment, 
   onStatusChange, 
-  onDateTimeUpdate 
+  onDateTimeUpdate,
+  onProfessionalAssignment 
 }) => {
+  const { professionals, loading: professionalsLoading } = useSupabaseProfessionals();
   const [isEditing, setIsEditing] = useState(false);
   const [editDate, setEditDate] = useState(appointment.data);
   const [editTime, setEditTime] = useState(appointment.horario);
+  const [selectedProfessional, setSelectedProfessional] = useState(appointment.profissional_id || '');
 
   const handleSaveDateTime = () => {
     if (editDate && editTime) {
@@ -56,6 +67,13 @@ const AppointmentCard: React.FC<AppointmentCardProps> = ({
     setEditTime(appointment.horario);
     setIsEditing(false);
   };
+
+  const handleProfessionalChange = (professionalId: string) => {
+    setSelectedProfessional(professionalId);
+    onProfessionalAssignment(appointment.id, professionalId);
+  };
+
+  const activeProfessionals = professionals.filter(prof => prof.ativo);
 
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -178,6 +196,58 @@ const AppointmentCard: React.FC<AppointmentCardProps> = ({
               <DollarSign size={16} />
               <span className="font-bold text-lg">R$ {appointment.valor.toFixed(2)}</span>
             </div>
+          </div>
+        </div>
+
+        {/* Professional Assignment Section */}
+        <div className="border-t border-salon-gold/20 pt-4">
+          <h4 className="text-white font-medium mb-2 flex items-center gap-2">
+            <UserPlus size={16} className="text-salon-gold" />
+            Profissional Responsável
+          </h4>
+          <div className="space-y-2">
+            {appointment.profissional ? (
+              <div className="flex items-center justify-between bg-salon-gold/10 p-3 rounded-lg">
+                <div>
+                  <p className="text-salon-gold font-medium">{appointment.profissional.nome}</p>
+                  <p className="text-salon-copper text-sm">{appointment.profissional.email}</p>
+                </div>
+                <Button
+                  onClick={() => setSelectedProfessional('')}
+                  variant="ghost"
+                  size="sm"
+                  className="text-salon-gold hover:bg-salon-gold/10"
+                  title="Remover profissional"
+                >
+                  <X size={16} />
+                </Button>
+              </div>
+            ) : (
+              <div className="bg-salon-copper/10 p-3 rounded-lg">
+                <p className="text-salon-copper text-sm">Nenhum profissional atribuído</p>
+              </div>
+            )}
+            
+            <Select 
+              value={selectedProfessional} 
+              onValueChange={handleProfessionalChange}
+              disabled={professionalsLoading}
+            >
+              <SelectTrigger className="glass-card border-salon-gold/30 bg-transparent text-white">
+                <SelectValue placeholder="Selecionar profissional" />
+              </SelectTrigger>
+              <SelectContent className="bg-salon-dark border-salon-gold/30">
+                <SelectItem value="">Nenhum profissional</SelectItem>
+                {activeProfessionals.map((professional) => (
+                  <SelectItem key={professional.id} value={professional.id}>
+                    <div className="flex flex-col">
+                      <span className="text-white">{professional.nome}</span>
+                      <span className="text-salon-copper text-sm">{professional.email}</span>
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </div>
 
