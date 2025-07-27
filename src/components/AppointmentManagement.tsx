@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import AppointmentCard from './AppointmentCard';
 import { useAppointments } from '@/hooks/useAppointments';
+import { useSupabaseProfessionals } from '@/hooks/useSupabaseProfessionals';
 
 const AppointmentManagement = () => {
   const {
@@ -21,6 +22,8 @@ const AppointmentManagement = () => {
     handleProfessionalAssignment,
     handleDateTimeUpdate
   } = useAppointments();
+
+  const { professionals } = useSupabaseProfessionals();
 
   const [showFilters, setShowFilters] = useState(false);
 
@@ -244,6 +247,7 @@ const AppointmentManagement = () => {
             <AppointmentCard
               key={appointment.id}
               appointment={appointment}
+              professionals={professionals}
               onStatusChange={handleStatusChange}
               onDateTimeUpdate={handleDateTimeUpdate}
               onProfessionalAssignment={handleProfessionalAssignment}

@@ -2,12 +2,11 @@
 import React, { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ShoppingCart, Users, Calendar, DollarSign, Package, TrendingUp, Receipt, UserCheck } from 'lucide-react';
+import { ShoppingCart, Users, Calendar, DollarSign, Package, TrendingUp, UserCheck } from 'lucide-react';
 import ServiceManagement from '@/components/ServiceManagement';
 import ProductManagement from '@/components/ProductManagement';
 import AppointmentManagement from '@/components/AppointmentManagement';
 import ProfessionalManagement from '@/components/ProfessionalManagement';
-import CommissionManagement from '@/components/CommissionManagement';
 import CashFlowManagement from '@/components/CashFlowManagement';
 import BannerManagement from '@/components/BannerManagement';
 import ClientList from '@/components/ClientList';
@@ -46,7 +45,7 @@ const Admin = () => {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-4 md:grid-cols-8 lg:grid-cols-9 glass-card border-salon-gold/20">
+          <TabsList className="grid w-full grid-cols-4 md:grid-cols-8 glass-card border-salon-gold/20">
             <TabsTrigger value="appointments" className="flex items-center gap-2 text-xs md:text-sm">
               <Calendar size={16} />
               <span className="hidden sm:inline">Agendamentos</span>
@@ -62,10 +61,6 @@ const Admin = () => {
             <TabsTrigger value="professionals" className="flex items-center gap-2 text-xs md:text-sm">
               <Users size={16} />
               <span className="hidden sm:inline">Profissionais</span>
-            </TabsTrigger>
-            <TabsTrigger value="commissions" className="flex items-center gap-2 text-xs md:text-sm">
-              <Receipt size={16} />
-              <span className="hidden sm:inline">Comissões</span>
             </TabsTrigger>
             <TabsTrigger value="cashflow" className="flex items-center gap-2 text-xs md:text-sm">
               <TrendingUp size={16} />
@@ -99,10 +94,6 @@ const Admin = () => {
 
           <TabsContent value="professionals" className="space-y-6">
             <ProfessionalManagement />
-          </TabsContent>
-
-          <TabsContent value="commissions" className="space-y-6">
-            <CommissionManagement />
           </TabsContent>
 
           <TabsContent value="cashflow" className="space-y-6">
