@@ -53,7 +53,7 @@ const AppointmentCard: React.FC<AppointmentCardProps> = ({
   const [isEditing, setIsEditing] = useState(false);
   const [editDate, setEditDate] = useState(appointment.data);
   const [editTime, setEditTime] = useState(appointment.horario);
-  const [selectedProfessional, setSelectedProfessional] = useState(appointment.profissional_id || '');
+  const [selectedProfessional, setSelectedProfessional] = useState(appointment.profissional_id || 'none');
 
   const handleSaveDateTime = () => {
     if (editDate && editTime) {
@@ -70,7 +70,8 @@ const AppointmentCard: React.FC<AppointmentCardProps> = ({
 
   const handleProfessionalChange = (professionalId: string) => {
     setSelectedProfessional(professionalId);
-    onProfessionalAssignment(appointment.id, professionalId);
+    // Convert 'none' back to empty string for the backend
+    onProfessionalAssignment(appointment.id, professionalId === 'none' ? '' : professionalId);
   };
 
   const activeProfessionals = professionals.filter(prof => prof.ativo);
@@ -213,7 +214,7 @@ const AppointmentCard: React.FC<AppointmentCardProps> = ({
                   <p className="text-salon-copper text-sm">{appointment.profissional.email}</p>
                 </div>
                 <Button
-                  onClick={() => setSelectedProfessional('')}
+                  onClick={() => setSelectedProfessional('none')}
                   variant="ghost"
                   size="sm"
                   className="text-salon-gold hover:bg-salon-gold/10"
@@ -237,7 +238,7 @@ const AppointmentCard: React.FC<AppointmentCardProps> = ({
                 <SelectValue placeholder="Selecionar profissional" />
               </SelectTrigger>
               <SelectContent className="bg-salon-dark border-salon-gold/30">
-                <SelectItem value="">Nenhum profissional</SelectItem>
+                <SelectItem value="none">Nenhum profissional</SelectItem>
                 {activeProfessionals.map((professional) => (
                   <SelectItem key={professional.id} value={professional.id}>
                     <div className="flex flex-col">
