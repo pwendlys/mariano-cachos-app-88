@@ -51,10 +51,10 @@ const AppointmentManagement = () => {
     }
   };
 
-  // Fix: Ensure empty string is not passed to SelectItem
+  // Fix: Use a non-empty value for "all" status
   const handleStatusFilterChange = (value: string) => {
-    // If value is empty string, convert to null
-    const statusValue = value === '' ? null : value;
+    // Use "all" instead of empty string, then convert to null
+    const statusValue = value === 'all' ? null : value;
     handleStatusFilter(statusValue);
   };
 
