@@ -51,6 +51,13 @@ const AppointmentManagement = () => {
     }
   };
 
+  // Fix: Ensure empty string is not passed to SelectItem
+  const handleStatusFilterChange = (value: string) => {
+    // If value is empty string, convert to null
+    const statusValue = value === '' ? null : value;
+    handleStatusFilter(statusValue);
+  };
+
   if (loading) {
     return (
       <div className="space-y-6">
@@ -164,12 +171,12 @@ const AppointmentManagement = () => {
               
               <div className="space-y-2">
                 <label className="text-sm font-medium text-white">Status</label>
-                <Select value={selectedStatus || ''} onValueChange={(value) => handleStatusFilter(value || null)}>
+                <Select value={selectedStatus || 'all'} onValueChange={handleStatusFilterChange}>
                   <SelectTrigger className="glass-card border-salon-gold/30 bg-transparent text-white">
                     <SelectValue placeholder="Todos os status" />
                   </SelectTrigger>
                   <SelectContent className="bg-salon-dark border-salon-gold/30">
-                    <SelectItem value="">Todos os status</SelectItem>
+                    <SelectItem value="all">Todos os status</SelectItem>
                     <SelectItem value="pendente">Pendente</SelectItem>
                     <SelectItem value="confirmado">Confirmado</SelectItem>
                     <SelectItem value="concluido">Concluído</SelectItem>

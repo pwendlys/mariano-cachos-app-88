@@ -64,7 +64,12 @@ const AppointmentCard: React.FC<AppointmentCardProps> = ({
   const [isEditing, setIsEditing] = useState(false);
   const [editDate, setEditDate] = useState(appointment.data);
   const [editTime, setEditTime] = useState(appointment.horario);
-  const [selectedProfessional, setSelectedProfessional] = useState(appointment.profissional_id || 'none');
+  
+  // Fix: Ensure empty string or null/undefined values are converted to 'none'
+  const [selectedProfessional, setSelectedProfessional] = useState(() => {
+    const profId = appointment.profissional_id;
+    return (!profId || profId.trim() === '') ? 'none' : profId;
+  });
 
   const handleSaveDateTime = () => {
     if (editDate && editTime) {
@@ -80,6 +85,7 @@ const AppointmentCard: React.FC<AppointmentCardProps> = ({
   };
 
   const handleProfessionalChange = (professionalId: string) => {
+    console.log('Professional change:', professionalId);
     setSelectedProfessional(professionalId);
     // Convert 'none' back to empty string for the backend
     onProfessionalAssignment(appointment.id, professionalId === 'none' ? '' : professionalId);
@@ -189,23 +195,13 @@ const AppointmentCard: React.FC<AppointmentCardProps> = ({
 
             {/* Professional Assignment */}
             <div className="mb-4">
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 mb-2">
                 <User className="text-salon-gold" size={16} />
                 <div className="flex-1">
                   {appointment.profissional ? (
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-white font-medium">{appointment.profissional.nome}</p>
-                        <p className="text-salon-copper text-sm">{appointment.profissional.email}</p>
-                      </div>
-                      <Button
-                        onClick={() => setSelectedProfessional('none')}
-                        variant="ghost"
-                        size="sm"
-                        className="text-salon-gold hover:bg-salon-gold/10"
-                      >
-                        <X size={16} />
-                      </Button>
+                    <div>
+                      <p className="text-white font-medium">{appointment.profissional.nome}</p>
+                      <p className="text-salon-copper text-sm">{appointment.profissional.email}</p>
                     </div>
                   ) : (
                     <p className="text-salon-copper">Nenhum profissional atribuído</p>
