@@ -53,6 +53,7 @@ export type Database = {
           qr_code_data: string | null
           servico_id: string
           status: string
+          status_cobranca: string | null
           status_pagamento: string | null
           transaction_id: string | null
           updated_at: string
@@ -72,6 +73,7 @@ export type Database = {
           qr_code_data?: string | null
           servico_id: string
           status?: string
+          status_cobranca?: string | null
           status_pagamento?: string | null
           transaction_id?: string | null
           updated_at?: string
@@ -91,6 +93,7 @@ export type Database = {
           qr_code_data?: string | null
           servico_id?: string
           status?: string
+          status_cobranca?: string | null
           status_pagamento?: string | null
           transaction_id?: string | null
           updated_at?: string

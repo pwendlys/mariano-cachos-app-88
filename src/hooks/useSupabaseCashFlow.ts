@@ -2,19 +2,70 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import type { Tables } from '@/integrations/supabase/types';
 
-export type CashFlowEntry = Tables<'fluxo_caixa'>;
+export interface CashFlowEntry {
+  id: string;
+  data: string;
+  tipo: 'entrada' | 'saida';
+  categoria: string;
+  descricao: string;
+  valor: number;
+  origem_tipo: string | null;
+  origem_id: string | null;
+  cliente_nome: string | null;
+  profissional_nome: string | null;
+  metadata: any;
+  created_at: string;
+  updated_at: string;
+}
 
 export interface CashFlowFilters {
-  startDate?: Date;
-  endDate?: Date;
-  filterType: 'all' | 'entrada' | 'saida';
+  startDate?: string;
+  endDate?: string;
+  filterType: 'all' | 'entrada' | 'saida' | 'today' | 'week' | 'month';
+}
+
+export interface Client {
+  id: string;
+  nome: string;
+  email: string;
+}
+
+export interface Professional {
+  id: string;
+  nome: string;
+  email: string;
+}
+
+export interface AppointmentWithDetails {
+  id: string;
+  data: string;
+  horario: string;
+  status: string;
+  status_cobranca: string;
+  valor: number | null;
+  cliente: {
+    id: string;
+    nome: string;
+    email: string;
+  } | null;
+  servico: {
+    id: string;
+    nome: string;
+    preco: number;
+  } | null;
+  profissional: {
+    id: string;
+    nome: string;
+  } | null;
 }
 
 export const useSupabaseCashFlow = () => {
   const [entries, setEntries] = useState<CashFlowEntry[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [clients, setClients] = useState<Client[]>([]);
+  const [professionals, setProfessionals] = useState<Professional[]>([]);
+  const [appointments, setAppointments] = useState<AppointmentWithDetails[]>([]);
+  const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
   const fetchEntries = async (filters?: CashFlowFilters) => {
@@ -26,183 +77,173 @@ export const useSupabaseCashFlow = () => {
         .order('data', { ascending: false })
         .order('created_at', { ascending: false });
 
-      // Apply filters
-      if (filters?.filterType && filters.filterType !== 'all') {
-        query = query.eq('tipo', filters.filterType);
-      }
-
       if (filters?.startDate) {
-        query = query.gte('data', filters.startDate.toISOString().split('T')[0]);
+        query = query.gte('data', filters.startDate);
       }
 
       if (filters?.endDate) {
-        query = query.lte('data', filters.endDate.toISOString().split('T')[0]);
+        query = query.lte('data', filters.endDate);
+      }
+
+      if (filters?.filterType && filters.filterType !== 'all') {
+        if (filters.filterType === 'entrada' || filters.filterType === 'saida') {
+          query = query.eq('tipo', filters.filterType);
+        } else if (filters.filterType === 'today') {
+          const today = new Date().toISOString().split('T')[0];
+          query = query.eq('data', today);
+        } else if (filters.filterType === 'week') {
+          const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+          query = query.gte('data', weekAgo);
+        } else if (filters.filterType === 'month') {
+          const monthAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+          query = query.gte('data', monthAgo);
+        }
       }
 
       const { data, error } = await query;
 
-      if (error) {
-        console.error('Error fetching cash flow entries:', error);
-        toast({
-          title: "Erro ao carregar dados",
-          description: "Não foi possível carregar os lançamentos do fluxo de caixa.",
-          variant: "destructive"
-        });
-        return;
-      }
-
+      if (error) throw error;
       setEntries(data || []);
     } catch (error) {
-      console.error('Error in fetchEntries:', error);
+      console.error('Erro ao buscar entradas:', error);
       toast({
-        title: "Erro interno",
-        description: "Ocorreu um erro inesperado ao carregar os dados.",
-        variant: "destructive"
+        title: "Erro",
+        description: "Não foi possível carregar o fluxo de caixa",
+        variant: "destructive",
       });
     } finally {
       setLoading(false);
     }
   };
 
+  const fetchClients = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('clientes')
+        .select('id, nome, email')
+        .order('nome');
+
+      if (error) throw error;
+      setClients(data || []);
+    } catch (error) {
+      console.error('Erro ao buscar clientes:', error);
+    }
+  };
+
+  const fetchProfessionals = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('profissionais')
+        .select('id, nome, email')
+        .eq('ativo', true)
+        .order('nome');
+
+      if (error) throw error;
+      setProfessionals(data || []);
+    } catch (error) {
+      console.error('Erro ao buscar profissionais:', error);
+    }
+  };
+
+  const fetchAppointments = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('agendamentos')
+        .select(`
+          id,
+          data,
+          horario,
+          status,
+          status_cobranca,
+          valor,
+          cliente:clientes(id, nome, email),
+          servico:servicos(id, nome, preco),
+          profissional:profissionais(id, nome)
+        `)
+        .in('status', ['confirmado', 'concluido'])
+        .order('data', { ascending: false })
+        .order('horario', { ascending: false });
+
+      if (error) throw error;
+      setAppointments((data || []) as AppointmentWithDetails[]);
+    } catch (error) {
+      console.error('Erro ao buscar agendamentos:', error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível carregar os agendamentos",
+        variant: "destructive",
+      });
+    }
+  };
+
   const addEntry = async (entryData: Omit<CashFlowEntry, 'id' | 'created_at' | 'updated_at'>) => {
-    try {
-      const { data, error } = await supabase
-        .from('fluxo_caixa')
-        .insert(entryData)
-        .select()
-        .single();
-
-      if (error) {
-        console.error('Error adding cash flow entry:', error);
-        toast({
-          title: "Erro ao adicionar lançamento",
-          description: "Não foi possível adicionar o lançamento.",
-          variant: "destructive"
-        });
-        return null;
-      }
-
-      toast({
-        title: "Lançamento adicionado!",
-        description: "O registro foi criado com sucesso.",
-      });
-
-      return data;
-    } catch (error) {
-      console.error('Error in addEntry:', error);
-      toast({
-        title: "Erro interno",
-        description: "Ocorreu um erro inesperado ao adicionar o lançamento.",
-        variant: "destructive"
-      });
-      return null;
-    }
-  };
-
-  const updateEntry = async (id: string, updates: Partial<CashFlowEntry>) => {
-    try {
-      const { data, error } = await supabase
-        .from('fluxo_caixa')
-        .update(updates)
-        .eq('id', id)
-        .select()
-        .single();
-
-      if (error) {
-        console.error('Error updating cash flow entry:', error);
-        toast({
-          title: "Erro ao atualizar lançamento",
-          description: "Não foi possível atualizar o lançamento.",
-          variant: "destructive"
-        });
-        return null;
-      }
-
-      toast({
-        title: "Lançamento atualizado!",
-        description: "O registro foi atualizado com sucesso.",
-      });
-
-      return data;
-    } catch (error) {
-      console.error('Error in updateEntry:', error);
-      toast({
-        title: "Erro interno",
-        description: "Ocorreu um erro inesperado ao atualizar o lançamento.",
-        variant: "destructive"
-      });
-      return null;
-    }
-  };
-
-  const deleteEntry = async (id: string) => {
     try {
       const { error } = await supabase
         .from('fluxo_caixa')
-        .delete()
-        .eq('id', id);
+        .insert([entryData]);
 
-      if (error) {
-        console.error('Error deleting cash flow entry:', error);
-        toast({
-          title: "Erro ao excluir lançamento",
-          description: "Não foi possível excluir o lançamento.",
-          variant: "destructive"
-        });
-        return false;
-      }
+      if (error) throw error;
 
       toast({
-        title: "Lançamento removido",
-        description: "O registro foi excluído do sistema.",
+        title: "Lançamento criado!",
+        description: "O lançamento foi adicionado com sucesso.",
       });
 
       return true;
     } catch (error) {
-      console.error('Error in deleteEntry:', error);
+      console.error('Erro ao criar lançamento:', error);
       toast({
-        title: "Erro interno",
-        description: "Ocorreu um erro inesperado ao excluir o lançamento.",
-        variant: "destructive"
+        title: "Erro",
+        description: "Não foi possível criar o lançamento",
+        variant: "destructive",
       });
-      return false;
+      throw error;
     }
   };
 
-  // Set up real-time subscription
-  useEffect(() => {
-    const channel = supabase
-      .channel('cash-flow-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'fluxo_caixa'
-        },
-        (payload) => {
-          console.log('Cash flow real-time update:', payload);
-          // Refresh data when changes occur
-          fetchEntries();
-        }
-      )
-      .subscribe();
+  const updateAppointmentCollectionStatus = async (appointmentId: string, status: 'pendente' | 'cobrado' | 'pago') => {
+    try {
+      const { error } = await supabase
+        .from('agendamentos')
+        .update({ status_cobranca: status })
+        .eq('id', appointmentId);
 
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, []);
+      if (error) throw error;
+
+      toast({
+        title: "Status atualizado!",
+        description: "O status de cobrança foi atualizado com sucesso.",
+      });
+
+      await fetchAppointments();
+      return true;
+    } catch (error) {
+      console.error('Erro ao atualizar status de cobrança:', error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível atualizar o status",
+        variant: "destructive",
+      });
+      throw error;
+    }
+  };
 
   useEffect(() => {
     fetchEntries();
+    fetchClients();
+    fetchProfessionals();
+    fetchAppointments();
   }, []);
 
   return {
     entries,
+    clients,
+    professionals,
+    appointments,
     loading,
     fetchEntries,
     addEntry,
-    updateEntry,
-    deleteEntry
+    updateAppointmentCollectionStatus,
+    fetchAppointments
   };
 };
