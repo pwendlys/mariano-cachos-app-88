@@ -163,9 +163,9 @@ export const useSupabaseCashFlow = () => {
           status,
           status_cobranca,
           valor,
+          profissional_id,
           cliente:clientes(id, nome, email),
-          servico:servicos(id, nome, preco),
-          profissional:profissionais!agendamentos_profissional_id_fkey(id, nome)
+          servico:servicos(id, nome, preco)
         `)
         .in('status', ['confirmado', 'concluido'])
         .order('data', { ascending: false })
@@ -173,7 +173,19 @@ export const useSupabaseCashFlow = () => {
 
       if (error) throw error;
       
-      // Handle potential null values and type properly
+      // Get all professionals for lookup
+      const { data: professionalsData, error: profError } = await supabase
+        .from('profissionais')
+        .select('id, nome');
+
+      if (profError) throw profError;
+
+      // Create a map for quick lookup
+      const professionalsMap = new Map(
+        professionalsData?.map(p => [p.id, { id: p.id, nome: p.nome }]) || []
+      );
+      
+      // Map the data with proper professional information
       const typedAppointments: AppointmentWithDetails[] = (data || []).map(appointment => ({
         id: appointment.id,
         data: appointment.data,
@@ -183,7 +195,7 @@ export const useSupabaseCashFlow = () => {
         valor: appointment.valor,
         cliente: appointment.cliente,
         servico: appointment.servico,
-        profissional: appointment.profissional
+        profissional: appointment.profissional_id ? professionalsMap.get(appointment.profissional_id) || null : null
       }));
       
       setAppointments(typedAppointments);
