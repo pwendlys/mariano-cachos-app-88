@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -129,11 +128,12 @@ export const useAppointments = () => {
     }
   };
 
-  const handleValueUpdate = async (appointmentId: string, newValue: number) => {
+  const handleValueUpdate = async (appointmentId: string, newValue: number): Promise<boolean> => {
     const success = await appointmentActions.handleValueUpdate(appointmentId, newValue);
     if (success) {
       fetchAppointments(selectedDate);
     }
+    return success;
   };
 
   useEffect(() => {
