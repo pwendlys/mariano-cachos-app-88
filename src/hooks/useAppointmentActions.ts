@@ -9,14 +9,51 @@ export const useAppointmentActions = () => {
     try {
       console.log(`Updating appointment ${appointmentId} to status: ${newStatus}`);
       
-      const { error } = await supabase
-        .from('agendamentos')
-        .update({ status: newStatus, updated_at: new Date().toISOString() })
-        .eq('id', appointmentId);
+      // Para agendamentos sendo marcados como concluído, garantir que têm valor
+      if (newStatus === 'concluido') {
+        // Primeiro buscar o agendamento atual para verificar se tem valor
+        const { data: currentAppointment, error: fetchError } = await supabase
+          .from('agendamentos')
+          .select('*, servicos(preco)')
+          .eq('id', appointmentId)
+          .single();
 
-      if (error) {
-        console.error('Status update error:', error);
-        throw error;
+        if (fetchError) {
+          console.error('Error fetching appointment:', fetchError);
+          throw fetchError;
+        }
+
+        // Se não tem valor, usar o preço do serviço
+        let updateData: any = { 
+          status: newStatus, 
+          updated_at: new Date().toISOString() 
+        };
+
+        if (!currentAppointment.valor && currentAppointment.servicos?.preco) {
+          updateData.valor = currentAppointment.servicos.preco;
+          console.log(`Setting appointment value to service price: ${currentAppointment.servicos.preco}`);
+        }
+
+        const { error } = await supabase
+          .from('agendamentos')
+          .update(updateData)
+          .eq('id', appointmentId);
+
+        if (error) {
+          console.error('Status update error:', error);
+          throw error;
+        }
+      } else {
+        // Para outros status, atualização normal
+        const { error } = await supabase
+          .from('agendamentos')
+          .update({ status: newStatus, updated_at: new Date().toISOString() })
+          .eq('id', appointmentId);
+
+        if (error) {
+          console.error('Status update error:', error);
+          throw error;
+        }
       }
 
       const statusLabels = {

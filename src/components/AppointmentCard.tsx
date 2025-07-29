@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Clock, User, Calendar, Edit2, Save, X, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -142,6 +141,10 @@ const AppointmentCard: React.FC<AppointmentCardProps> = ({
     return timeString.slice(0, 5);
   };
 
+  // Permitir edição se não estiver concluído
+  const canEdit = appointment.status !== 'concluido';
+  const canEditDateTime = canEdit;
+
   return (
     <Card className="glass-card border-salon-gold/20 hover:border-salon-gold/40 transition-colors">
       <CardContent className="p-6">
@@ -221,24 +224,26 @@ const AppointmentCard: React.FC<AppointmentCardProps> = ({
                 </div>
               </div>
               
-              <div className="mt-2">
-                <Select value={selectedProfessional} onValueChange={handleProfessionalChange}>
-                  <SelectTrigger className="glass-card border-salon-gold/30 bg-transparent text-white">
-                    <SelectValue placeholder="Selecionar profissional" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-salon-dark border-salon-gold/30">
-                    <SelectItem value="none">Nenhum profissional</SelectItem>
-                    {activeProfessionals.map((professional) => (
-                      <SelectItem key={professional.id} value={professional.id}>
-                        <div className="flex flex-col">
-                          <span className="text-white">{professional.nome}</span>
-                          <span className="text-salon-copper text-sm">{professional.email}</span>
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              {canEdit && (
+                <div className="mt-2">
+                  <Select value={selectedProfessional} onValueChange={handleProfessionalChange}>
+                    <SelectTrigger className="glass-card border-salon-gold/30 bg-transparent text-white">
+                      <SelectValue placeholder="Selecionar profissional" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-salon-dark border-salon-gold/30">
+                      <SelectItem value="none">Nenhum profissional</SelectItem>
+                      {activeProfessionals.map((professional) => (
+                        <SelectItem key={professional.id} value={professional.id}>
+                          <div className="flex flex-col">
+                            <span className="text-white">{professional.nome}</span>
+                            <span className="text-salon-copper text-sm">{professional.email}</span>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
             </div>
 
             {appointment.observacoes && (
@@ -254,15 +259,17 @@ const AppointmentCard: React.FC<AppointmentCardProps> = ({
           <div className="flex flex-col gap-2 lg:w-48">
             {!isEditing ? (
               <>
-                <Button
-                  onClick={() => setIsEditing(true)}
-                  variant="outline"
-                  size="sm"
-                  className="border-salon-gold/30 text-salon-gold hover:bg-salon-gold/10"
-                >
-                  <Edit2 size={16} className="mr-2" />
-                  Editar Data/Hora
-                </Button>
+                {canEditDateTime && (
+                  <Button
+                    onClick={() => setIsEditing(true)}
+                    variant="outline"
+                    size="sm"
+                    className="border-salon-gold/30 text-salon-gold hover:bg-salon-gold/10"
+                  >
+                    <Edit2 size={16} className="mr-2" />
+                    Editar Data/Hora
+                  </Button>
+                )}
                 
                 <Select value={appointment.status} onValueChange={handleStatusChange}>
                   <SelectTrigger className="glass-card border-salon-gold/30 bg-transparent text-white">
