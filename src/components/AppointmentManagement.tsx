@@ -51,11 +51,16 @@ const AppointmentManagement = () => {
     }
   };
 
-  // Fix: Use a non-empty value for "all" status
+  // Fix: Ensure we never pass empty string as value
   const handleStatusFilterChange = (value: string) => {
     // Use "all" instead of empty string, then convert to null
     const statusValue = value === 'all' ? null : value;
     handleStatusFilter(statusValue);
+  };
+
+  // Fix: Get current select value, ensuring it's never empty string
+  const getCurrentStatusValue = () => {
+    return selectedStatus || 'all';
   };
 
   if (loading) {
@@ -171,7 +176,7 @@ const AppointmentManagement = () => {
               
               <div className="space-y-2">
                 <label className="text-sm font-medium text-white">Status</label>
-                <Select value={selectedStatus || 'all'} onValueChange={handleStatusFilterChange}>
+                <Select value={getCurrentStatusValue()} onValueChange={handleStatusFilterChange}>
                   <SelectTrigger className="glass-card border-salon-gold/30 bg-transparent text-white">
                     <SelectValue placeholder="Todos os status" />
                   </SelectTrigger>

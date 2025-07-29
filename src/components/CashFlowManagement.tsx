@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Plus, TrendingUp, TrendingDown, DollarSign, Eye, Filter, Calendar, CreditCard } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -221,12 +222,12 @@ const CashFlowManagement = () => {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium mb-2">Cliente</label>
-                  <Select value={formData.cliente_id} onValueChange={(value) => setFormData({...formData, cliente_id: value})}>
+                  <Select value={formData.cliente_id || 'none'} onValueChange={(value) => setFormData({...formData, cliente_id: value === 'none' ? '' : value})}>
                     <SelectTrigger className="glass-card border-salon-gold/30 bg-transparent text-white">
                       <SelectValue placeholder="Selecione um cliente" />
                     </SelectTrigger>
                     <SelectContent className="glass-card border-salon-gold/30">
-                      <SelectItem value="">Nenhum cliente</SelectItem>
+                      <SelectItem value="none">Nenhum cliente</SelectItem>
                       {clients.map((client) => (
                         <SelectItem key={client.id} value={client.id}>
                           {client.nome}
@@ -237,12 +238,12 @@ const CashFlowManagement = () => {
                 </div>
                 <div>
                   <label className="block text-sm font-medium mb-2">Profissional</label>
-                  <Select value={formData.profissional_id} onValueChange={(value) => setFormData({...formData, profissional_id: value})}>
+                  <Select value={formData.profissional_id || 'none'} onValueChange={(value) => setFormData({...formData, profissional_id: value === 'none' ? '' : value})}>
                     <SelectTrigger className="glass-card border-salon-gold/30 bg-transparent text-white">
                       <SelectValue placeholder="Selecione um profissional" />
                     </SelectTrigger>
                     <SelectContent className="glass-card border-salon-gold/30">
-                      <SelectItem value="">Nenhum profissional</SelectItem>
+                      <SelectItem value="none">Nenhum profissional</SelectItem>
                       {professionals.map((professional) => (
                         <SelectItem key={professional.id} value={professional.id}>
                           {professional.nome}
