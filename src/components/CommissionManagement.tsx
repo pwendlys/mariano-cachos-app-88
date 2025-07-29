@@ -1,17 +1,15 @@
-
 import React, { useState } from 'react';
 import { Plus, Edit2, Trash2, Save, X, Calculator, TrendingUp, TrendingDown, DollarSign } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Select, SelectContent, SelectTrigger, SelectValue, SelectItem } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { useSupabaseCommissions } from '@/hooks/useSupabaseCommissions';
 import { useSupabaseProfessionals } from '@/hooks/useSupabaseProfessionals';
 import { format } from 'date-fns';
-import SelectDebugger from './SelectDebugger';
 
 const CommissionManagement = () => {
   const { commissions, loading, fetchCommissions, addCommission, updateCommission, deleteCommission } = useSupabaseCommissions();
@@ -150,9 +148,9 @@ const CommissionManagement = () => {
                   </SelectTrigger>
                   <SelectContent className="glass-card border-salon-gold/30">
                     {activeProfessionals.map((professional) => (
-                      <SelectDebugger key={professional.id} value={professional.id}>
+                      <SelectItem key={professional.id} value={professional.id}>
                         {professional.nome}
-                      </SelectDebugger>
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -165,9 +163,9 @@ const CommissionManagement = () => {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent className="glass-card border-salon-gold/30">
-                    <SelectDebugger value="manual">Manual</SelectDebugger>
-                    <SelectDebugger value="agendamento">Agendamento</SelectDebugger>
-                    <SelectDebugger value="venda">Venda</SelectDebugger>
+                    <SelectItem value="manual">Manual</SelectItem>
+                    <SelectItem value="agendamento">Agendamento</SelectItem>
+                    <SelectItem value="venda">Venda</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
