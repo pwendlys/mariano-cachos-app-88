@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Calendar, Filter, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -20,7 +19,8 @@ const AppointmentManagement = () => {
     handleStatusFilter,
     handleStatusChange,
     handleProfessionalAssignment,
-    handleDateTimeUpdate
+    handleDateTimeUpdate,
+    handleValueUpdate
   } = useAppointments();
 
   const { professionals } = useSupabaseProfessionals();
@@ -51,14 +51,11 @@ const AppointmentManagement = () => {
     }
   };
 
-  // Fix: Ensure we never pass empty string as value
   const handleStatusFilterChange = (value: string) => {
-    // Use "all" instead of empty string, then convert to null
     const statusValue = value === 'all' ? null : value;
     handleStatusFilter(statusValue);
   };
 
-  // Fix: Get current select value, ensuring it's never empty string
   const getCurrentStatusValue = () => {
     return selectedStatus || 'all';
   };
@@ -263,6 +260,7 @@ const AppointmentManagement = () => {
               onStatusChange={handleStatusChange}
               onDateTimeUpdate={handleDateTimeUpdate}
               onProfessionalAssignment={handleProfessionalAssignment}
+              onValueUpdate={handleValueUpdate}
             />
           ))
         )}

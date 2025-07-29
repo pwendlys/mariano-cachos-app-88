@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useAppointmentActions } from './useAppointmentActions';
 
 interface Appointment {
   id: string;
@@ -35,12 +36,13 @@ export const useAppointments = () => {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedStatus, setSelectedStatus] = useState<string | null>(null);
   const { toast } = useToast();
+  const appointmentActions = useAppointmentActions();
 
   const fetchAppointments = async (filterDate?: Date | null) => {
     try {
       setLoading(true);
+      console.log('Fetching appointments with date filter:', filterDate);
       
-      // Get appointments with cliente and servico relations
       let query = supabase
         .from('agendamentos')
         .select(`
@@ -49,7 +51,6 @@ export const useAppointments = () => {
           servico:servicos(nome, categoria)
         `);
 
-      // Apply date filter if provided
       if (filterDate) {
         const formattedDate = filterDate.toISOString().split('T')[0];
         query = query.eq('data', formattedDate);
@@ -59,26 +60,30 @@ export const useAppointments = () => {
         .order('data', { ascending: true })
         .order('horario', { ascending: true });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Fetch appointments error:', error);
+        throw error;
+      }
 
-      // Get all professionals
       const { data: profissionaisData, error: profError } = await supabase
         .from('profissionais')
         .select('id, nome, email');
 
-      if (profError) throw profError;
+      if (profError) {
+        console.error('Fetch professionals error:', profError);
+        throw profError;
+      }
 
-      // Create a map for quick lookup
       const profissionaisMap = new Map(
         profissionaisData?.map(p => [p.id, { nome: p.nome, email: p.email }]) || []
       );
 
-      // Combine data manually
       const appointmentsWithDetails: Appointment[] = (appointmentsData || []).map(appointment => ({
         ...appointment,
         profissional: appointment.profissional_id ? profissionaisMap.get(appointment.profissional_id) : undefined
       }));
 
+      console.log('Fetched appointments:', appointmentsWithDetails.length);
       setAppointments(appointmentsWithDetails);
     } catch (error) {
       console.error('Erro ao buscar agendamentos:', error);
@@ -93,99 +98,41 @@ export const useAppointments = () => {
   };
 
   const handleDateChange = (date: Date | null) => {
+    console.log('Date filter changed:', date);
     setSelectedDate(date);
     fetchAppointments(date);
   };
 
   const handleStatusFilter = (status: string | null) => {
+    console.log('Status filter changed:', status);
     setSelectedStatus(status);
   };
 
   const handleStatusChange = async (appointmentId: string, newStatus: string) => {
-    try {
-      const { error } = await supabase
-        .from('agendamentos')
-        .update({ status: newStatus })
-        .eq('id', appointmentId);
-
-      if (error) throw error;
-
-      const statusLabels = {
-        pendente: 'aguardando',
-        confirmado: 'confirmado',
-        concluido: 'concluído',
-        rejeitado: 'rejeitado'
-      };
-
-      toast({
-        title: "Status atualizado",
-        description: `Agendamento marcado como ${statusLabels[newStatus as keyof typeof statusLabels]}`,
-      });
-      
+    const success = await appointmentActions.handleStatusChange(appointmentId, newStatus);
+    if (success) {
       fetchAppointments(selectedDate);
-    } catch (error) {
-      console.error('Erro ao atualizar status:', error);
-      toast({
-        title: "Erro",
-        description: "Não foi possível atualizar o status do agendamento",
-        variant: "destructive",
-      });
     }
   };
 
   const handleProfessionalAssignment = async (appointmentId: string, professionalId: string) => {
-    try {
-      const { error } = await supabase
-        .from('agendamentos')
-        .update({ profissional_id: professionalId || null })
-        .eq('id', appointmentId);
-
-      if (error) throw error;
-
-      toast({
-        title: "Profissional atribuído",
-        description: professionalId 
-          ? "O profissional foi atribuído ao agendamento com sucesso"
-          : "O profissional foi removido do agendamento",
-      });
-      
+    const success = await appointmentActions.handleProfessionalAssignment(appointmentId, professionalId);
+    if (success) {
       fetchAppointments(selectedDate);
-    } catch (error) {
-      console.error('Erro ao atribuir profissional:', error);
-      toast({
-        title: "Erro",
-        description: "Não foi possível atribuir o profissional",
-        variant: "destructive",
-      });
     }
   };
 
   const handleDateTimeUpdate = async (appointmentId: string, newDate: string, newTime: string) => {
-    try {
-      const { error } = await supabase
-        .from('agendamentos')
-        .update({ 
-          data: newDate,
-          horario: newTime,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', appointmentId);
-
-      if (error) throw error;
-
-      toast({
-        title: "Agendamento atualizado",
-        description: `Data e horário alterados com sucesso`,
-      });
-      
+    const success = await appointmentActions.handleDateTimeUpdate(appointmentId, newDate, newTime);
+    if (success) {
       fetchAppointments(selectedDate);
-    } catch (error) {
-      console.error('Erro ao atualizar data/horário:', error);
-      toast({
-        title: "Erro",
-        description: "Não foi possível atualizar a data e horário do agendamento",
-        variant: "destructive",
-      });
+    }
+  };
+
+  const handleValueUpdate = async (appointmentId: string, newValue: number) => {
+    const success = await appointmentActions.handleValueUpdate(appointmentId, newValue);
+    if (success) {
+      fetchAppointments(selectedDate);
     }
   };
 
@@ -203,6 +150,7 @@ export const useAppointments = () => {
     handleStatusFilter,
     handleStatusChange,
     handleProfessionalAssignment,
-    handleDateTimeUpdate
+    handleDateTimeUpdate,
+    handleValueUpdate
   };
 };

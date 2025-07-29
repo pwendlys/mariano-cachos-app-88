@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import AppointmentValueEditor from './AppointmentValueEditor';
 
 interface Professional {
   id: string;
@@ -52,6 +53,7 @@ interface AppointmentCardProps {
   onStatusChange: (appointmentId: string, newStatus: string) => void;
   onDateTimeUpdate: (appointmentId: string, newDate: string, newTime: string) => void;
   onProfessionalAssignment: (appointmentId: string, professionalId: string) => void;
+  onValueUpdate: (appointmentId: string, newValue: number) => Promise<boolean>;
 }
 
 const AppointmentCard: React.FC<AppointmentCardProps> = ({
@@ -59,21 +61,22 @@ const AppointmentCard: React.FC<AppointmentCardProps> = ({
   professionals,
   onStatusChange,
   onDateTimeUpdate,
-  onProfessionalAssignment
+  onProfessionalAssignment,
+  onValueUpdate
 }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editDate, setEditDate] = useState(appointment.data);
   const [editTime, setEditTime] = useState(appointment.horario);
   
-  // Fix: Ensure empty string or null/undefined values are converted to 'none'
   const [selectedProfessional, setSelectedProfessional] = useState(() => {
     const profId = appointment.profissional_id;
     return (!profId || profId.trim() === '') ? 'none' : profId;
   });
 
-  const handleSaveDateTime = () => {
+  const handleSaveDateTime = async () => {
     if (editDate && editTime) {
-      onDateTimeUpdate(appointment.id, editDate, editTime);
+      console.log(`Saving datetime for appointment ${appointment.id}: ${editDate} ${editTime}`);
+      await onDateTimeUpdate(appointment.id, editDate, editTime);
       setIsEditing(false);
     }
   };
@@ -87,8 +90,17 @@ const AppointmentCard: React.FC<AppointmentCardProps> = ({
   const handleProfessionalChange = (professionalId: string) => {
     console.log('Professional change:', professionalId);
     setSelectedProfessional(professionalId);
-    // Convert 'none' back to empty string for the backend
     onProfessionalAssignment(appointment.id, professionalId === 'none' ? '' : professionalId);
+  };
+
+  const handleStatusChange = (newStatus: string) => {
+    console.log(`Status change for appointment ${appointment.id}: ${newStatus}`);
+    onStatusChange(appointment.id, newStatus);
+  };
+
+  const handleValueSave = async (newValue: number) => {
+    console.log(`Value update for appointment ${appointment.id}: ${newValue}`);
+    return await onValueUpdate(appointment.id, newValue);
   };
 
   const activeProfessionals = professionals.filter(prof => prof.ativo);
@@ -127,14 +139,13 @@ const AppointmentCard: React.FC<AppointmentCardProps> = ({
   };
 
   const formatTime = (timeString: string) => {
-    return timeString.slice(0, 5); // Remove seconds if present
+    return timeString.slice(0, 5);
   };
 
   return (
     <Card className="glass-card border-salon-gold/20 hover:border-salon-gold/40 transition-colors">
       <CardContent className="p-6">
         <div className="flex flex-col lg:flex-row gap-6">
-          {/* Main Info */}
           <div className="flex-1">
             <div className="flex items-start justify-between mb-4">
               <div>
@@ -143,14 +154,16 @@ const AppointmentCard: React.FC<AppointmentCardProps> = ({
                 </h3>
                 <p className="text-salon-copper text-sm">{appointment.servico.categoria}</p>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-3">
                 <Badge className={getStatusColor(appointment.status)}>
                   {getStatusIcon(appointment.status)}
                   <span className="ml-2 capitalize">{appointment.status}</span>
                 </Badge>
-                <span className="text-lg font-bold text-salon-gold">
-                  R$ {appointment.valor.toFixed(2)}
-                </span>
+                <AppointmentValueEditor
+                  currentValue={appointment.valor}
+                  onSave={handleValueSave}
+                  status={appointment.status}
+                />
               </div>
             </div>
 
@@ -193,7 +206,6 @@ const AppointmentCard: React.FC<AppointmentCardProps> = ({
               </div>
             </div>
 
-            {/* Professional Assignment */}
             <div className="mb-4">
               <div className="flex items-center gap-3 mb-2">
                 <User className="text-salon-gold" size={16} />
@@ -239,7 +251,6 @@ const AppointmentCard: React.FC<AppointmentCardProps> = ({
             )}
           </div>
 
-          {/* Actions */}
           <div className="flex flex-col gap-2 lg:w-48">
             {!isEditing ? (
               <>
@@ -253,7 +264,7 @@ const AppointmentCard: React.FC<AppointmentCardProps> = ({
                   Editar Data/Hora
                 </Button>
                 
-                <Select value={appointment.status} onValueChange={(value) => onStatusChange(appointment.id, value)}>
+                <Select value={appointment.status} onValueChange={handleStatusChange}>
                   <SelectTrigger className="glass-card border-salon-gold/30 bg-transparent text-white">
                     <SelectValue />
                   </SelectTrigger>
