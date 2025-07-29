@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Plus, TrendingUp, TrendingDown, DollarSign, Eye, Filter, Calendar, CreditCard } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -285,7 +284,6 @@ const CashFlowManagement = () => {
         </Dialog>
       </div>
 
-      {/* Statistics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card className="glass-card border-green-500/20">
           <CardContent className="p-4">
@@ -330,7 +328,6 @@ const CashFlowManagement = () => {
         </Card>
       </div>
 
-      {/* Tabs for different views */}
       <Tabs defaultValue="cashflow" className="w-full">
         <TabsList className="grid w-full grid-cols-3 glass-card border-salon-gold/30">
           <TabsTrigger value="cashflow" className="data-[state=active]:bg-salon-gold data-[state=active]:text-salon-dark">
@@ -348,7 +345,6 @@ const CashFlowManagement = () => {
         </TabsList>
 
         <TabsContent value="cashflow" className="space-y-6">
-          {/* Filters */}
           <CashFlowFilters
             startDate={filters.startDate}
             endDate={filters.endDate}
@@ -359,7 +355,6 @@ const CashFlowManagement = () => {
             onClearFilters={() => handleFilterChange({ filterType: 'all' })}
           />
 
-          {/* Entries List */}
           <div className="space-y-4">
             {entries.length === 0 ? (
               <Card className="glass-card border-salon-gold/20">
@@ -448,7 +443,6 @@ const CashFlowManagement = () => {
         </TabsContent>
       </Tabs>
 
-      {/* Details Dialog */}
       <Dialog open={isDetailsDialogOpen} onOpenChange={setIsDetailsDialogOpen}>
         <DialogContent className="glass-card border-salon-gold/30 text-white max-w-md">
           <DialogHeader>

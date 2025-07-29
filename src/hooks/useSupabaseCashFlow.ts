@@ -103,7 +103,14 @@ export const useSupabaseCashFlow = () => {
       const { data, error } = await query;
 
       if (error) throw error;
-      setEntries(data || []);
+      
+      // Type assertion with proper validation
+      const typedEntries: CashFlowEntry[] = (data || []).map(entry => ({
+        ...entry,
+        tipo: entry.tipo as 'entrada' | 'saida' // Safe type assertion
+      }));
+      
+      setEntries(typedEntries);
     } catch (error) {
       console.error('Erro ao buscar entradas:', error);
       toast({
@@ -158,14 +165,28 @@ export const useSupabaseCashFlow = () => {
           valor,
           cliente:clientes(id, nome, email),
           servico:servicos(id, nome, preco),
-          profissional:profissionais(id, nome)
+          profissional:profissionais!agendamentos_profissional_id_fkey(id, nome)
         `)
         .in('status', ['confirmado', 'concluido'])
         .order('data', { ascending: false })
         .order('horario', { ascending: false });
 
       if (error) throw error;
-      setAppointments((data || []) as AppointmentWithDetails[]);
+      
+      // Handle potential null values and type properly
+      const typedAppointments: AppointmentWithDetails[] = (data || []).map(appointment => ({
+        id: appointment.id,
+        data: appointment.data,
+        horario: appointment.horario,
+        status: appointment.status,
+        status_cobranca: appointment.status_cobranca,
+        valor: appointment.valor,
+        cliente: appointment.cliente,
+        servico: appointment.servico,
+        profissional: appointment.profissional
+      }));
+      
+      setAppointments(typedAppointments);
     } catch (error) {
       console.error('Erro ao buscar agendamentos:', error);
       toast({

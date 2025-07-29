@@ -3,20 +3,19 @@ import React from 'react';
 import { Calendar, Filter, TrendingUp, TrendingDown, DollarSign } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Select, SelectContent, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
-import SelectDebugger from './SelectDebugger';
 
 interface CashFlowFiltersProps {
-  startDate: Date | undefined;
-  endDate: Date | undefined;
-  onStartDateChange: (date: Date | undefined) => void;
-  onEndDateChange: (date: Date | undefined) => void;
-  filterType: 'all' | 'entrada' | 'saida';
-  onFilterTypeChange: (type: 'all' | 'entrada' | 'saida') => void;
+  startDate?: string;
+  endDate?: string;
+  onStartDateChange: (date: string | undefined) => void;
+  onEndDateChange: (date: string | undefined) => void;
+  filterType: 'all' | 'entrada' | 'saida' | 'today' | 'week' | 'month';
+  onFilterTypeChange: (type: 'all' | 'entrada' | 'saida' | 'today' | 'week' | 'month') => void;
   onClearFilters: () => void;
 }
 
@@ -33,9 +32,17 @@ const CashFlowFilters: React.FC<CashFlowFiltersProps> = ({
   
   const handleFilterTypeChange = (value: string) => {
     console.log('CashFlowFilters - changing filterType to:', value);
-    if (value === 'all' || value === 'entrada' || value === 'saida') {
-      onFilterTypeChange(value);
+    if (['all', 'entrada', 'saida', 'today', 'week', 'month'].includes(value)) {
+      onFilterTypeChange(value as 'all' | 'entrada' | 'saida' | 'today' | 'week' | 'month');
     }
+  };
+
+  const handleStartDateSelect = (date: Date | undefined) => {
+    onStartDateChange(date ? date.toISOString().split('T')[0] : undefined);
+  };
+
+  const handleEndDateSelect = (date: Date | undefined) => {
+    onEndDateChange(date ? date.toISOString().split('T')[0] : undefined);
   };
 
   return (
@@ -60,14 +67,14 @@ const CashFlowFilters: React.FC<CashFlowFiltersProps> = ({
                   )}
                 >
                   <Calendar size={16} className="mr-2" />
-                  {startDate ? format(startDate, "dd/MM/yyyy") : "Data inicial"}
+                  {startDate ? format(new Date(startDate), "dd/MM/yyyy") : "Data inicial"}
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0 glass-card border-salon-gold/30" align="start">
                 <CalendarComponent
                   mode="single"
-                  selected={startDate}
-                  onSelect={onStartDateChange}
+                  selected={startDate ? new Date(startDate) : undefined}
+                  onSelect={handleStartDateSelect}
                   initialFocus
                   className="pointer-events-auto"
                 />
@@ -87,14 +94,14 @@ const CashFlowFilters: React.FC<CashFlowFiltersProps> = ({
                   )}
                 >
                   <Calendar size={16} className="mr-2" />
-                  {endDate ? format(endDate, "dd/MM/yyyy") : "Data final"}
+                  {endDate ? format(new Date(endDate), "dd/MM/yyyy") : "Data final"}
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0 glass-card border-salon-gold/30" align="start">
                 <CalendarComponent
                   mode="single"
-                  selected={endDate}
-                  onSelect={onEndDateChange}
+                  selected={endDate ? new Date(endDate) : undefined}
+                  onSelect={handleEndDateSelect}
                   initialFocus
                   className="pointer-events-auto"
                 />
@@ -110,24 +117,42 @@ const CashFlowFilters: React.FC<CashFlowFiltersProps> = ({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent className="glass-card border-salon-gold/30">
-                <SelectDebugger value="all">
+                <SelectItem value="all">
                   <div className="flex items-center gap-2">
                     <DollarSign size={16} />
                     <span>Todos</span>
                   </div>
-                </SelectDebugger>
-                <SelectDebugger value="entrada">
+                </SelectItem>
+                <SelectItem value="entrada">
                   <div className="flex items-center gap-2">
                     <TrendingUp size={16} className="text-green-400" />
                     <span>Receitas</span>
                   </div>
-                </SelectDebugger>
-                <SelectDebugger value="saida">
+                </SelectItem>
+                <SelectItem value="saida">
                   <div className="flex items-center gap-2">
                     <TrendingDown size={16} className="text-red-400" />
                     <span>Despesas</span>
                   </div>
-                </SelectDebugger>
+                </SelectItem>
+                <SelectItem value="today">
+                  <div className="flex items-center gap-2">
+                    <Calendar size={16} />
+                    <span>Hoje</span>
+                  </div>
+                </SelectItem>
+                <SelectItem value="week">
+                  <div className="flex items-center gap-2">
+                    <Calendar size={16} />
+                    <span>Esta semana</span>
+                  </div>
+                </SelectItem>
+                <SelectItem value="month">
+                  <div className="flex items-center gap-2">
+                    <Calendar size={16} />
+                    <span>Este mês</span>
+                  </div>
+                </SelectItem>
               </SelectContent>
             </Select>
           </div>
