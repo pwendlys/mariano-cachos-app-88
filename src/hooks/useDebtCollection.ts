@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -46,12 +45,46 @@ export interface Cobranca {
   created_at: string;
 }
 
+export interface SaldoCliente {
+  id: string;
+  cliente_id: string;
+  saldo_devedor: number;
+  total_pago: number;
+  total_servicos: number;
+  total_produtos: number;
+  ultima_atualizacao: string;
+  cliente?: {
+    nome: string;
+    email: string;
+    telefone: string;
+  };
+}
+
 export const useDebtCollection = () => {
   const [devedores, setDevedores] = useState<Devedor[]>([]);
   const [dividas, setDividas] = useState<Divida[]>([]);
   const [cobrancas, setCobrancas] = useState<Cobranca[]>([]);
+  const [saldosClientes, setSaldosClientes] = useState<SaldoCliente[]>([]);
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
+
+  // Carregar saldos dos clientes
+  const fetchSaldosClientes = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('saldos_clientes')
+        .select(`
+          *,
+          cliente:clientes(nome, email, telefone)
+        `)
+        .order('ultima_atualizacao', { ascending: false });
+
+      if (error) throw error;
+      setSaldosClientes((data || []) as SaldoCliente[]);
+    } catch (error) {
+      console.error('Erro ao carregar saldos dos clientes:', error);
+    }
+  };
 
   // Carregar devedores
   const fetchDevedores = async () => {
@@ -90,7 +123,6 @@ export const useDebtCollection = () => {
         .order('data_vencimento', { ascending: false });
 
       if (error) throw error;
-      // Type assertion to ensure proper types
       setDividas((data || []) as Divida[]);
     } catch (error) {
       console.error('Erro ao carregar dívidas:', error);
@@ -114,7 +146,6 @@ export const useDebtCollection = () => {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      // Type assertion to ensure proper types
       setCobrancas((data || []) as Cobranca[]);
     } catch (error) {
       console.error('Erro ao carregar cobranças:', error);
@@ -245,23 +276,41 @@ export const useDebtCollection = () => {
 
   // Calcular totais
   const getTotals = () => {
-    const totalEmAberto = dividas
+    // Totals from dividas table (specific debts)
+    const totalDividasEmAberto = dividas
       .filter(d => d.status === 'em_aberto')
       .reduce((sum, d) => sum + d.valor_atual, 0);
 
-    const totalRecebido = dividas
+    const totalDividasRecebido = dividas
       .filter(d => d.status === 'pago')
       .reduce((sum, d) => sum + d.valor_atual, 0);
 
-    const totalParcelado = dividas
+    const totalDividasParcelado = dividas
       .filter(d => d.status === 'parcelado')
       .reduce((sum, d) => sum + d.valor_atual, 0);
+
+    // Totals from saldos_clientes table (client balances)
+    const totalSaldosDevedor = saldosClientes
+      .reduce((sum, s) => sum + s.saldo_devedor, 0);
+
+    const totalSaldosPago = saldosClientes
+      .reduce((sum, s) => sum + s.total_pago, 0);
+
+    // Combined totals (avoiding duplication by using the higher value for open debts)
+    const totalEmAberto = Math.max(totalDividasEmAberto, totalSaldosDevedor);
+    const totalRecebido = Math.max(totalDividasRecebido, totalSaldosPago);
+    const totalParcelado = totalDividasParcelado;
 
     return {
       totalEmAberto,
       totalRecebido,
       totalParcelado,
-      totalGeral: totalEmAberto + totalRecebido + totalParcelado
+      totalGeral: totalEmAberto + totalRecebido + totalParcelado,
+      // Separate totals for debugging/reporting
+      totalDividasEmAberto,
+      totalSaldosDevedor,
+      totalDividasRecebido,
+      totalSaldosPago
     };
   };
 
@@ -269,12 +318,14 @@ export const useDebtCollection = () => {
     fetchDevedores();
     fetchDividas();
     fetchCobrancas();
+    fetchSaldosClientes();
   }, []);
 
   return {
     devedores,
     dividas,
     cobrancas,
+    saldosClientes,
     loading,
     createDevedor,
     createDivida,
@@ -283,6 +334,7 @@ export const useDebtCollection = () => {
     fetchDevedores,
     fetchDividas,
     fetchCobrancas,
+    fetchSaldosClientes,
     getTotals: getTotals()
   };
 };

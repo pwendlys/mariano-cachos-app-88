@@ -19,7 +19,8 @@ const DebtCollectionManagement = () => {
   const { 
     devedores, 
     dividas, 
-    cobrancas, 
+    cobrancas,
+    saldosClientes,
     loading, 
     createDevedor, 
     createDivida, 
@@ -28,7 +29,7 @@ const DebtCollectionManagement = () => {
     getTotals 
   } = useDebtCollection();
 
-  const { saldosClientes, syncCustomerData } = useCustomerProfiles();
+  const { syncCustomerData } = useCustomerProfiles();
 
   const [isDevedorDialogOpen, setIsDevedorDialogOpen] = useState(false);
   const [isDividaDialogOpen, setIsDividaDialogOpen] = useState(false);
@@ -161,7 +162,7 @@ const DebtCollectionManagement = () => {
     syncCustomerData();
   }, []);
 
-  // Renderizar relatório de clientes em aberto
+  // Renderizar relatório de clientes em aberto - usando saldosClientes para dados mais precisos
   const renderRelatorioAberto = () => {
     const clientesEmAberto = saldosClientes.filter(cliente => cliente.saldo_devedor > 0);
     
@@ -221,7 +222,7 @@ const DebtCollectionManagement = () => {
     );
   };
 
-  // Renderizar relatório de clientes com valores recebidos
+  // Renderizar relatório de clientes com valores recebidos - usando saldosClientes
   const renderRelatorioRecebido = () => {
     const clientesComPagamentos = saldosClientes.filter(cliente => cliente.total_pago > 0);
     
@@ -451,7 +452,7 @@ const DebtCollectionManagement = () => {
         </div>
       </div>
 
-      {/* Cards de Resumo */}
+      {/* Updated Cards de Resumo with the corrected totals */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card 
           className="glass-card border-red-500/20 cursor-pointer hover:border-red-500/40 transition-colors"
@@ -465,7 +466,7 @@ const DebtCollectionManagement = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-white">
-              R$ {saldosClientes.reduce((sum, cliente) => sum + cliente.saldo_devedor, 0).toFixed(2)}
+              R$ {getTotals.totalEmAberto.toFixed(2)}
             </div>
             <p className="text-xs text-muted-foreground mt-1">Clique para ver relatório</p>
           </CardContent>
@@ -483,7 +484,7 @@ const DebtCollectionManagement = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-white">
-              R$ {saldosClientes.reduce((sum, cliente) => sum + cliente.total_pago, 0).toFixed(2)}
+              R$ {getTotals.totalRecebido.toFixed(2)}
             </div>
             <p className="text-xs text-muted-foreground mt-1">Clique para ver relatório</p>
           </CardContent>
