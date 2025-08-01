@@ -53,6 +53,7 @@ export interface SaldoCliente {
   total_servicos: number;
   total_produtos: number;
   ultima_atualizacao: string;
+  data_cobranca?: string;
   cliente?: {
     nome: string;
     email: string;
@@ -156,6 +157,31 @@ export const useDebtCollection = () => {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Atualizar data de cobrança do cliente
+  const updateCollectionDate = async (saldoId: string, dataCobranca: string | null) => {
+    try {
+      const { error } = await supabase
+        .from('saldos_clientes')
+        .update({ data_cobranca: dataCobranca })
+        .eq('id', saldoId);
+
+      if (error) throw error;
+      
+      await fetchSaldosClientes();
+      toast({
+        title: "Sucesso",
+        description: "Data de cobrança atualizada com sucesso."
+      });
+    } catch (error) {
+      console.error('Erro ao atualizar data de cobrança:', error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível atualizar a data de cobrança.",
+        variant: "destructive"
+      });
     }
   };
 
@@ -331,6 +357,7 @@ export const useDebtCollection = () => {
     createDivida,
     updateDividaStatus,
     createCobranca,
+    updateCollectionDate,
     fetchDevedores,
     fetchDividas,
     fetchCobrancas,

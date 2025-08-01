@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, DollarSign, AlertTriangle, CheckCircle, Clock, Users, Phone, Mail, UserCheck, FileText, X } from 'lucide-react';
+import { Plus, DollarSign, AlertTriangle, CheckCircle, Calendar, Users, Phone, Mail, UserCheck, FileText, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -26,6 +26,7 @@ const DebtCollectionManagement = () => {
     createDivida, 
     updateDividaStatus,
     createCobranca,
+    updateCollectionDate,
     getTotals 
   } = useDebtCollection();
 
@@ -493,14 +494,15 @@ const DebtCollectionManagement = () => {
         <Card className="glass-card border-yellow-500/20">
           <CardHeader className="pb-3">
             <CardTitle className="text-yellow-400 flex items-center gap-2 text-sm">
-              <Clock size={16} />
-              Parcelado
+              <Calendar size={16} />
+              Agenda de Cobrança
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-white">
-              R$ {getTotals.totalParcelado.toFixed(2)}
+              {saldosClientes.filter(s => s.saldo_devedor > 0).length}
             </div>
+            <p className="text-xs text-muted-foreground mt-1">Clientes agendados</p>
           </CardContent>
         </Card>
 
@@ -519,13 +521,14 @@ const DebtCollectionManagement = () => {
         </Card>
       </div>
 
-      {/* Tabs with new Customer Profiles tab */}
+      {/* Tabs with new Customer Profiles tab and renamed Parcelado tab */}
       <Tabs defaultValue="perfis" className="space-y-4">
         <TabsList className="glass-card">
           <TabsTrigger value="perfis">Perfis de Clientes</TabsTrigger>
           <TabsTrigger value="dividas">Dívidas</TabsTrigger>
           <TabsTrigger value="devedores">Devedores</TabsTrigger>
           <TabsTrigger value="cobrancas">Cobranças</TabsTrigger>
+          <TabsTrigger value="agenda">Agenda de Cobrança</TabsTrigger>
         </TabsList>
 
         <TabsContent value="perfis">
@@ -677,6 +680,62 @@ const DebtCollectionManagement = () => {
                     )}
                   </div>
                 ))
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="agenda">
+          <Card className="glass-card border-salon-gold/20">
+            <CardHeader>
+              <CardTitle className="text-salon-gold">Agenda de Cobrança</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {saldosClientes.filter(s => s.saldo_devedor > 0).length === 0 ? (
+                <p className="text-muted-foreground text-center py-8">
+                  Nenhum cliente com saldo devedor
+                </p>
+              ) : (
+                saldosClientes
+                  .filter(s => s.saldo_devedor > 0)
+                  .sort((a, b) => {
+                    // Ordenar por data de cobrança (primeiro os sem data, depois por data)
+                    if (!a.data_cobranca && !b.data_cobranca) return 0;
+                    if (!a.data_cobranca) return 1;
+                    if (!b.data_cobranca) return -1;
+                    return new Date(a.data_cobranca).getTime() - new Date(b.data_cobranca).getTime();
+                  })
+                  .map((saldo) => (
+                    <div key={saldo.id} className="flex items-center justify-between p-4 glass-card rounded-lg">
+                      <div className="flex-1">
+                        <p className="text-white font-medium">{saldo.cliente?.nome}</p>
+                        <p className="text-sm text-salon-copper">{saldo.cliente?.telefone}</p>
+                        <p className="text-xs text-muted-foreground">{saldo.cliente?.email}</p>
+                      </div>
+                      <div className="flex items-center gap-4">
+                        <div className="text-right">
+                          <p className="text-red-400 font-bold">R$ {saldo.saldo_devedor.toFixed(2)}</p>
+                          <p className="text-xs text-green-400">
+                            Pago: R$ {saldo.total_pago.toFixed(2)}
+                          </p>
+                        </div>
+                        <div className="flex flex-col gap-2">
+                          <Input
+                            type="date"
+                            value={saldo.data_cobranca || ''}
+                            onChange={(e) => updateCollectionDate(saldo.id, e.target.value || null)}
+                            className="glass-card border-salon-gold/30 bg-transparent text-white w-40"
+                            placeholder="Data de cobrança"
+                          />
+                          {saldo.data_cobranca && (
+                            <Badge className="bg-yellow-500/20 text-yellow-400 text-xs">
+                              {format(new Date(saldo.data_cobranca), "dd/MM/yyyy")}
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))
               )}
             </CardContent>
           </Card>

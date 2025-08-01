@@ -735,6 +735,7 @@ export type Database = {
         Row: {
           cliente_id: string | null
           created_at: string
+          data_cobranca: string | null
           id: string
           saldo_devedor: number | null
           total_pago: number | null
@@ -746,6 +747,7 @@ export type Database = {
         Insert: {
           cliente_id?: string | null
           created_at?: string
+          data_cobranca?: string | null
           id?: string
           saldo_devedor?: number | null
           total_pago?: number | null
@@ -757,6 +759,7 @@ export type Database = {
         Update: {
           cliente_id?: string | null
           created_at?: string
+          data_cobranca?: string | null
           id?: string
           saldo_devedor?: number | null
           total_pago?: number | null
