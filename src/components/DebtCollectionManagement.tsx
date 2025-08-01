@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, DollarSign, AlertTriangle, CheckCircle, Calendar, Users, Phone, Mail, UserCheck, FileText, X } from 'lucide-react';
+import { Plus, DollarSign, AlertTriangle, CheckCircle, Calendar, Users, Phone, Mail, UserCheck, FileText, X, Filter } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -37,6 +37,7 @@ const DebtCollectionManagement = () => {
   const [isCobrancaDialogOpen, setIsCobrancaDialogOpen] = useState(false);
   const [selectedDivida, setSelectedDivida] = useState<Divida | null>(null);
   const [showReport, setShowReport] = useState<'aberto' | 'recebido' | null>(null);
+  const [collectionDateFilter, setCollectionDateFilter] = useState<string>('');
 
   const [devedorForm, setDevedorForm] = useState({
     nome: '',
@@ -60,6 +61,53 @@ const DebtCollectionManagement = () => {
     tipo: 'whatsapp' as const,
     mensagem: ''
   });
+
+  // Helper function to format date for display (fixes timezone issues)
+  const formatDateForDisplay = (dateString: string | null) => {
+    if (!dateString) return '';
+    const date = new Date(dateString + 'T00:00:00'); // Force local timezone
+    return format(date, 'dd/MM/yyyy');
+  };
+
+  // Helper function to format date for input (fixes timezone issues)
+  const formatDateForInput = (dateString: string | null) => {
+    if (!dateString) return '';
+    // Date is already in YYYY-MM-DD format from database
+    return dateString;
+  };
+
+  // Helper function to handle date change (prevents timezone issues)
+  const handleCollectionDateChange = (saldoId: string, dateValue: string) => {
+    if (dateValue) {
+      // Keep the date in YYYY-MM-DD format without timezone conversion
+      updateCollectionDate(saldoId, dateValue);
+    } else {
+      updateCollectionDate(saldoId, null);
+    }
+  };
+
+  // Filter and sort clients for collection schedule
+  const getFilteredAndSortedClientsForCollection = () => {
+    let clientsWithDebt = saldosClientes.filter(s => s.saldo_devedor > 0);
+
+    // Apply date filter if set
+    if (collectionDateFilter) {
+      clientsWithDebt = clientsWithDebt.filter(s => s.data_cobranca === collectionDateFilter);
+    }
+
+    // Sort by collection date (closest first, null dates last)
+    return clientsWithDebt.sort((a, b) => {
+      // If both have no collection date, maintain original order
+      if (!a.data_cobranca && !b.data_cobranca) return 0;
+      
+      // Items with no collection date go to the end
+      if (!a.data_cobranca) return 1;
+      if (!b.data_cobranca) return -1;
+      
+      // Sort by collection date (earliest first)
+      return new Date(a.data_cobranca).getTime() - new Date(b.data_cobranca).getTime();
+    });
+  };
 
   const handleCreateDevedor = async () => {
     try {
@@ -688,55 +736,76 @@ const DebtCollectionManagement = () => {
         <TabsContent value="agenda">
           <Card className="glass-card border-salon-gold/20">
             <CardHeader>
-              <CardTitle className="text-salon-gold">Agenda de Cobrança</CardTitle>
+              <div className="flex justify-between items-center">
+                <CardTitle className="text-salon-gold">Agenda de Cobrança</CardTitle>
+                <div className="flex items-center gap-2">
+                  <Filter size={16} className="text-salon-gold" />
+                  <Input
+                    type="date"
+                    value={collectionDateFilter}
+                    onChange={(e) => setCollectionDateFilter(e.target.value)}
+                    className="glass-card border-salon-gold/30 bg-transparent text-white w-40"
+                    placeholder="Filtrar por data"
+                  />
+                  {collectionDateFilter && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setCollectionDateFilter('')}
+                      className="text-salon-gold hover:bg-salon-gold/10"
+                    >
+                      <X size={16} />
+                    </Button>
+                  )}
+                </div>
+              </div>
             </CardHeader>
             <CardContent className="space-y-3">
-              {saldosClientes.filter(s => s.saldo_devedor > 0).length === 0 ? (
-                <p className="text-muted-foreground text-center py-8">
-                  Nenhum cliente com saldo devedor
-                </p>
-              ) : (
-                saldosClientes
-                  .filter(s => s.saldo_devedor > 0)
-                  .sort((a, b) => {
-                    // Ordenar por data de cobrança (primeiro os sem data, depois por data)
-                    if (!a.data_cobranca && !b.data_cobranca) return 0;
-                    if (!a.data_cobranca) return 1;
-                    if (!b.data_cobranca) return -1;
-                    return new Date(a.data_cobranca).getTime() - new Date(b.data_cobranca).getTime();
-                  })
-                  .map((saldo) => (
-                    <div key={saldo.id} className="flex items-center justify-between p-4 glass-card rounded-lg">
-                      <div className="flex-1">
-                        <p className="text-white font-medium">{saldo.cliente?.nome}</p>
-                        <p className="text-sm text-salon-copper">{saldo.cliente?.telefone}</p>
-                        <p className="text-xs text-muted-foreground">{saldo.cliente?.email}</p>
+              {(() => {
+                const filteredAndSortedClients = getFilteredAndSortedClientsForCollection();
+                
+                if (filteredAndSortedClients.length === 0) {
+                  return (
+                    <p className="text-muted-foreground text-center py-8">
+                      {collectionDateFilter 
+                        ? 'Nenhum cliente agendado para esta data' 
+                        : 'Nenhum cliente com saldo devedor'}
+                    </p>
+                  );
+                }
+
+                return filteredAndSortedClients.map((saldo) => (
+                  <div key={saldo.id} className="flex items-center justify-between p-4 glass-card rounded-lg">
+                    <div className="flex-1">
+                      <p className="text-white font-medium">{saldo.cliente?.nome}</p>
+                      <p className="text-sm text-salon-copper">{saldo.cliente?.telefone}</p>
+                      <p className="text-xs text-muted-foreground">{saldo.cliente?.email}</p>
+                    </div>
+                    <div className="flex items-center gap-4">
+                      <div className="text-right">
+                        <p className="text-red-400 font-bold">R$ {saldo.saldo_devedor.toFixed(2)}</p>
+                        <p className="text-xs text-green-400">
+                          Pago: R$ {saldo.total_pago.toFixed(2)}
+                        </p>
                       </div>
-                      <div className="flex items-center gap-4">
-                        <div className="text-right">
-                          <p className="text-red-400 font-bold">R$ {saldo.saldo_devedor.toFixed(2)}</p>
-                          <p className="text-xs text-green-400">
-                            Pago: R$ {saldo.total_pago.toFixed(2)}
-                          </p>
-                        </div>
-                        <div className="flex flex-col gap-2">
-                          <Input
-                            type="date"
-                            value={saldo.data_cobranca || ''}
-                            onChange={(e) => updateCollectionDate(saldo.id, e.target.value || null)}
-                            className="glass-card border-salon-gold/30 bg-transparent text-white w-40"
-                            placeholder="Data de cobrança"
-                          />
-                          {saldo.data_cobranca && (
-                            <Badge className="bg-yellow-500/20 text-yellow-400 text-xs">
-                              {format(new Date(saldo.data_cobranca), "dd/MM/yyyy")}
-                            </Badge>
-                          )}
-                        </div>
+                      <div className="flex flex-col gap-2">
+                        <Input
+                          type="date"
+                          value={formatDateForInput(saldo.data_cobranca)}
+                          onChange={(e) => handleCollectionDateChange(saldo.id, e.target.value)}
+                          className="glass-card border-salon-gold/30 bg-transparent text-white w-40"
+                          placeholder="Data de cobrança"
+                        />
+                        {saldo.data_cobranca && (
+                          <Badge className="bg-yellow-500/20 text-yellow-400 text-xs">
+                            {formatDateForDisplay(saldo.data_cobranca)}
+                          </Badge>
+                        )}
                       </div>
                     </div>
-                  ))
-              )}
+                  </div>
+                ));
+              })()}
             </CardContent>
           </Card>
         </TabsContent>
