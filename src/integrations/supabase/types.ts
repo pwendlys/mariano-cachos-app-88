@@ -152,7 +152,7 @@ export type Database = {
           data_entrega: string | null
           data_envio: string | null
           data_leitura: string | null
-          divida_id: string
+          divida_id: string | null
           erro: string | null
           id: string
           mensagem: string | null
@@ -166,7 +166,7 @@ export type Database = {
           data_entrega?: string | null
           data_envio?: string | null
           data_leitura?: string | null
-          divida_id: string
+          divida_id?: string | null
           erro?: string | null
           id?: string
           mensagem?: string | null
@@ -180,7 +180,7 @@ export type Database = {
           data_entrega?: string | null
           data_envio?: string | null
           data_leitura?: string | null
-          divida_id?: string
+          divida_id?: string | null
           erro?: string | null
           id?: string
           mensagem?: string | null
