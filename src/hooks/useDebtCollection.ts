@@ -300,43 +300,114 @@ export const useDebtCollection = () => {
     }
   };
 
-  // New function to handle WhatsApp collection
+  // Updated function to handle WhatsApp collection with better validation and error handling
   const sendWhatsAppCollection = async (saldo: SaldoCliente) => {
     try {
-      // Create a collection record
-      const { error } = await supabase
-        .from('cobrancas')
-        .insert([{
-          divida_id: null, // No specific debt ID for client balance collections
-          tipo: 'whatsapp' as const,
-          status: 'enviado' as const,
-          mensagem: `Olá ${saldo.cliente?.nome}, você possui um saldo devedor de R$ ${saldo.saldo_devedor.toFixed(2)}. Entre em contato conosco para regularizar sua situação.`,
-          tentativa: 1,
-          data_envio: new Date().toISOString()
-        }]);
+      // Validate client data
+      if (!saldo.cliente) {
+        toast({
+          title: "Erro",
+          description: "Dados do cliente não encontrados.",
+          variant: "destructive"
+        });
+        return;
+      }
 
-      if (error) throw error;
+      // Validate phone number
+      const rawPhone = saldo.cliente.telefone?.replace(/\D/g, '') || '';
+      if (!rawPhone || rawPhone.length < 10) {
+        toast({
+          title: "Erro",
+          description: `Telefone inválido para ${saldo.cliente.nome}. Verifique o número cadastrado.`,
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // Format phone number for WhatsApp (add country code if not present)
+      let formattedPhone = rawPhone;
+      if (!rawPhone.startsWith('55') && rawPhone.length === 11) {
+        formattedPhone = '55' + rawPhone;
+      } else if (!rawPhone.startsWith('55') && rawPhone.length === 10) {
+        // Add 9 digit for mobile numbers and country code
+        formattedPhone = '55' + rawPhone.substring(0, 2) + '9' + rawPhone.substring(2);
+      }
+
+      console.log('Tentando enviar cobrança via WhatsApp para:', {
+        cliente: saldo.cliente.nome,
+        telefone: formattedPhone,
+        saldo: saldo.saldo_devedor
+      });
 
       // Generate WhatsApp message
-      const phoneNumber = saldo.cliente?.telefone?.replace(/\D/g, '') || '';
-      const message = `Olá ${saldo.cliente?.nome}, você possui um saldo devedor de R$ ${saldo.saldo_devedor.toFixed(2)}. Entre em contato conosco para regularizar sua situação.`;
-      const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`;
+      const message = `Olá ${saldo.cliente.nome}, você possui um saldo devedor de R$ ${saldo.saldo_devedor.toFixed(2)}. Entre em contato conosco para regularizar sua situação.`;
+      const whatsappUrl = `https://wa.me/${formattedPhone}?text=${encodeURIComponent(message)}`;
 
-      // Open WhatsApp Web
+      // Try to create database record, but don't fail if it doesn't work
+      let recordCreated = false;
+      try {
+        const { error } = await supabase
+          .from('cobrancas')
+          .insert([{
+            divida_id: null, // Now nullable for client balance collections
+            tipo: 'whatsapp' as const,
+            status: 'enviado' as const,
+            mensagem: message,
+            tentativa: 1,
+            data_envio: new Date().toISOString()
+          }]);
+
+        if (error) {
+          console.error('Erro ao registrar cobrança no banco:', error);
+        } else {
+          recordCreated = true;
+          console.log('Cobrança registrada no banco com sucesso');
+        }
+      } catch (dbError) {
+        console.error('Erro na operação do banco de dados:', dbError);
+      }
+
+      // Always try to open WhatsApp regardless of database success
+      console.log('Abrindo WhatsApp com URL:', whatsappUrl);
       window.open(whatsappUrl, '_blank');
 
-      // Refresh data
-      await fetchCobrancas();
+      // Refresh collections data if record was created
+      if (recordCreated) {
+        await fetchCobrancas();
+      }
       
       toast({
         title: "Sucesso",
-        description: `WhatsApp aberto para ${saldo.cliente?.nome}. Cobrança registrada no sistema.`
+        description: `WhatsApp aberto para ${saldo.cliente.nome}${recordCreated ? '. Cobrança registrada no sistema.' : '. (Registro não salvo no sistema)'}`
       });
+
     } catch (error) {
-      console.error('Erro ao enviar cobrança via WhatsApp:', error);
+      console.error('Erro geral ao enviar cobrança via WhatsApp:', error);
+      
+      // Even in case of error, try to open WhatsApp if we have basic data
+      if (saldo.cliente?.telefone && saldo.cliente?.nome) {
+        const rawPhone = saldo.cliente.telefone.replace(/\D/g, '');
+        if (rawPhone.length >= 10) {
+          let formattedPhone = rawPhone;
+          if (!rawPhone.startsWith('55')) {
+            formattedPhone = '55' + rawPhone;
+          }
+          const message = `Olá ${saldo.cliente.nome}, você possui um saldo devedor de R$ ${saldo.saldo_devedor.toFixed(2)}. Entre em contato conosco para regularizar sua situação.`;
+          const whatsappUrl = `https://wa.me/${formattedPhone}?text=${encodeURIComponent(message)}`;
+          window.open(whatsappUrl, '_blank');
+          
+          toast({
+            title: "Atenção",
+            description: "WhatsApp aberto, mas houve erro ao registrar no sistema.",
+            variant: "destructive"
+          });
+          return;
+        }
+      }
+
       toast({
         title: "Erro",
-        description: "Não foi possível registrar a cobrança.",
+        description: "Não foi possível enviar a cobrança via WhatsApp.",
         variant: "destructive"
       });
     }
