@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, DollarSign, AlertTriangle, CheckCircle, Calendar, Users, Phone, Mail, UserCheck, FileText, X, Filter } from 'lucide-react';
+import { Plus, DollarSign, AlertTriangle, CheckCircle, Calendar, Users, Phone, Mail, UserCheck, FileText, X, Filter, MessageCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -27,6 +27,7 @@ const DebtCollectionManagement = () => {
     updateDividaStatus,
     createCobranca,
     updateCollectionDate,
+    sendWhatsAppCollection,
     getTotals 
   } = useDebtCollection();
 
@@ -569,7 +570,7 @@ const DebtCollectionManagement = () => {
         </Card>
       </div>
 
-      {/* Tabs with new Customer Profiles tab and renamed Parcelado tab */}
+      {/* Tabs with updated Agenda de Cobrança */}
       <Tabs defaultValue="perfis" className="space-y-4">
         <TabsList className="glass-card">
           <TabsTrigger value="perfis">Perfis de Clientes</TabsTrigger>
@@ -802,6 +803,14 @@ const DebtCollectionManagement = () => {
                           </Badge>
                         )}
                       </div>
+                      <Button
+                        onClick={() => sendWhatsAppCollection(saldo)}
+                        className="bg-green-600 hover:bg-green-700 text-white flex items-center gap-2"
+                        size="sm"
+                      >
+                        <MessageCircle size={16} />
+                        WhatsApp
+                      </Button>
                     </div>
                   </div>
                 ));

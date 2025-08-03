@@ -300,6 +300,48 @@ export const useDebtCollection = () => {
     }
   };
 
+  // New function to handle WhatsApp collection
+  const sendWhatsAppCollection = async (saldo: SaldoCliente) => {
+    try {
+      // Create a collection record
+      const { error } = await supabase
+        .from('cobrancas')
+        .insert([{
+          divida_id: null, // No specific debt ID for client balance collections
+          tipo: 'whatsapp' as const,
+          status: 'enviado' as const,
+          mensagem: `Olá ${saldo.cliente?.nome}, você possui um saldo devedor de R$ ${saldo.saldo_devedor.toFixed(2)}. Entre em contato conosco para regularizar sua situação.`,
+          tentativa: 1,
+          data_envio: new Date().toISOString()
+        }]);
+
+      if (error) throw error;
+
+      // Generate WhatsApp message
+      const phoneNumber = saldo.cliente?.telefone?.replace(/\D/g, '') || '';
+      const message = `Olá ${saldo.cliente?.nome}, você possui um saldo devedor de R$ ${saldo.saldo_devedor.toFixed(2)}. Entre em contato conosco para regularizar sua situação.`;
+      const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`;
+
+      // Open WhatsApp Web
+      window.open(whatsappUrl, '_blank');
+
+      // Refresh data
+      await fetchCobrancas();
+      
+      toast({
+        title: "Sucesso",
+        description: `WhatsApp aberto para ${saldo.cliente?.nome}. Cobrança registrada no sistema.`
+      });
+    } catch (error) {
+      console.error('Erro ao enviar cobrança via WhatsApp:', error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível registrar a cobrança.",
+        variant: "destructive"
+      });
+    }
+  };
+
   // Calcular totais
   const getTotals = () => {
     // Totals from dividas table (specific debts)
@@ -358,6 +400,7 @@ export const useDebtCollection = () => {
     updateDividaStatus,
     createCobranca,
     updateCollectionDate,
+    sendWhatsAppCollection,
     fetchDevedores,
     fetchDividas,
     fetchCobrancas,
