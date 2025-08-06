@@ -6,7 +6,7 @@ import { ShoppingCart, Users, Calendar, DollarSign, Package, TrendingUp, UserChe
 import ServiceManagement from '@/components/ServiceManagement';
 import ProductManagement from '@/components/ProductManagement';
 import AppointmentManagement from '@/components/AppointmentManagement';
-import ProfessionalManagement from '@/components/ProfessionalManagement';
+import ProfessionalsTabManager from '@/components/ProfessionalsTabManager';
 import CashFlowManagement from '@/components/CashFlowManagement';
 import BannerManagement from '@/components/BannerManagement';
 import ClientList from '@/components/ClientList';
@@ -45,7 +45,7 @@ const Admin = () => {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-4 md:grid-cols-8 glass-card border-salon-gold/20">
+          <TabsList className="grid w-full grid-cols-4 md:grid-cols-7 glass-card border-salon-gold/20">
             <TabsTrigger value="appointments" className="flex items-center gap-2 text-xs md:text-sm">
               <Calendar size={16} />
               <span className="hidden sm:inline">Agendamentos</span>
@@ -93,7 +93,7 @@ const Admin = () => {
           </TabsContent>
 
           <TabsContent value="professionals" className="space-y-6">
-            <ProfessionalManagement />
+            <ProfessionalsTabManager />
           </TabsContent>
 
           <TabsContent value="cashflow" className="space-y-6">

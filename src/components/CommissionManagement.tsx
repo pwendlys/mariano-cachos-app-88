@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
-import { Plus, Edit2, Trash2, Save, X, Calculator, TrendingUp, TrendingDown, DollarSign } from 'lucide-react';
+
+import React, { useState, useEffect } from 'react';
+import { Plus, Edit2, Trash2, Calculator, DollarSign } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectTrigger, SelectValue, SelectItem } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
@@ -10,6 +11,8 @@ import { useToast } from '@/hooks/use-toast';
 import { useSupabaseCommissions } from '@/hooks/useSupabaseCommissions';
 import { useSupabaseProfessionals } from '@/hooks/useSupabaseProfessionals';
 import { format } from 'date-fns';
+import CommissionFilters from '@/components/CommissionFilters';
+import CommissionSummary from '@/components/CommissionSummary';
 
 const CommissionManagement = () => {
   const { commissions, loading, fetchCommissions, addCommission, updateCommission, deleteCommission } = useSupabaseCommissions();
@@ -19,7 +22,7 @@ const CommissionManagement = () => {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [selectedCommission, setSelectedCommission] = useState<any>(null);
   const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false);
-  const [editingCommission, setEditingCommission] = useState<string | null>(null);
+  const [filters, setFilters] = useState({});
   
   const [formData, setFormData] = useState({
     profissional_id: '',
@@ -29,6 +32,11 @@ const CommissionManagement = () => {
     data_referencia: new Date().toISOString().split('T')[0],
     observacoes: ''
   });
+
+  // Apply filters when they change
+  useEffect(() => {
+    fetchCommissions(filters);
+  }, [filters]);
 
   const handleAddCommission = async () => {
     if (!formData.profissional_id || formData.valor_base <= 0 || formData.percentual_comissao <= 0) {
@@ -64,8 +72,6 @@ const CommissionManagement = () => {
         data_referencia: new Date().toISOString().split('T')[0],
         observacoes: ''
       });
-      
-      fetchCommissions();
     } catch (error) {
       // Error handled in hook
     }
@@ -99,19 +105,8 @@ const CommissionManagement = () => {
     return colors[status as keyof typeof colors] || colors['calculada'];
   };
 
-  const getTotalCommissions = () => {
-    return commissions.reduce((sum, commission) => sum + Number(commission.valor_comissao), 0);
-  };
-
-  const getTotalCommissionsThisMonth = () => {
-    const currentMonth = new Date().getMonth();
-    const currentYear = new Date().getFullYear();
-    return commissions
-      .filter(c => {
-        const commissionDate = new Date(c.data_referencia);
-        return commissionDate.getMonth() === currentMonth && commissionDate.getFullYear() === currentYear;
-      })
-      .reduce((sum, commission) => sum + Number(commission.valor_comissao), 0);
+  const handleClearFilters = () => {
+    setFilters({});
   };
 
   const activeProfessionals = getActiveProfessionals();
@@ -127,17 +122,22 @@ const CommissionManagement = () => {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h2 className="text-xl font-semibold text-salon-gold">Comissões</h2>
+        <div>
+          <h2 className="text-xl font-semibold text-salon-gold">Comissões</h2>
+          <p className="text-sm text-salon-copper">
+            Gerencie as comissões dos profissionais
+          </p>
+        </div>
         <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
           <DialogTrigger asChild>
             <Button className="bg-salon-gold hover:bg-salon-copper text-salon-dark font-medium">
               <Plus className="mr-2" size={16} />
-              Nova Comissão
+              Nova Comissão Manual
             </Button>
           </DialogTrigger>
           <DialogContent className="glass-card border-salon-gold/30 text-white max-w-md">
             <DialogHeader>
-              <DialogTitle className="text-salon-gold">Nova Comissão</DialogTitle>
+              <DialogTitle className="text-salon-gold">Nova Comissão Manual</DialogTitle>
             </DialogHeader>
             <div className="space-y-4">
               <div>
@@ -152,20 +152,6 @@ const CommissionManagement = () => {
                         {professional.nome}
                       </SelectItem>
                     ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium mb-2">Tipo de Origem *</label>
-                <Select value={formData.tipo_origem} onValueChange={(value: 'manual' | 'agendamento' | 'venda') => setFormData({...formData, tipo_origem: value})}>
-                  <SelectTrigger className="glass-card border-salon-gold/30 bg-transparent text-white">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="glass-card border-salon-gold/30">
-                    <SelectItem value="manual">Manual</SelectItem>
-                    <SelectItem value="agendamento">Agendamento</SelectItem>
-                    <SelectItem value="venda">Venda</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -244,38 +230,21 @@ const CommissionManagement = () => {
         </Dialog>
       </div>
 
-      {/* Statistics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Card className="glass-card border-salon-gold/20">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-salon-copper">Total Comissões</p>
-                <p className="text-2xl font-bold text-salon-gold">
-                  R$ {getTotalCommissions().toFixed(2)}
-                </p>
-              </div>
-              <Calculator className="text-salon-gold" size={24} />
-            </div>
-          </CardContent>
-        </Card>
+      {/* Filtros */}
+      <Card className="glass-card border-salon-gold/20">
+        <CardContent className="p-4">
+          <CommissionFilters 
+            filters={filters}
+            onFiltersChange={setFilters}
+            onClearFilters={handleClearFilters}
+          />
+        </CardContent>
+      </Card>
 
-        <Card className="glass-card border-salon-gold/20">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-salon-copper">Este Mês</p>
-                <p className="text-2xl font-bold text-salon-gold">
-                  R$ {getTotalCommissionsThisMonth().toFixed(2)}
-                </p>
-              </div>
-              <TrendingUp className="text-salon-gold" size={24} />
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      {/* Resumo */}
+      <CommissionSummary commissions={commissions} />
 
-      {/* Commissions List */}
+      {/* Lista de Comissões */}
       <div className="space-y-4">
         {commissions.length === 0 ? (
           <Card className="glass-card border-salon-gold/20">
