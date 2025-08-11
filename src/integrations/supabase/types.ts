@@ -116,6 +116,48 @@ export type Database = {
           },
         ]
       }
+      banner_settings: {
+        Row: {
+          created_at: string
+          description: string
+          id: string
+          image_meta: Json
+          image_url: string | null
+          is_visible: boolean
+          logo_meta: Json
+          logo_url: string | null
+          subtitle: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description: string
+          id: string
+          image_meta?: Json
+          image_url?: string | null
+          is_visible?: boolean
+          logo_meta?: Json
+          logo_url?: string | null
+          subtitle: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          id?: string
+          image_meta?: Json
+          image_url?: string | null
+          is_visible?: boolean
+          logo_meta?: Json
+          logo_url?: string | null
+          subtitle?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       clientes: {
         Row: {
           created_at: string

@@ -1,81 +1,130 @@
 
-import React, { useState } from 'react';
-import { Image, Upload, X, Eye, EyeOff, ImageIcon } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Image, Upload, X, Eye, ImageIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
-import { useBannerSettings, BannerSettings } from '@/hooks/useBannerSettings';
+import ImageCropper from '@/components/banner/ImageCropper';
+import { useSupabaseBannerSettings, BannerSettingsWithMeta } from '@/hooks/useSupabaseBannerSettings';
+import { uploadToBannerBucket } from '@/lib/supabaseStorage';
 
 const BannerManagement = () => {
   const { toast } = useToast();
-  const { bannerSettings, updateBannerSettings } = useBannerSettings();
-  
+  const { banner, loading, updateBannerSettings } = useSupabaseBannerSettings();
+
   const [formData, setFormData] = useState({
-    title: bannerSettings.title,
-    subtitle: bannerSettings.subtitle,
-    description: bannerSettings.description,
-    image: bannerSettings.image || '',
-    logo: bannerSettings.logo || '',
-    isVisible: bannerSettings.isVisible
+    title: banner.title,
+    subtitle: banner.subtitle,
+    description: banner.description,
+    image: banner.imageUrl || banner.image || '',
+    logo: banner.logoUrl || banner.logo || '',
+    isVisible: banner.isVisible
   });
-  const [imagePreview, setImagePreview] = useState<string>(bannerSettings.image || '');
-  const [logoPreview, setLogoPreview] = useState<string>(bannerSettings.logo || '');
+  const [imagePreview, setImagePreview] = useState<string>(banner.imageUrl || banner.image || '');
+  const [logoPreview, setLogoPreview] = useState<string>(banner.logoUrl || banner.logo || '');
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [logoFile, setLogoFile] = useState<File | null>(null);
+
+  // Crop state
+  const [crop, setCrop] = useState<{ x: number; y: number }>(banner.imageMeta?.crop || { x: 0, y: 0 });
+  const [zoom, setZoom] = useState<number>(banner.imageMeta?.zoom || 1);
+  const aspect = banner.imageMeta?.aspect || 2;
+
+  useEffect(() => {
+    setFormData({
+      title: banner.title,
+      subtitle: banner.subtitle,
+      description: banner.description,
+      image: banner.imageUrl || banner.image || '',
+      logo: banner.logoUrl || banner.logo || '',
+      isVisible: banner.isVisible
+    });
+    setImagePreview(banner.imageUrl || banner.image || '');
+    setLogoPreview(banner.logoUrl || banner.logo || '');
+    setCrop(banner.imageMeta?.crop || { x: 0, y: 0 });
+    setZoom(banner.imageMeta?.zoom || 1);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [banner.id, banner.title, banner.subtitle, banner.description, banner.imageUrl, banner.logoUrl, banner.isVisible]);
 
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const imageUrl = e.target?.result as string;
-        setImagePreview(imageUrl);
-        setFormData({ ...formData, image: imageUrl });
-      };
-      reader.readAsDataURL(file);
+      setImageFile(file);
+      const url = URL.createObjectURL(file);
+      setImagePreview(url);
+      setFormData({ ...formData, image: url });
     }
   };
 
   const handleLogoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const logoUrl = e.target?.result as string;
-        setLogoPreview(logoUrl);
-        setFormData({ ...formData, logo: logoUrl });
-      };
-      reader.readAsDataURL(file);
+      setLogoFile(file);
+      const url = URL.createObjectURL(file);
+      setLogoPreview(url);
+      setFormData({ ...formData, logo: url });
     }
   };
 
   const removeImage = () => {
     setImagePreview('');
+    setImageFile(null);
     setFormData({ ...formData, image: '' });
   };
 
   const removeLogo = () => {
     setLogoPreview('');
+    setLogoFile(null);
     setFormData({ ...formData, logo: '' });
   };
 
-  const handleSave = () => {
-    const updatedSettings: BannerSettings = {
-      id: bannerSettings.id,
+  const handleSave = async () => {
+    // Upload files if changed
+    let newImageUrl: string | undefined;
+    let newLogoUrl: string | undefined;
+
+    // Upload banner background
+    if (imageFile) {
+      const { publicUrl } = await uploadToBannerBucket(imageFile, "backgrounds", "main-banner-bg");
+      newImageUrl = publicUrl;
+    }
+
+    // Upload logo
+    if (logoFile) {
+      const { publicUrl } = await uploadToBannerBucket(logoFile, "logos", "main-banner-logo");
+      newLogoUrl = publicUrl;
+    }
+
+    const updatedSettings: Partial<BannerSettingsWithMeta> = {
+      id: banner.id,
       title: formData.title,
       subtitle: formData.subtitle,
       description: formData.description,
-      image: formData.image || undefined,
-      logo: formData.logo || undefined,
-      isVisible: formData.isVisible
+      imageUrl: newImageUrl ?? banner.imageUrl ?? banner.image ?? undefined,
+      logoUrl: newLogoUrl ?? banner.logoUrl ?? banner.logo ?? undefined,
+      isVisible: formData.isVisible,
+      imageMeta: {
+        crop,
+        zoom,
+        aspect,
+      },
     };
 
-    updateBannerSettings(updatedSettings);
+    const saved = await updateBannerSettings(updatedSettings);
+
     toast({
       title: "Banner atualizado!",
       description: "As configurações do banner foram salvas com sucesso.",
     });
+
+    // Ensure previews reflect saved URLs
+    setImagePreview(saved.imageUrl || saved.image || '');
+    setLogoPreview(saved.logoUrl || saved.logo || '');
+    setImageFile(null);
+    setLogoFile(null);
   };
 
   return (
@@ -174,22 +223,29 @@ const BannerManagement = () => {
             <label className="block text-sm font-medium mb-2 text-white">Imagem de Fundo do Banner</label>
             <div className="space-y-3">
               {imagePreview ? (
-                <div className="relative">
-                  <img 
-                    src={imagePreview} 
-                    alt="Preview do Banner" 
-                    className="w-full h-48 object-cover rounded-lg"
-                  />
-                  <Button
-                    type="button"
-                    variant="destructive"
-                    size="icon"
-                    className="absolute top-2 right-2 h-8 w-8"
-                    onClick={removeImage}
-                  >
-                    <X size={16} />
-                  </Button>
-                </div>
+                <>
+                  <div className="relative">
+                    <div className="rounded-lg overflow-hidden border border-salon-gold/20">
+                      <ImageCropper
+                        image={imagePreview}
+                        crop={crop}
+                        zoom={zoom}
+                        aspect={aspect}
+                        onCropChange={setCrop}
+                        onZoomChange={setZoom}
+                      />
+                    </div>
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      size="icon"
+                      className="absolute top-2 right-2 h-8 w-8"
+                      onClick={removeImage}
+                    >
+                      <X size={16} />
+                    </Button>
+                  </div>
+                </>
               ) : (
                 <div className="border-2 border-dashed border-salon-gold/30 rounded-lg p-8 text-center">
                   <Upload className="mx-auto text-salon-gold mb-2" size={32} />
@@ -209,6 +265,7 @@ const BannerManagement = () => {
           <div className="pt-4">
             <Button 
               onClick={handleSave}
+              disabled={loading}
               className="w-full bg-salon-gold hover:bg-salon-copper text-salon-dark font-medium h-12"
             >
               Salvar Configurações do Banner
@@ -227,13 +284,17 @@ const BannerManagement = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="relative overflow-hidden rounded-3xl glass-card p-6 text-center">
+            <div className="relative overflow-hidden rounded-3xl glass-card p-6 text-center min-h-[200px]">
               {imagePreview && (
-                <div className="absolute inset-0">
+                <div className="absolute inset-0 overflow-hidden rounded-3xl opacity-30">
                   <img 
                     src={imagePreview} 
                     alt="Banner Background" 
-                    className="w-full h-full object-cover rounded-3xl opacity-30"
+                    className="w-full h-full object-cover"
+                    style={{
+                      transform: `translate(${crop.x}px, ${crop.y}px) scale(${zoom})`,
+                      transformOrigin: 'center center',
+                    }}
                   />
                 </div>
               )}

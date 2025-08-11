@@ -4,25 +4,17 @@ import { Calendar, ShoppingBag, Star, Sparkles, Award, Users } from 'lucide-reac
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { useBannerSettings } from '@/hooks/useBannerSettings';
+import { useSupabaseBannerSettings } from '@/hooks/useSupabaseBannerSettings';
 import { useSharedServices } from '@/hooks/useSharedServices';
 
 const Index = () => {
   const navigate = useNavigate();
-  const { bannerSettings } = useBannerSettings();
+  const { banner } = useSupabaseBannerSettings();
   const { services } = useSharedServices();
 
   const testimonials = [
-    {
-      name: 'Camila Santos',
-      text: 'Marcos transformou completamente meu cabelo! Agora ele tem vida própria.',
-      rating: 5,
-    },
-    {
-      name: 'Juliana Costa',
-      text: 'Melhor profissional que já conheci. Entende tudo de cabelo crespo!',
-      rating: 5,
-    },
+    { name: 'Camila Santos', text: 'Marcos transformou completamente meu cabelo! Agora ele tem vida própria.', rating: 5 },
+    { name: 'Juliana Costa', text: 'Melhor profissional que já conheci. Entende tudo de cabelo crespo!', rating: 5 },
   ];
 
   const formatDuration = (minutes: number) => {
@@ -42,17 +34,26 @@ const Index = () => {
     return '💅';
   };
 
+  const bgUrl = banner.imageUrl || banner.image || '';
+  const logoUrl = banner.logoUrl || banner.logo || '';
+  const crop = banner.imageMeta?.crop || { x: 0, y: 0 };
+  const zoom = banner.imageMeta?.zoom || 1;
+
   return (
     <div className="px-4 space-y-6 animate-fade-in">
       {/* Banner Principal Personalizável */}
-      {bannerSettings.isVisible && (
-        <div className="relative overflow-hidden rounded-3xl glass-card p-6 text-center">
-          {bannerSettings.image && (
-            <div className="absolute inset-0">
-              <img 
-                src={bannerSettings.image} 
-                alt="Banner Background" 
-                className="w-full h-full object-cover rounded-3xl opacity-30"
+      {banner.isVisible && (
+        <div className="relative overflow-hidden rounded-3xl glass-card p-6 text-center min-h-[200px]">
+          {bgUrl && (
+            <div className="absolute inset-0 overflow-hidden rounded-3xl">
+              <img
+                src={bgUrl}
+                alt="Banner Background"
+                className="w-full h-full object-cover opacity-30"
+                style={{
+                  transform: `translate(${crop.x}px, ${crop.y}px) scale(${zoom})`,
+                  transformOrigin: 'center center',
+                }}
               />
             </div>
           )}
@@ -60,9 +61,9 @@ const Index = () => {
           <div className="relative z-10">
             <div className="w-24 h-24 mx-auto mb-4 rounded-full gradient-gold p-1">
               <div className="w-full h-full rounded-full bg-salon-dark flex items-center justify-center">
-                {bannerSettings.logo ? (
+                {logoUrl ? (
                   <img 
-                    src={bannerSettings.logo} 
+                    src={logoUrl} 
                     alt="Logo" 
                     className="w-20 h-20 object-contain rounded-full"
                   />
@@ -76,13 +77,13 @@ const Index = () => {
               </div>
             </div>
             <h1 className="text-2xl font-bold text-gradient-gold mb-2 font-playfair">
-              {bannerSettings.title}
+              {banner.title}
             </h1>
             <p className="text-salon-copper font-medium mb-4">
-              {bannerSettings.subtitle}
+              {banner.subtitle}
             </p>
             <p className="text-muted-foreground text-sm leading-relaxed">
-              "{bannerSettings.description}"
+              "{banner.description}"
             </p>
           </div>
         </div>
