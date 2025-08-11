@@ -22,6 +22,10 @@ export interface BannerSettingsWithMeta {
   logoMeta?: BannerImageMeta;
 }
 
+// Defaults reutilizáveis
+const DEFAULT_IMAGE_META: BannerImageMeta = { crop: { x: 0, y: 0 }, zoom: 1, aspect: 2 };
+const DEFAULT_LOGO_META: BannerImageMeta = {};
+
 const DEFAULTS: BannerSettingsWithMeta = {
   id: "main-banner",
   title: "Marcos Mariano",
@@ -33,9 +37,37 @@ const DEFAULTS: BannerSettingsWithMeta = {
   logo: null,
   imageUrl: null,
   logoUrl: null,
-  imageMeta: { crop: { x: 0, y: 0 }, zoom: 1, aspect: 2 },
-  logoMeta: {},
+  imageMeta: DEFAULT_IMAGE_META,
+  logoMeta: DEFAULT_LOGO_META,
 };
+
+// Valida e converte um JSON desconhecido para BannerImageMeta, com fallback seguro
+function toBannerImageMeta(raw: unknown, fallback: BannerImageMeta = {}): BannerImageMeta {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return fallback;
+
+  const obj = raw as Record<string, unknown>;
+  const result: BannerImageMeta = { ...fallback };
+
+  // crop
+  if (obj.crop && typeof obj.crop === "object" && !Array.isArray(obj.crop)) {
+    const crop = obj.crop as Record<string, unknown>;
+    if (typeof crop.x === "number" && typeof crop.y === "number") {
+      result.crop = { x: crop.x, y: crop.y };
+    }
+  }
+
+  // zoom
+  if (typeof obj.zoom === "number") {
+    result.zoom = obj.zoom;
+  }
+
+  // aspect
+  if (typeof obj.aspect === "number") {
+    result.aspect = obj.aspect;
+  }
+
+  return result;
+}
 
 export function useSupabaseBannerSettings() {
   const [banner, setBanner] = useState<BannerSettingsWithMeta>(DEFAULTS);
@@ -67,8 +99,8 @@ export function useSupabaseBannerSettings() {
             logo: data.logo_url,
             imageUrl: data.image_url,
             logoUrl: data.logo_url,
-            imageMeta: data.image_meta || { crop: { x: 0, y: 0 }, zoom: 1, aspect: 2 },
-            logoMeta: data.logo_meta || {},
+            imageMeta: toBannerImageMeta(data.image_meta, DEFAULT_IMAGE_META),
+            logoMeta: toBannerImageMeta(data.logo_meta, DEFAULT_LOGO_META),
           };
           setBanner(mapped);
         } else {
@@ -120,8 +152,8 @@ export function useSupabaseBannerSettings() {
       logo: data.logo_url,
       imageUrl: data.image_url,
       logoUrl: data.logo_url,
-      imageMeta: data.image_meta || {},
-      logoMeta: data.logo_meta || {},
+      imageMeta: toBannerImageMeta(data.image_meta, DEFAULT_IMAGE_META),
+      logoMeta: toBannerImageMeta(data.logo_meta, DEFAULT_LOGO_META),
     };
     setBanner(mapped);
     return mapped;
