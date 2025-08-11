@@ -105,11 +105,11 @@ const Auth = () => {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-salon-dark via-salon-dark/95 to-salon-copper/20 p-4">
       <Card className="w-full max-w-md glass-card">
         <CardHeader className="text-center">
-          <div className="w-16 h-16 rounded-full gradient-gold flex items-center justify-center mx-auto mb-4">
+          <div className="w-20 h-20 rounded-full gradient-gold flex items-center justify-center mx-auto mb-4">
             <img 
               src="/lovable-uploads/6c513fb2-7005-451a-bfba-cb471f2086a3.png" 
               alt="Marcos Mariano Logo" 
-              className="w-12 h-12 object-contain rounded-full"
+              className="w-16 h-16 object-contain rounded-full"
             />
           </div>
           <CardTitle className="text-2xl font-playfair text-gradient-gold">
