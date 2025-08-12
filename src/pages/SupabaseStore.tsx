@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Search, Grid3X3, List, Package, Star } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -10,6 +9,7 @@ import { useRealtimeStockUpdate } from '@/hooks/useRealtimeStockUpdate';
 import { useNavigate } from 'react-router-dom';
 import ProductCard from '@/components/ProductCard';
 import StockWarnings from '@/components/StockWarnings';
+import OrnateHeading from '@/components/OrnateHeading';
 
 const SupabaseStore = () => {
   const { toast } = useToast();
@@ -103,14 +103,11 @@ const SupabaseStore = () => {
       <StockWarnings warnings={stockWarnings} onDismiss={clearStockWarnings} />
       
       <div className="px-4 space-y-6 animate-fade-in">
-        <div className="text-center mb-6">
-          <h1 className="text-2xl font-bold text-gradient-gold mb-2 font-playfair">
-            Produtos Especializados
-          </h1>
-          <p className="text-muted-foreground">
-            Cuide dos seus cachos com produtos de qualidade
-          </p>
-        </div>
+        <OrnateHeading 
+          title="Produtos Especializados" 
+          subtitle="Cuide dos seus cachos com produtos de qualidade"
+          showLogo={true}
+        />
 
         {/* Search and View Toggle */}
         <div className="flex space-x-2">

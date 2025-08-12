@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Calendar, Clock, User, MessageSquare, Check, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -11,6 +10,7 @@ import PIXPaymentPopup from '@/components/PIXPaymentPopup';
 import ServiceSelectionCard from '@/components/ServiceSelectionCard';
 import TimeSlotGrid from '@/components/TimeSlotGrid';
 import AppointmentSummaryCard from '@/components/AppointmentSummaryCard';
+import OrnateHeading from '@/components/OrnateHeading';
 
 const SupabaseScheduling = () => {
   const { services, createMultipleAppointments, isSlotAvailable, getSlotStatus, loading } = useSupabaseScheduling();
@@ -120,28 +120,22 @@ const SupabaseScheduling = () => {
   if (loading && services.length === 0) {
     return (
       <div className="px-4 space-y-6 animate-fade-in">
-        <div className="text-center mb-6">
-          <h1 className="text-2xl font-bold text-gradient-gold mb-2 font-playfair">
-            Agende Seu Horário
-          </h1>
-          <p className="text-muted-foreground">
-            Carregando serviços...
-          </p>
-        </div>
+        <OrnateHeading 
+          title="Agende Seu Horário" 
+          subtitle="Carregando serviços..."
+          showLogo={true}
+        />
       </div>
     );
   }
 
   return (
     <div className="px-4 space-y-6 animate-fade-in">
-      <div className="text-center mb-6">
-        <h1 className="text-2xl font-bold text-gradient-gold mb-2 font-playfair">
-          Agende Seu Horário
-        </h1>
-        <p className="text-muted-foreground">
-          Escolha múltiplos serviços para um cuidado completo
-        </p>
-      </div>
+      <OrnateHeading 
+        title="Agende Seu Horário" 
+        subtitle="Escolha múltiplos serviços para um cuidado completo"
+        showLogo={true}
+      />
 
       {/* Progress Indicator */}
       <div className="flex justify-center mb-8">
