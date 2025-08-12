@@ -14,8 +14,8 @@ const OrnateHeading = ({ title, subtitle, showLogo = false, className = "" }: Or
 
   return (
     <div className={`text-center mb-8 relative ${className}`}>
-      {/* Crown SVG above title */}
-      <div className="relative flex items-center justify-center mb-2">
+      {/* Diagonal Golden Lines above title */}
+      <div className="relative flex items-center justify-center mb-4">
         <svg 
           viewBox="0 0 200 80" 
           className="w-32 h-16"
@@ -23,48 +23,27 @@ const OrnateHeading = ({ title, subtitle, showLogo = false, className = "" }: Or
           xmlns="http://www.w3.org/2000/svg"
         >
           <defs>
-            <linearGradient id="crownGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+            <linearGradient id="diagonalGradient" x1="0%" y1="0%" x2="100%" y2="0%">
               <stop offset="0%" stopColor="#D4AF37" />
               <stop offset="50%" stopColor="#F7DC6F" />
               <stop offset="100%" stopColor="#B7950B" />
             </linearGradient>
           </defs>
           
-          {/* Crown base */}
+          {/* Diagonal line from top-left to bottom-right */}
           <path
-            d="M20 65 L180 65 L175 70 L25 70 Z"
-            fill="url(#crownGradient)"
-            stroke="url(#crownGradient)"
-            strokeWidth="3"
-          />
-          
-          {/* Crown peaks */}
-          <path
-            d="M30 65 L40 35 L50 50 L60 25 L70 45 L80 20 L90 40 L100 20 L110 45 L120 25 L130 50 L140 25 L150 50 L160 35 L170 65"
-            fill="url(#crownGradient)"
-            stroke="url(#crownGradient)"
-            strokeWidth="4"
-            strokeLinejoin="round"
+            d="M40 20 L160 60"
+            stroke="url(#diagonalGradient)"
+            strokeWidth="6"
             strokeLinecap="round"
           />
           
-          {/* Crown jewels */}
-          <circle cx="60" cy="30" r="4" fill="#F7DC6F" stroke="#D4AF37" strokeWidth="2" />
-          <circle cx="100" cy="25" r="5" fill="#F7DC6F" stroke="#D4AF37" strokeWidth="2" />
-          <circle cx="140" cy="30" r="4" fill="#F7DC6F" stroke="#D4AF37" strokeWidth="2" />
-          
-          {/* Additional decorative elements */}
+          {/* Diagonal line from top-right to bottom-left */}
           <path
-            d="M50 50 Q55 45, 60 50"
-            stroke="url(#crownGradient)"
-            strokeWidth="3"
-            fill="none"
-          />
-          <path
-            d="M140 50 Q145 45, 150 50"
-            stroke="url(#crownGradient)"
-            strokeWidth="3"
-            fill="none"
+            d="M160 20 L40 60"
+            stroke="url(#diagonalGradient)"
+            strokeWidth="6"
+            strokeLinecap="round"
           />
         </svg>
       </div>
