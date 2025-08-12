@@ -14,6 +14,61 @@ const OrnateHeading = ({ title, subtitle, showLogo = false, className = "" }: Or
 
   return (
     <div className={`text-center mb-8 relative ${className}`}>
+      {/* Crown SVG above title */}
+      <div className="relative flex items-center justify-center mb-2">
+        <svg 
+          viewBox="0 0 200 80" 
+          className="w-32 h-16"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <defs>
+            <linearGradient id="crownGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stopColor="#D4AF37" />
+              <stop offset="50%" stopColor="#F7DC6F" />
+              <stop offset="100%" stopColor="#B7950B" />
+            </linearGradient>
+          </defs>
+          
+          {/* Crown base */}
+          <path
+            d="M20 65 L180 65 L175 70 L25 70 Z"
+            fill="url(#crownGradient)"
+            stroke="url(#crownGradient)"
+            strokeWidth="3"
+          />
+          
+          {/* Crown peaks */}
+          <path
+            d="M30 65 L40 35 L50 50 L60 25 L70 45 L80 20 L90 40 L100 20 L110 45 L120 25 L130 50 L140 25 L150 50 L160 35 L170 65"
+            fill="url(#crownGradient)"
+            stroke="url(#crownGradient)"
+            strokeWidth="4"
+            strokeLinejoin="round"
+            strokeLinecap="round"
+          />
+          
+          {/* Crown jewels */}
+          <circle cx="60" cy="30" r="4" fill="#F7DC6F" stroke="#D4AF37" strokeWidth="2" />
+          <circle cx="100" cy="25" r="5" fill="#F7DC6F" stroke="#D4AF37" strokeWidth="2" />
+          <circle cx="140" cy="30" r="4" fill="#F7DC6F" stroke="#D4AF37" strokeWidth="2" />
+          
+          {/* Additional decorative elements */}
+          <path
+            d="M50 50 Q55 45, 60 50"
+            stroke="url(#crownGradient)"
+            strokeWidth="3"
+            fill="none"
+          />
+          <path
+            d="M140 50 Q145 45, 150 50"
+            stroke="url(#crownGradient)"
+            strokeWidth="3"
+            fill="none"
+          />
+        </svg>
+      </div>
+
       {/* Decorative SVG Ornament */}
       <div className="relative flex items-center justify-center mb-4">
         <svg 
@@ -34,14 +89,14 @@ const OrnateHeading = ({ title, subtitle, showLogo = false, className = "" }: Or
           <path
             d="M20 60 Q40 40, 80 50 Q100 45, 120 55 Q140 50, 160 60"
             stroke="url(#ornateGradient)"
-            strokeWidth="2"
+            strokeWidth="4"
             fill="none"
             opacity="0.8"
           />
           <path
             d="M30 65 Q50 55, 70 60 Q90 58, 110 65"
             stroke="url(#ornateGradient)"
-            strokeWidth="1.5"
+            strokeWidth="3"
             fill="none"
             opacity="0.6"
           />
@@ -50,28 +105,28 @@ const OrnateHeading = ({ title, subtitle, showLogo = false, className = "" }: Or
           <path
             d="M240 60 Q260 50, 280 55 Q300 45, 320 50 Q360 40, 380 60"
             stroke="url(#ornateGradient)"
-            strokeWidth="2"
+            strokeWidth="4"
             fill="none"
             opacity="0.8"
           />
           <path
             d="M290 65 Q310 58, 330 60 Q350 55, 370 65"
             stroke="url(#ornateGradient)"
-            strokeWidth="1.5"
+            strokeWidth="3"
             fill="none"
             opacity="0.6"
           />
           
           {/* Central crown elements */}
-          <circle cx="180" cy="45" r="3" fill="url(#ornateGradient)" opacity="0.9" />
-          <circle cx="200" cy="40" r="4" fill="url(#ornateGradient)" />
-          <circle cx="220" cy="45" r="3" fill="url(#ornateGradient)" opacity="0.9" />
+          <circle cx="180" cy="45" r="4" fill="url(#ornateGradient)" opacity="0.9" />
+          <circle cx="200" cy="40" r="5" fill="url(#ornateGradient)" />
+          <circle cx="220" cy="45" r="4" fill="url(#ornateGradient)" opacity="0.9" />
           
           {/* Decorative flourishes */}
           <path
             d="M170 55 Q180 50, 190 55 Q200 50, 210 55 Q220 50, 230 55"
             stroke="url(#ornateGradient)"
-            strokeWidth="1"
+            strokeWidth="2"
             fill="none"
             opacity="0.7"
           />
