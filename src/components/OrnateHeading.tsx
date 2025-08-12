@@ -14,40 +14,6 @@ const OrnateHeading = ({ title, subtitle, showLogo = false, className = "" }: Or
 
   return (
     <div className={`text-center mb-8 relative ${className}`}>
-      {/* Diagonal Golden Lines above title */}
-      <div className="relative flex items-center justify-center mb-4">
-        <svg 
-          viewBox="0 0 200 80" 
-          className="w-32 h-16"
-          fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-        >
-          <defs>
-            <linearGradient id="diagonalGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-              <stop offset="0%" stopColor="#D4AF37" />
-              <stop offset="50%" stopColor="#F7DC6F" />
-              <stop offset="100%" stopColor="#B7950B" />
-            </linearGradient>
-          </defs>
-          
-          {/* Diagonal line from top-left to bottom-right */}
-          <path
-            d="M40 20 L160 60"
-            stroke="url(#diagonalGradient)"
-            strokeWidth="6"
-            strokeLinecap="round"
-          />
-          
-          {/* Diagonal line from top-right to bottom-left */}
-          <path
-            d="M160 20 L40 60"
-            stroke="url(#diagonalGradient)"
-            strokeWidth="6"
-            strokeLinecap="round"
-          />
-        </svg>
-      </div>
-
       {/* Decorative SVG Ornament */}
       <div className="relative flex items-center justify-center mb-4">
         <svg 
