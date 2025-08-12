@@ -77,36 +77,44 @@ export function useSupabaseBannerSettings() {
     let mounted = true;
     (async () => {
       setLoading(true);
-      const { data, error } = await supabase
-        .from("banner_settings")
-        .select("*")
-        .eq("id", "main-banner")
-        .single();
+      try {
+        const { data, error } = await supabase
+          .from("banner_settings")
+          .select("*")
+          .eq("id", "main-banner")
+          .maybeSingle();
 
-      if (error) {
-        console.warn("Banner settings not found or error, using defaults", error);
-      }
-
-      if (mounted) {
-        if (data) {
-          const mapped: BannerSettingsWithMeta = {
-            id: data.id,
-            title: data.title,
-            subtitle: data.subtitle,
-            description: data.description,
-            isVisible: data.is_visible,
-            image: data.image_url,
-            logo: data.logo_url,
-            imageUrl: data.image_url,
-            logoUrl: data.logo_url,
-            imageMeta: toBannerImageMeta(data.image_meta, DEFAULT_IMAGE_META),
-            logoMeta: toBannerImageMeta(data.logo_meta, DEFAULT_LOGO_META),
-          };
-          setBanner(mapped);
-        } else {
-          setBanner(DEFAULTS);
+        if (error) {
+          console.warn("Banner settings not found or error, using defaults", error);
         }
-        setLoading(false);
+
+        if (mounted) {
+          if (data) {
+            const mapped: BannerSettingsWithMeta = {
+              id: data.id,
+              title: data.title,
+              subtitle: data.subtitle,
+              description: data.description,
+              isVisible: data.is_visible,
+              image: data.image_url,
+              logo: data.logo_url,
+              imageUrl: data.image_url,
+              logoUrl: data.logo_url,
+              imageMeta: toBannerImageMeta(data.image_meta, DEFAULT_IMAGE_META),
+              logoMeta: toBannerImageMeta(data.logo_meta, DEFAULT_LOGO_META),
+            };
+            setBanner(mapped);
+          } else {
+            setBanner(DEFAULTS);
+          }
+          setLoading(false);
+        }
+      } catch (error) {
+        console.error("Erro ao carregar banner_settings:", error);
+        if (mounted) {
+          setBanner(DEFAULTS);
+          setLoading(false);
+        }
       }
     })();
 

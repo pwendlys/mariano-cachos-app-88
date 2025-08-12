@@ -10,6 +10,7 @@ import { useToast } from '@/hooks/use-toast';
 import ImageCropper from '@/components/banner/ImageCropper';
 import { useSupabaseBannerSettings, BannerSettingsWithMeta } from '@/hooks/useSupabaseBannerSettings';
 import { uploadToBannerBucket } from '@/lib/supabaseStorage';
+import { supabase } from '@/integrations/supabase/client';
 
 const BannerManagement = () => {
   const { toast } = useToast();
@@ -27,6 +28,7 @@ const BannerManagement = () => {
   const [logoPreview, setLogoPreview] = useState<string>(banner.logoUrl || banner.logo || '');
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [saving, setSaving] = useState(false);
 
   // Crop state
   const [crop, setCrop] = useState<{ x: number; y: number }>(banner.imageMeta?.crop || { x: 0, y: 0 });
@@ -82,49 +84,101 @@ const BannerManagement = () => {
   };
 
   const handleSave = async () => {
-    // Upload files if changed
-    let newImageUrl: string | undefined;
-    let newLogoUrl: string | undefined;
+    setSaving(true);
 
-    // Upload banner background
-    if (imageFile) {
-      const { publicUrl } = await uploadToBannerBucket(imageFile, "backgrounds", "main-banner-bg");
-      newImageUrl = publicUrl;
+    try {
+      // Verificar se há uma sessão Supabase ativa
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        toast({
+          title: "Erro de autenticação",
+          description: "Você precisa estar autenticado como admin para salvar o banner.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      let newImageUrl: string | undefined;
+      let newLogoUrl: string | undefined;
+
+      // Upload banner background
+      if (imageFile) {
+        try {
+          const { publicUrl } = await uploadToBannerBucket(imageFile, "backgrounds", "main-banner-bg");
+          newImageUrl = publicUrl;
+        } catch (error) {
+          console.error('Erro ao fazer upload da imagem:', error);
+          toast({
+            title: "Erro no upload",
+            description: "Não foi possível fazer upload da imagem de fundo.",
+            variant: "destructive",
+          });
+          return;
+        }
+      }
+
+      // Upload logo
+      if (logoFile) {
+        try {
+          const { publicUrl } = await uploadToBannerBucket(logoFile, "logos", "main-banner-logo");
+          newLogoUrl = publicUrl;
+        } catch (error) {
+          console.error('Erro ao fazer upload do logo:', error);
+          toast({
+            title: "Erro no upload",
+            description: "Não foi possível fazer upload do logo.",
+            variant: "destructive",
+          });
+          return;
+        }
+      }
+
+      const updatedSettings: Partial<BannerSettingsWithMeta> = {
+        id: banner.id,
+        title: formData.title,
+        subtitle: formData.subtitle,
+        description: formData.description,
+        imageUrl: newImageUrl ?? banner.imageUrl ?? banner.image ?? undefined,
+        logoUrl: newLogoUrl ?? banner.logoUrl ?? banner.logo ?? undefined,
+        isVisible: formData.isVisible,
+        imageMeta: {
+          crop,
+          zoom,
+          aspect,
+        },
+      };
+
+      try {
+        const saved = await updateBannerSettings(updatedSettings);
+
+        toast({
+          title: "Banner atualizado!",
+          description: "As configurações do banner foram salvas com sucesso.",
+        });
+
+        // Ensure previews reflect saved URLs
+        setImagePreview(saved.imageUrl || saved.image || '');
+        setLogoPreview(saved.logoUrl || saved.logo || '');
+        setImageFile(null);
+        setLogoFile(null);
+      } catch (error) {
+        console.error('Erro ao salvar configurações:', error);
+        toast({
+          title: "Erro ao salvar",
+          description: "Não foi possível salvar as configurações do banner. Verifique suas permissões.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error('Erro geral:', error);
+      toast({
+        title: "Erro inesperado",
+        description: "Ocorreu um erro inesperado. Tente novamente.",
+        variant: "destructive",
+      });
+    } finally {
+      setSaving(false);
     }
-
-    // Upload logo
-    if (logoFile) {
-      const { publicUrl } = await uploadToBannerBucket(logoFile, "logos", "main-banner-logo");
-      newLogoUrl = publicUrl;
-    }
-
-    const updatedSettings: Partial<BannerSettingsWithMeta> = {
-      id: banner.id,
-      title: formData.title,
-      subtitle: formData.subtitle,
-      description: formData.description,
-      imageUrl: newImageUrl ?? banner.imageUrl ?? banner.image ?? undefined,
-      logoUrl: newLogoUrl ?? banner.logoUrl ?? banner.logo ?? undefined,
-      isVisible: formData.isVisible,
-      imageMeta: {
-        crop,
-        zoom,
-        aspect,
-      },
-    };
-
-    const saved = await updateBannerSettings(updatedSettings);
-
-    toast({
-      title: "Banner atualizado!",
-      description: "As configurações do banner foram salvas com sucesso.",
-    });
-
-    // Ensure previews reflect saved URLs
-    setImagePreview(saved.imageUrl || saved.image || '');
-    setLogoPreview(saved.logoUrl || saved.logo || '');
-    setImageFile(null);
-    setLogoFile(null);
   };
 
   return (
@@ -149,6 +203,7 @@ const BannerManagement = () => {
             <Switch
               checked={formData.isVisible}
               onCheckedChange={(checked) => setFormData({ ...formData, isVisible: checked })}
+              disabled={saving}
             />
           </div>
 
@@ -168,6 +223,7 @@ const BannerManagement = () => {
                     size="icon"
                     className="absolute -top-2 -right-2 h-6 w-6"
                     onClick={removeLogo}
+                    disabled={saving}
                   >
                     <X size={12} />
                   </Button>
@@ -183,6 +239,7 @@ const BannerManagement = () => {
                 accept="image/*"
                 onChange={handleLogoUpload}
                 className="glass-card border-salon-gold/30 bg-transparent text-white h-12"
+                disabled={saving}
               />
               <p className="text-xs text-muted-foreground">O logo aparecerá no banner e no topo do site</p>
             </div>
@@ -195,6 +252,7 @@ const BannerManagement = () => {
               onChange={(e) => setFormData({...formData, title: e.target.value})}
               placeholder="Ex: Marcos Mariano"
               className="glass-card border-salon-gold/30 bg-transparent text-white h-12"
+              disabled={saving}
             />
           </div>
 
@@ -205,6 +263,7 @@ const BannerManagement = () => {
               onChange={(e) => setFormData({...formData, subtitle: e.target.value})}
               placeholder="Ex: Expert em Crespos e Cacheados"
               className="glass-card border-salon-gold/30 bg-transparent text-white h-12"
+              disabled={saving}
             />
           </div>
 
@@ -216,6 +275,7 @@ const BannerManagement = () => {
               placeholder="Descrição do banner..."
               className="glass-card border-salon-gold/30 bg-transparent text-white"
               rows={3}
+              disabled={saving}
             />
           </div>
 
@@ -241,6 +301,7 @@ const BannerManagement = () => {
                       size="icon"
                       className="absolute top-2 right-2 h-8 w-8"
                       onClick={removeImage}
+                      disabled={saving}
                     >
                       <X size={16} />
                     </Button>
@@ -258,6 +319,7 @@ const BannerManagement = () => {
                 accept="image/*"
                 onChange={handleImageUpload}
                 className="glass-card border-salon-gold/30 bg-transparent text-white h-12"
+                disabled={saving}
               />
             </div>
           </div>
@@ -265,10 +327,10 @@ const BannerManagement = () => {
           <div className="pt-4">
             <Button 
               onClick={handleSave}
-              disabled={loading}
+              disabled={loading || saving}
               className="w-full bg-salon-gold hover:bg-salon-copper text-salon-dark font-medium h-12"
             >
-              Salvar Configurações do Banner
+              {saving ? "Salvando..." : "Salvar Configurações do Banner"}
             </Button>
           </div>
         </CardContent>
