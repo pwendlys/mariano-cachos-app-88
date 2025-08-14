@@ -1,118 +1,106 @@
-
 import React, { useState } from 'react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ShoppingCart, Users, Calendar, DollarSign, Package, TrendingUp, UserCheck } from 'lucide-react';
-import ServiceManagement from '@/components/ServiceManagement';
-import ProductManagement from '@/components/ProductManagement';
-import AppointmentManagement from '@/components/AppointmentManagement';
-import ProfessionalsTabManager from '@/components/ProfessionalsTabManager';
-import CashFlowManagement from '@/components/CashFlowManagement';
-import BannerManagement from '@/components/BannerManagement';
-import ClientList from '@/components/ClientList';
-import DebtCollectionManagement from '@/components/DebtCollectionManagement';
-import { useAuth } from '@/hooks/useAuth';
+import { useNavigate } from 'react-router-dom';
+import { useToast } from "@/components/ui/use-toast"
+import { Button } from '@/components/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import Agendamentos from '@/components/Agendamentos';
+import Servicos from '@/components/Servicos';
+import Produtos from '@/components/Produtos';
+import Profissionais from '@/components/Profissionais';
+import Caixa from '@/components/Caixa';
+import Comissoes from '@/components/Comissoes';
+import Cobrancas from '@/components/Cobrancas';
+import BannerSettings from '@/components/BannerSettings';
+import GalleryManagement from '@/components/GalleryManagement';
 
 const Admin = () => {
-  const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState('appointments');
-
-  if (!user || user.tipo !== 'admin') {
-    return (
-      <div className="min-h-screen bg-salon-dark flex items-center justify-center">
-        <Card className="glass-card border-salon-gold/20">
-          <CardContent className="p-8 text-center">
-            <h2 className="text-2xl font-bold text-salon-gold mb-4">Acesso Negado</h2>
-            <p className="text-muted-foreground">
-              Você não tem permissão para acessar esta página.
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
+  const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState("agendamentos");
+  const { toast } = useToast()
 
   return (
-    <div className="min-h-screen bg-salon-dark p-4">
-      <div className="max-w-7xl mx-auto">
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gradient-gold mb-2 font-playfair">
-            Painel Administrativo
-          </h1>
-          <p className="text-muted-foreground">
-            Gerencie todos os aspectos do seu salão
-          </p>
-        </div>
-
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-4 md:grid-cols-7 glass-card border-salon-gold/20">
-            <TabsTrigger value="appointments" className="flex items-center gap-2 text-xs md:text-sm">
-              <Calendar size={16} />
-              <span className="hidden sm:inline">Agendamentos</span>
-            </TabsTrigger>
-            <TabsTrigger value="services" className="flex items-center gap-2 text-xs md:text-sm">
-              <UserCheck size={16} />
-              <span className="hidden sm:inline">Serviços</span>
-            </TabsTrigger>
-            <TabsTrigger value="products" className="flex items-center gap-2 text-xs md:text-sm">
-              <Package size={16} />
-              <span className="hidden sm:inline">Produtos</span>
-            </TabsTrigger>
-            <TabsTrigger value="professionals" className="flex items-center gap-2 text-xs md:text-sm">
-              <Users size={16} />
-              <span className="hidden sm:inline">Profissionais</span>
-            </TabsTrigger>
-            <TabsTrigger value="cashflow" className="flex items-center gap-2 text-xs md:text-sm">
-              <TrendingUp size={16} />
-              <span className="hidden sm:inline">Fluxo de Caixa</span>
-            </TabsTrigger>
-            <TabsTrigger value="clients" className="flex items-center gap-2 text-xs md:text-sm">
-              <Users size={16} />
-              <span className="hidden sm:inline">Clientes</span>
-            </TabsTrigger>
-            <TabsTrigger value="debt" className="flex items-center gap-2 text-xs md:text-sm">
-              <DollarSign size={16} />
-              <span className="hidden sm:inline">Cobranças</span>
-            </TabsTrigger>
-            <TabsTrigger value="banners" className="flex items-center gap-2 text-xs md:text-sm">
-              <ShoppingCart size={16} />
-              <span className="hidden sm:inline">Banners</span>
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="appointments" className="space-y-6">
-            <AppointmentManagement />
-          </TabsContent>
-
-          <TabsContent value="services" className="space-y-6">
-            <ServiceManagement />
-          </TabsContent>
-
-          <TabsContent value="products" className="space-y-6">
-            <ProductManagement />
-          </TabsContent>
-
-          <TabsContent value="professionals" className="space-y-6">
-            <ProfessionalsTabManager />
-          </TabsContent>
-
-          <TabsContent value="cashflow" className="space-y-6">
-            <CashFlowManagement />
-          </TabsContent>
-
-          <TabsContent value="clients" className="space-y-6">
-            <ClientList />
-          </TabsContent>
-
-          <TabsContent value="debt" className="space-y-6">
-            <DebtCollectionManagement />
-          </TabsContent>
-
-          <TabsContent value="banners" className="space-y-6">
-            <BannerManagement />
-          </TabsContent>
-        </Tabs>
+    <div className="px-4 space-y-6">
+      <div className="flex justify-between items-center">
+        <h1 className="text-2xl font-bold text-gradient-gold">Painel Administrativo</h1>
+        <Button variant="outline" size="sm" onClick={() => {
+          localStorage.removeItem('supabase.auth.token');
+          navigate('/login');
+          toast({
+            title: "Logout realizado",
+            description: "Você será redirecionado para a página de login.",
+          })
+        }}>
+          Sair
+        </Button>
       </div>
+      
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-1 bg-salon-purple/20 p-1 rounded-xl mb-6">
+          <TabsTrigger value="agendamentos" className="data-[state=active]:bg-salon-gold data-[state=active]:text-salon-dark text-salon-copper">
+            Agendamentos
+          </TabsTrigger>
+          <TabsTrigger value="servicos" className="data-[state=active]:bg-salon-gold data-[state=active]:text-salon-dark text-salon-copper">
+            Serviços
+          </TabsTrigger>
+          <TabsTrigger value="produtos" className="data-[state=active]:bg-salon-gold data-[state=active]:text-salon-dark text-salon-copper">
+            Produtos
+          </TabsTrigger>
+          <TabsTrigger value="profissionais" className="data-[state=active]:bg-salon-gold data-[state=active]:text-salon-dark text-salon-copper">
+            Profissionais
+          </TabsTrigger>
+          <TabsTrigger value="caixa" className="data-[state=active]:bg-salon-gold data-[state=active]:text-salon-dark text-salon-copper">
+            Caixa
+          </TabsTrigger>
+          <TabsTrigger value="comissoes" className="data-[state=active]:bg-salon-gold data-[state=active]:text-salon-dark text-salon-copper">
+            Comissões
+          </TabsTrigger>
+          <TabsTrigger value="cobrancas" className="data-[state=active]:bg-salon-gold data-[state=active]:text-salon-dark text-salon-copper">
+            Cobranças
+          </TabsTrigger>
+          <TabsTrigger value="banner" className="data-[state=active]:bg-salon-gold data-[state=active]:text-salon-dark text-salon-copper">
+            Banner
+          </TabsTrigger>
+          <TabsTrigger value="galeria" className="data-[state=active]:bg-salon-gold data-[state=active]:text-salon-dark text-salon-copper">
+            Galeria
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="agendamentos" className="mt-6">
+          <Agendamentos />
+        </TabsContent>
+
+        <TabsContent value="servicos" className="mt-6">
+          <Servicos />
+        </TabsContent>
+
+        <TabsContent value="produtos" className="mt-6">
+          <Produtos />
+        </TabsContent>
+
+        <TabsContent value="profissionais" className="mt-6">
+          <Profissionais />
+        </TabsContent>
+
+        <TabsContent value="caixa" className="mt-6">
+          <Caixa />
+        </TabsContent>
+
+        <TabsContent value="comissoes" className="mt-6">
+          <Comissoes />
+        </TabsContent>
+
+        <TabsContent value="cobrancas" className="mt-6">
+          <Cobrancas />
+        </TabsContent>
+
+        <TabsContent value="banner" className="mt-6">
+          <BannerSettings />
+        </TabsContent>
+
+        <TabsContent value="galeria" className="mt-6">
+          <GalleryManagement />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };

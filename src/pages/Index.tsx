@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Calendar, ShoppingBag, Star, Sparkles, Award, Users } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -6,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { useSupabaseBannerSettings } from '@/hooks/useSupabaseBannerSettings';
 import { useSharedServices } from '@/hooks/useSharedServices';
+import ClientGalleryCarousel from '@/components/ClientGalleryCarousel';
 
 const Index = () => {
   const navigate = useNavigate();
@@ -107,6 +107,18 @@ const Index = () => {
           <ShoppingBag size={24} />
           <span>Nossos Produtos</span>
         </Button>
+      </div>
+
+      {/* Banner Rotativo de Fotos de Atendimentos */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-xl font-bold text-gradient-gold font-playfair">
+            Nossos Atendimentos
+          </h2>
+          <Sparkles className="text-salon-gold" size={24} />
+        </div>
+        
+        <ClientGalleryCarousel />
       </div>
 
       {/* Serviços Especializados - Agora dinâmicos */}
