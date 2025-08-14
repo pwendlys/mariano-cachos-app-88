@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -10,6 +9,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import ClientDetailsModal from './ClientDetailsModal';
+import ClientAvatar from './ClientAvatar';
 
 interface Cliente {
   id: string;
@@ -18,6 +18,7 @@ interface Cliente {
   telefone: string;
   endereco?: string;
   created_at: string;
+  avatar_url?: string;
 }
 
 interface SaldoCliente {
@@ -47,13 +48,37 @@ const ClientList: React.FC<ClientListProps> = ({ filterType = 'all', onClose }) 
   const fetchClientes = async () => {
     try {
       setLoading(true);
+      
+      // Buscar clientes com avatar_url do usuário correspondente
       const { data: clientesData, error: clientesError } = await supabase
         .from('clientes')
-        .select('*')
+        .select(`
+          *,
+          usuario:usuarios!left(avatar_url)
+        `)
+        .eq('usuarios.email', supabase.from('clientes').select('email'))
         .order('nome');
 
-      if (clientesError) throw clientesError;
+      if (clientesError) {
+        console.error('Erro na consulta de clientes:', clientesError);
+        // Fallback para consulta simples
+        const { data: clientesSimples, error: errorSimples } = await supabase
+          .from('clientes')
+          .select('*')
+          .order('nome');
+        
+        if (errorSimples) throw errorSimples;
+        setClientes(clientesSimples || []);
+      } else {
+        // Processar dados para incluir avatar_url
+        const clientesProcessados = clientesData?.map(cliente => ({
+          ...cliente,
+          avatar_url: cliente.usuario?.[0]?.avatar_url
+        })) || [];
+        setClientes(clientesProcessados);
+      }
 
+      // Buscar saldos (mantém a consulta original)
       const { data: saldosData, error: saldosError } = await supabase
         .from('saldos_clientes')
         .select(`
@@ -63,8 +88,6 @@ const ClientList: React.FC<ClientListProps> = ({ filterType = 'all', onClose }) 
         .order('ultima_atualizacao', { ascending: false });
 
       if (saldosError) throw saldosError;
-
-      setClientes(clientesData || []);
       setSaldos(saldosData || []);
     } catch (error) {
       console.error('Erro ao carregar clientes:', error);
@@ -155,37 +178,44 @@ const ClientList: React.FC<ClientListProps> = ({ filterType = 'all', onClose }) 
               <Card key={cliente.id} className="glass-card border-salon-gold/20 hover:border-salon-gold/40 transition-colors">
                 <CardContent className="p-4">
                   <div className="flex justify-between items-start">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-2">
-                        <User size={16} className="text-salon-gold" />
-                        <h4 className="font-medium text-white">{cliente.nome}</h4>
-                        {saldo && saldo.saldo_devedor > 0 && (
-                          <Badge className="bg-red-500/20 text-red-400 text-xs">
-                            Devedor
-                          </Badge>
+                    <div className="flex items-start gap-3 flex-1">
+                      <ClientAvatar 
+                        avatar_url={cliente.avatar_url} 
+                        nome={cliente.nome} 
+                        size="md" 
+                      />
+                      
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-2">
+                          <h4 className="font-medium text-white">{cliente.nome}</h4>
+                          {saldo && saldo.saldo_devedor > 0 && (
+                            <Badge className="bg-red-500/20 text-red-400 text-xs">
+                              Devedor
+                            </Badge>
+                          )}
+                        </div>
+                        
+                        <div className="space-y-1 text-sm text-muted-foreground">
+                          <p>📧 {cliente.email}</p>
+                          <p>📱 {cliente.telefone}</p>
+                          <p>📅 Cliente desde: {format(new Date(cliente.created_at), "dd/MM/yyyy")}</p>
+                        </div>
+
+                        {saldo && (
+                          <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground">Saldo Devedor:</span>
+                              <span className={saldo.saldo_devedor > 0 ? 'text-red-400 font-bold' : 'text-green-400'}>
+                                R$ {saldo.saldo_devedor.toFixed(2)}
+                              </span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground">Total Pago:</span>
+                              <span className="text-white">R$ {saldo.total_pago.toFixed(2)}</span>
+                            </div>
+                          </div>
                         )}
                       </div>
-                      
-                      <div className="space-y-1 text-sm text-muted-foreground">
-                        <p>📧 {cliente.email}</p>
-                        <p>📱 {cliente.telefone}</p>
-                        <p>📅 Cliente desde: {format(new Date(cliente.created_at), "dd/MM/yyyy")}</p>
-                      </div>
-
-                      {saldo && (
-                        <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
-                          <div className="flex justify-between">
-                            <span className="text-muted-foreground">Saldo Devedor:</span>
-                            <span className={saldo.saldo_devedor > 0 ? 'text-red-400 font-bold' : 'text-green-400'}>
-                              R$ {saldo.saldo_devedor.toFixed(2)}
-                            </span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-muted-foreground">Total Pago:</span>
-                            <span className="text-white">R$ {saldo.total_pago.toFixed(2)}</span>
-                          </div>
-                        </div>
-                      )}
                     </div>
 
                     <div className="flex flex-col gap-2">

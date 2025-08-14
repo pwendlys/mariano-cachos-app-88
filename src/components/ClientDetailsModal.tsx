@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -17,6 +16,7 @@ import { format } from 'date-fns';
 import { useSupabaseScheduling } from '@/hooks/useSupabaseScheduling';
 import { useSupabaseProducts } from '@/hooks/useSupabaseProducts';
 import type { Json } from '@/integrations/supabase/types';
+import ClientAvatar from './ClientAvatar';
 
 interface Cliente {
   id: string;
@@ -25,6 +25,7 @@ interface Cliente {
   telefone: string;
   endereco?: string;
   created_at: string;
+  avatar_url?: string;
 }
 
 interface Agendamento {
@@ -364,9 +365,16 @@ const ClientDetailsModal: React.FC<ClientDetailsModalProps> = ({ cliente, onUpda
         <TabsContent value="info" className="space-y-4">
           <Card className="glass-card border-salon-gold/20">
             <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle className="text-salon-gold flex items-center gap-2">
-                <User size={20} />
-                Dados do Cliente
+              <CardTitle className="text-salon-gold flex items-center gap-3">
+                <ClientAvatar 
+                  avatar_url={cliente.avatar_url} 
+                  nome={cliente.nome} 
+                  size="lg" 
+                />
+                <div>
+                  <h2 className="text-xl">Dados do Cliente</h2>
+                  <p className="text-sm text-muted-foreground font-normal">{cliente.nome}</p>
+                </div>
               </CardTitle>
               <Button
                 variant="outline"
