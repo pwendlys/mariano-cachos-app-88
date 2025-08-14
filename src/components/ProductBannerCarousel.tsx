@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { useFeaturedProducts } from '@/hooks/useFeaturedProducts';
 import { Product } from '@/hooks/useSupabaseProducts';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface ProductBannerCarouselProps {
   onAddToCart: (product: Product, quantity: number) => void;
@@ -19,6 +20,7 @@ const ProductBannerCarousel = ({
   const { featuredProducts, loading } = useFeaturedProducts();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     if (!autoRotate || isPaused || featuredProducts.length <= 1) return;
@@ -89,11 +91,11 @@ const ProductBannerCarousel = ({
       <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-transparent to-black/60" />
 
       {/* Conteúdo do slide */}
-      <div className="relative h-full flex items-center p-6 sm:p-8 z-10">
-        <div className="flex items-center space-x-6 w-full">
+      <div className="relative h-full flex items-center p-3 sm:p-6 lg:p-8 z-10">
+        <div className="flex items-center space-x-3 sm:space-x-6 w-full">
           {/* Imagem do produto */}
           <div className="flex-shrink-0">
-            <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-xl overflow-hidden bg-white/10 backdrop-blur-sm border border-salon-gold/30">
+            <div className="w-20 h-20 sm:w-32 sm:h-32 rounded-xl overflow-hidden bg-white/10 backdrop-blur-sm border border-salon-gold/30">
               {currentProduct.image ? (
                 <img 
                   src={currentProduct.image} 
@@ -102,7 +104,7 @@ const ProductBannerCarousel = ({
                 />
               ) : (
                 <div className="w-full h-full flex items-center justify-center">
-                  <Package className="text-salon-gold" size={32} />
+                  <Package className="text-salon-gold" size={isMobile ? 24 : 32} />
                 </div>
               )}
             </div>
@@ -110,39 +112,39 @@ const ProductBannerCarousel = ({
 
           {/* Informações do produto */}
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-2">
-              <Star className="text-salon-gold fill-current" size={16} />
-              <span className="text-salon-gold text-sm font-medium">Produto em Destaque</span>
+            <div className="flex items-center gap-2 mb-1 sm:mb-2">
+              <Star className="text-salon-gold fill-current" size={14} />
+              <span className="text-salon-gold text-xs sm:text-sm font-medium">Produto em Destaque</span>
             </div>
             
-            <h3 className="text-white text-xl sm:text-2xl font-bold mb-1 line-clamp-1 drop-shadow-lg">
+            <h3 className="text-white text-lg sm:text-2xl font-bold mb-1 line-clamp-1 drop-shadow-lg">
               {currentProduct.name}
             </h3>
             
-            <p className="text-salon-copper text-sm mb-2 drop-shadow">{currentProduct.brand}</p>
+            <p className="text-salon-copper text-xs sm:text-sm mb-1 sm:mb-2 drop-shadow">{currentProduct.brand}</p>
             
             {currentProduct.description && (
-              <p className="text-white/90 text-sm mb-3 line-clamp-2 hidden sm:block drop-shadow">
+              <p className="text-white/90 text-xs sm:text-sm mb-2 sm:mb-3 line-clamp-2 hidden sm:block drop-shadow">
                 {currentProduct.description}
               </p>
             )}
             
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-4">
-                <span className="text-salon-gold text-2xl font-bold drop-shadow-lg">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-4">
+                <span className="text-salon-gold text-xl sm:text-2xl font-bold drop-shadow-lg">
                   R$ {currentProduct.price.toFixed(2)}
                 </span>
-                <span className="text-white/70 text-sm drop-shadow">
+                <span className="text-white/70 text-xs sm:text-sm drop-shadow hidden xs:block">
                   Estoque: {currentProduct.stock}
                 </span>
               </div>
               
               <Button
                 onClick={() => handleAddToCart(currentProduct)}
-                className="bg-salon-gold hover:bg-salon-copper text-salon-dark font-medium h-10 px-6 shadow-lg"
+                className="bg-salon-gold hover:bg-salon-copper text-salon-dark font-medium h-8 sm:h-10 px-3 sm:px-6 shadow-lg text-xs sm:text-sm"
                 disabled={currentProduct.stock === 0}
               >
-                <ShoppingCart size={16} className="mr-2" />
+                <ShoppingCart size={14} className="mr-1 sm:mr-2" />
                 Adicionar
               </Button>
             </div>

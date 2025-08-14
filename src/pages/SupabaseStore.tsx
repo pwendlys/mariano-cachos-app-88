@@ -104,7 +104,7 @@ const SupabaseStore = () => {
     <>
       <StockWarnings warnings={stockWarnings} onDismiss={clearStockWarnings} />
       
-      <div className="px-4 space-y-6 animate-fade-in">
+      <div className="px-2 sm:px-4 space-y-4 sm:space-y-6 animate-fade-in">
         <OrnateHeading 
           title="Produtos Especializados" 
           subtitle="Cuide dos seus cachos com produtos de qualidade"
@@ -117,12 +117,12 @@ const SupabaseStore = () => {
         {/* Search and View Toggle */}
         <div className="flex space-x-2">
           <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" size={20} />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" size={18} />
             <Input
               placeholder="Buscar produtos..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 glass-card border-salon-gold/30 bg-transparent text-white placeholder:text-muted-foreground focus:border-salon-gold h-12"
+              className="pl-10 glass-card border-salon-gold/30 bg-transparent text-white placeholder:text-muted-foreground focus:border-salon-gold h-10 sm:h-12"
             />
           </div>
           
@@ -130,27 +130,27 @@ const SupabaseStore = () => {
             <Button
               variant={viewMode === 'grid' ? 'default' : 'ghost'}
               size="icon"
-              className={`h-10 w-10 ${
+              className={`h-8 w-8 sm:h-10 sm:w-10 ${
                 viewMode === 'grid'
                   ? 'bg-salon-gold text-salon-dark hover:bg-salon-copper'
                   : 'text-salon-gold hover:bg-salon-gold/10'
               }`}
               onClick={() => setViewMode('grid')}
             >
-              <Grid3X3 size={20} />
+              <Grid3X3 size={16} />
             </Button>
             
             <Button
               variant={viewMode === 'list' ? 'default' : 'ghost'}
               size="icon"
-              className={`h-10 w-10 ${
+              className={`h-8 w-8 sm:h-10 sm:w-10 ${
                 viewMode === 'list'
                   ? 'bg-salon-gold text-salon-dark hover:bg-salon-copper'
                   : 'text-salon-gold hover:bg-salon-gold/10'
               }`}
               onClick={() => setViewMode('list')}
             >
-              <List size={20} />
+              <List size={16} />
             </Button>
           </div>
         </div>
@@ -162,7 +162,7 @@ const SupabaseStore = () => {
               key={category.id}
               variant={selectedCategory === category.id ? "default" : "outline"}
               size="sm"
-              className={`whitespace-nowrap h-12 ${
+              className={`whitespace-nowrap h-10 px-3 text-xs sm:text-sm ${
                 selectedCategory === category.id 
                   ? 'bg-salon-gold text-salon-dark hover:bg-salon-copper' 
                   : 'border-salon-gold/30 text-salon-gold hover:bg-salon-gold/10'
@@ -182,7 +182,7 @@ const SupabaseStore = () => {
               Produtos que combinam com você
             </h2>
             
-            <div className={viewMode === 'grid' ? 'grid grid-cols-2 gap-4' : 'space-y-4'}>
+            <div className={viewMode === 'grid' ? 'grid grid-cols-2 gap-3 sm:gap-4' : 'space-y-4'}>
               {recommendedProducts.map((product) => (
                 <ProductCard 
                   key={product.id} 
@@ -203,7 +203,7 @@ const SupabaseStore = () => {
             <h2 className="text-lg font-semibold text-salon-gold">Todos os Produtos</h2>
           )}
           
-          <div className={viewMode === 'grid' ? 'grid grid-cols-2 gap-4' : 'space-y-4'}>
+          <div className={viewMode === 'grid' ? 'grid grid-cols-2 gap-3 sm:gap-4' : 'space-y-4'}>
             {filteredProducts.map((product) => (
               <ProductCard 
                 key={product.id} 
@@ -234,15 +234,15 @@ const SupabaseStore = () => {
           <div className="fixed bottom-24 left-4 right-4 glass-card rounded-2xl p-4 z-30">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-salon-gold font-medium">
+                <p className="text-salon-gold font-medium text-sm">
                   {getTotalItems()} {getTotalItems() === 1 ? 'item' : 'itens'} no carrinho
                 </p>
-                <p className="text-white text-sm">
+                <p className="text-white text-xs sm:text-sm">
                   Total: R$ {getTotalPrice().toFixed(2)}
                 </p>
               </div>
               <Button 
-                className="bg-salon-gold hover:bg-salon-copper text-salon-dark h-12"
+                className="bg-salon-gold hover:bg-salon-copper text-salon-dark h-10 px-4 text-sm"
                 onClick={() => navigate('/carrinho')}
               >
                 Ver Carrinho

@@ -6,6 +6,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { Product } from '@/hooks/useSupabaseProducts';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface ProductCardProps {
   product: Product;
@@ -24,6 +25,7 @@ const ProductCard = ({
 }: ProductCardProps) => {
   const { toast } = useToast();
   const [quantity, setQuantity] = useState(1);
+  const isMobile = useIsMobile();
   
   const isLowStock = product.stock <= product.minStock;
   const isOutOfStock = product.stock === 0;
@@ -156,10 +158,10 @@ const ProductCard = ({
                   onClick={handleAddToCart}
                   disabled={isOutOfStock}
                   className={`bg-salon-gold hover:bg-salon-copper text-salon-dark font-medium ${
-                    viewMode === 'list' ? 'h-10 px-6' : 'w-full text-sm h-12'
+                    viewMode === 'list' ? 'h-10 px-4' : 'w-full text-xs h-10 px-4'
                   }`}
                 >
-                  <ShoppingCart size={16} className="mr-2" />
+                  <ShoppingCart size={14} className="mr-2" />
                   {isOutOfStock ? 'Esgotado' : 'Adicionar'}
                 </Button>
               </div>
