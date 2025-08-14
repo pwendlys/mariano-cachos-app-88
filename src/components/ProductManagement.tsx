@@ -209,7 +209,7 @@ const ProductManagement = () => {
       return;
     }
 
-    const product = {
+    const productData = {
       name: formData.name,
       brand: formData.brand,
       description: formData.description,
@@ -226,9 +226,10 @@ const ProductManagement = () => {
     };
 
     if (editingProduct) {
-      await updateProduct(editingProduct.id, product);
+      const productWithId = { ...productData, id: editingProduct.id };
+      await updateProduct(editingProduct.id, productWithId);
     } else {
-      await addProduct(product);
+      await addProduct(productData as any);
     }
 
     setIsDialogOpen(false);
@@ -299,7 +300,7 @@ const ProductManagement = () => {
           </SelectContent>
         </Select>
 
-        <Select value={selectedType} onValueChange={setSelectedType}>
+        <Select value={selectedType} onValueChange={(value) => setSelectedType(value as 'all' | 'ecommerce' | 'interno')}>
           <SelectTrigger className="w-full md:w-48 glass-card border-salon-gold/30 bg-transparent text-white">
             <SelectValue placeholder="Tipo" />
           </SelectTrigger>
@@ -384,7 +385,6 @@ const ProductManagement = () => {
         ))}
       </div>
 
-      {/* Product Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="glass-card border-salon-gold/30 max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
@@ -505,7 +505,6 @@ const ProductManagement = () => {
               </div>
             </div>
 
-            {/* Featured Product Section */}
             <div className="space-y-4 p-4 rounded-lg border border-salon-gold/20 bg-salon-dark/20">
               <div className="flex items-center justify-between">
                 <div className="space-y-1">
@@ -537,7 +536,6 @@ const ProductManagement = () => {
                     />
                   </div>
 
-                  {/* Banner Image Upload */}
                   <div className="space-y-3">
                     <Label className="text-salon-gold flex items-center gap-2">
                       <ImageIcon size={16} />
@@ -580,7 +578,6 @@ const ProductManagement = () => {
               )}
             </div>
 
-            {/* Regular Product Image */}
             <div className="space-y-3">
               <Label className="text-salon-gold">Imagem do Produto</Label>
               
@@ -635,7 +632,6 @@ const ProductManagement = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Image Cropper Dialog */}
       <Dialog open={showImageCropper} onOpenChange={setShowImageCropper}>
         <DialogContent className="glass-card border-salon-gold/30 max-w-md">
           <DialogHeader>
@@ -671,7 +667,6 @@ const ProductManagement = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Banner Image Cropper Dialog */}
       <Dialog open={showBannerCropper} onOpenChange={setShowBannerCropper}>
         <DialogContent className="glass-card border-salon-gold/30 max-w-md">
           <DialogHeader>
