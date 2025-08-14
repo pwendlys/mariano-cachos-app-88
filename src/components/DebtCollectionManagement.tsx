@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, DollarSign, AlertTriangle, CheckCircle, Calendar, Users, Phone, Mail, UserCheck, FileText, X, Filter, MessageCircle } from 'lucide-react';
+import { Plus, DollarSign, AlertTriangle, CheckCircle, Calendar, Users, Phone, Mail, UserCheck, FileText, X, Filter, MessageCircle, Eye, EyeOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -14,6 +14,7 @@ import { useCustomerProfiles } from '@/hooks/useCustomerProfiles';
 import CustomerProfileManagement from '@/components/CustomerProfileManagement';
 import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
+import { useToast } from '@/hooks/use-toast';
 
 const DebtCollectionManagement = () => {
   const { 
@@ -32,6 +33,7 @@ const DebtCollectionManagement = () => {
   } = useDebtCollection();
 
   const { syncCustomerData } = useCustomerProfiles();
+  const { toast } = useToast();
 
   const [isDevedorDialogOpen, setIsDevedorDialogOpen] = useState(false);
   const [isDividaDialogOpen, setIsDividaDialogOpen] = useState(false);
@@ -39,6 +41,8 @@ const DebtCollectionManagement = () => {
   const [selectedDivida, setSelectedDivida] = useState<Divida | null>(null);
   const [showReport, setShowReport] = useState<'aberto' | 'recebido' | null>(null);
   const [collectionDateFilter, setCollectionDateFilter] = useState<string>('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const [devedorForm, setDevedorForm] = useState({
     nome: '',
@@ -46,7 +50,9 @@ const DebtCollectionManagement = () => {
     email: '',
     endereco: '',
     documento: '',
-    observacoes: ''
+    observacoes: '',
+    senha: '',
+    confirmarSenha: ''
   });
 
   const [dividaForm, setDividaForm] = useState({
@@ -110,15 +116,108 @@ const DebtCollectionManagement = () => {
     });
   };
 
+  // Validation functions
+  const validateEmail = (email: string) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
+  const validateForm = () => {
+    const errors = [];
+
+    if (!devedorForm.nome.trim()) {
+      errors.push('Nome é obrigatório');
+    }
+
+    if (!devedorForm.telefone.trim()) {
+      errors.push('Telefone é obrigatório');
+    }
+
+    if (!devedorForm.email.trim()) {
+      errors.push('Email é obrigatório');
+    } else if (!validateEmail(devedorForm.email)) {
+      errors.push('Email deve ter um formato válido');
+    }
+
+    if (!devedorForm.senha) {
+      errors.push('Senha é obrigatória');
+    } else if (devedorForm.senha.length < 6) {
+      errors.push('Senha deve ter pelo menos 6 caracteres');
+    }
+
+    if (devedorForm.senha !== devedorForm.confirmarSenha) {
+      errors.push('Senhas não coincidem');
+    }
+
+    return errors;
+  };
+
   const handleCreateDevedor = async () => {
     try {
-      // Criar cliente na tabela clientes para que apareça no novo atendimento
+      console.log('Iniciando criação de cliente e usuário...');
+      
+      // Validar formulário
+      const validationErrors = validateForm();
+      if (validationErrors.length > 0) {
+        toast({
+          title: "Erro na validação",
+          description: validationErrors.join(', '),
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // Verificar se email já existe na tabela usuarios
+      const { data: existingUser } = await supabase
+        .from('usuarios')
+        .select('id')
+        .eq('email', devedorForm.email.toLowerCase())
+        .single();
+
+      if (existingUser) {
+        toast({
+          title: "Erro",
+          description: "Já existe um usuário cadastrado com este email.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      console.log('Email não existe, prosseguindo com criação...');
+
+      // 1. Criar usuário na tabela usuarios
+      const { data: usuarioData, error: usuarioError } = await supabase
+        .from('usuarios')
+        .insert({
+          nome: devedorForm.nome,
+          email: devedorForm.email.toLowerCase(),
+          whatsapp: devedorForm.telefone.replace(/\D/g, ''),
+          senha: devedorForm.senha, // Em produção, usar hash
+          tipo: 'cliente',
+          ativo: true
+        })
+        .select()
+        .single();
+
+      if (usuarioError) {
+        console.error('Erro ao criar usuário:', usuarioError);
+        toast({
+          title: "Erro",
+          description: "Não foi possível criar o usuário: " + usuarioError.message,
+          variant: "destructive"
+        });
+        return;
+      }
+
+      console.log('Usuário criado com sucesso:', usuarioData);
+
+      // 2. Criar cliente na tabela clientes
       const { data: clienteData, error: clienteError } = await supabase
         .from('clientes')
         .insert({
           nome: devedorForm.nome,
           telefone: devedorForm.telefone.replace(/\D/g, ''),
-          email: devedorForm.email || '',
+          email: devedorForm.email.toLowerCase(),
           endereco: devedorForm.endereco
         })
         .select()
@@ -126,26 +225,89 @@ const DebtCollectionManagement = () => {
 
       if (clienteError) {
         console.error('Erro ao criar cliente:', clienteError);
+        
+        // Rollback: remover usuário criado
+        await supabase
+          .from('usuarios')
+          .delete()
+          .eq('id', usuarioData.id);
+
+        toast({
+          title: "Erro",
+          description: "Não foi possível criar o cliente: " + clienteError.message,
+          variant: "destructive"
+        });
         return;
       }
 
-      // Criar devedor na tabela devedores
-      await createDevedor({
-        ...devedorForm,
-        telefone: devedorForm.telefone.replace(/\D/g, '') // Remove caracteres não numéricos
-      });
+      console.log('Cliente criado com sucesso:', clienteData);
 
+      // 3. Criar devedor na tabela devedores
+      const { error: devedorError } = await supabase
+        .from('devedores')
+        .insert({
+          nome: devedorForm.nome,
+          telefone: devedorForm.telefone.replace(/\D/g, ''),
+          email: devedorForm.email.toLowerCase(),
+          endereco: devedorForm.endereco,
+          documento: devedorForm.documento,
+          observacoes: devedorForm.observacoes,
+          ativo: true
+        });
+
+      if (devedorError) {
+        console.error('Erro ao criar devedor:', devedorError);
+        
+        // Rollback: remover usuário e cliente criados
+        await supabase
+          .from('usuarios')
+          .delete()
+          .eq('id', usuarioData.id);
+          
+        await supabase
+          .from('clientes')
+          .delete()
+          .eq('id', clienteData.id);
+
+        toast({
+          title: "Erro",
+          description: "Não foi possível criar o devedor: " + devedorError.message,
+          variant: "destructive"
+        });
+        return;
+      }
+
+      console.log('Devedor criado com sucesso');
+
+      // Sucesso! Limpar formulário e fechar modal
       setDevedorForm({
         nome: '',
         telefone: '',
         email: '',
         endereco: '',
         documento: '',
-        observacoes: ''
+        observacoes: '',
+        senha: '',
+        confirmarSenha: ''
       });
+
       setIsDevedorDialogOpen(false);
+
+      toast({
+        title: "Sucesso!",
+        description: `Cliente e usuário criados com sucesso! ${devedorForm.nome} agora pode fazer login no sistema.`,
+      });
+
+      // Recarregar dados
+      await syncCustomerData();
+
     } catch (error) {
-      console.error('Erro ao criar cliente/devedor:', error);
+      console.error('Erro geral ao criar cliente/usuário:', error);
+      toast({
+        title: "Erro",
+        description: "Erro interno do sistema. Tente novamente.",
+        variant: "destructive"
+      });
     }
   };
 
@@ -346,9 +508,9 @@ const DebtCollectionManagement = () => {
                 Novo Cliente
               </Button>
             </DialogTrigger>
-            <DialogContent className="glass-card border-salon-gold/30 text-white">
+            <DialogContent className="glass-card border-salon-gold/30 text-white max-w-md max-h-[90vh] overflow-y-auto">
               <DialogHeader>
-                <DialogTitle className="text-salon-gold">Novo Cliente</DialogTitle>
+                <DialogTitle className="text-salon-gold">Novo Cliente + Usuário</DialogTitle>
               </DialogHeader>
               <div className="space-y-4">
                 <div>
@@ -357,8 +519,10 @@ const DebtCollectionManagement = () => {
                     value={devedorForm.nome}
                     onChange={(e) => setDevedorForm({...devedorForm, nome: e.target.value})}
                     className="glass-card border-salon-gold/30 bg-transparent text-white"
+                    placeholder="Nome completo"
                   />
                 </div>
+                
                 <div>
                   <Label>Telefone *</Label>
                   <Input
@@ -368,46 +532,113 @@ const DebtCollectionManagement = () => {
                     className="glass-card border-salon-gold/30 bg-transparent text-white"
                   />
                 </div>
+
                 <div>
-                  <Label>Email</Label>
+                  <Label>Email *</Label>
                   <Input
                     type="email"
                     value={devedorForm.email}
                     onChange={(e) => setDevedorForm({...devedorForm, email: e.target.value})}
                     className="glass-card border-salon-gold/30 bg-transparent text-white"
+                    placeholder="email@exemplo.com"
                   />
                 </div>
+
+                <div>
+                  <Label>Senha *</Label>
+                  <div className="relative">
+                    <Input
+                      type={showPassword ? "text" : "password"}
+                      value={devedorForm.senha}
+                      onChange={(e) => setDevedorForm({...devedorForm, senha: e.target.value})}
+                      className="glass-card border-salon-gold/30 bg-transparent text-white pr-10"
+                      placeholder="Mínimo 6 caracteres"
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="absolute right-0 top-0 h-full px-3 text-salon-gold hover:bg-transparent"
+                      onClick={() => setShowPassword(!showPassword)}
+                    >
+                      {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </Button>
+                  </div>
+                </div>
+
+                <div>
+                  <Label>Confirmar Senha *</Label>
+                  <div className="relative">
+                    <Input
+                      type={showConfirmPassword ? "text" : "password"}
+                      value={devedorForm.confirmarSenha}
+                      onChange={(e) => setDevedorForm({...devedorForm, confirmarSenha: e.target.value})}
+                      className="glass-card border-salon-gold/30 bg-transparent text-white pr-10"
+                      placeholder="Digite a senha novamente"
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="absolute right-0 top-0 h-full px-3 text-salon-gold hover:bg-transparent"
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    >
+                      {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </Button>
+                  </div>
+                </div>
+
                 <div>
                   <Label>CPF/CNPJ</Label>
                   <Input
                     value={devedorForm.documento}
                     onChange={(e) => setDevedorForm({...devedorForm, documento: e.target.value})}
                     className="glass-card border-salon-gold/30 bg-transparent text-white"
+                    placeholder="000.000.000-00"
                   />
                 </div>
+
                 <div>
                   <Label>Endereço</Label>
                   <Textarea
                     value={devedorForm.endereco}
                     onChange={(e) => setDevedorForm({...devedorForm, endereco: e.target.value})}
                     className="glass-card border-salon-gold/30 bg-transparent text-white"
+                    placeholder="Endereço completo"
+                    rows={2}
                   />
                 </div>
+
                 <div>
                   <Label>Observações</Label>
                   <Textarea
                     value={devedorForm.observacoes}
                     onChange={(e) => setDevedorForm({...devedorForm, observacoes: e.target.value})}
                     className="glass-card border-salon-gold/30 bg-transparent text-white"
+                    placeholder="Observações adicionais"
+                    rows={2}
                   />
                 </div>
+
                 <div className="flex space-x-3">
-                  <Button onClick={handleCreateDevedor} className="flex-1 bg-salon-gold hover:bg-salon-copper text-salon-dark">
-                    Criar Cliente
+                  <Button 
+                    onClick={handleCreateDevedor} 
+                    className="flex-1 bg-salon-gold hover:bg-salon-copper text-salon-dark"
+                    disabled={loading}
+                  >
+                    {loading ? 'Criando...' : 'Criar Cliente + Usuário'}
                   </Button>
-                  <Button variant="outline" onClick={() => setIsDevedorDialogOpen(false)} className="border-salon-gold/30 text-salon-gold">
+                  <Button 
+                    variant="outline" 
+                    onClick={() => setIsDevedorDialogOpen(false)} 
+                    className="border-salon-gold/30 text-salon-gold"
+                  >
                     Cancelar
                   </Button>
+                </div>
+
+                <div className="text-xs text-muted-foreground mt-2">
+                  * Campos obrigatórios. O cliente poderá fazer login no sistema com o email e senha criados.
                 </div>
               </div>
             </DialogContent>
