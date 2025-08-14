@@ -111,28 +111,28 @@ const Auth = () => {
       />
       
       {/* Content */}
-      <Card className="w-full max-w-md glass-card relative z-10 backdrop-blur-lg bg-white/10 border-salon-gold/50 shadow-2xl">
+      <Card className="w-full max-w-md relative z-10 bg-transparent border-salon-gold/70 shadow-2xl">
         <CardHeader className="text-center">
-          <div className="w-20 h-20 rounded-full border-2 border-salon-gold flex items-center justify-center mx-auto mb-4 bg-white/20 backdrop-blur-sm">
+          <div className="w-20 h-20 rounded-full border-3 border-salon-gold flex items-center justify-center mx-auto mb-4 bg-transparent">
             <img 
               src="/lovable-uploads/6c513fb2-7005-451a-bfba-cb471f2086a3.png" 
               alt="Marcos Mariano Logo" 
               className="w-16 h-16 object-contain rounded-full"
             />
           </div>
-          <CardTitle className="text-2xl font-playfair text-gradient-gold drop-shadow-lg">
+          <CardTitle className="text-2xl font-playfair text-gradient-gold drop-shadow-2xl" style={{ textShadow: '2px 2px 4px rgba(0,0,0,0.8)' }}>
             Marcos Mariano
           </CardTitle>
-          <CardDescription className="text-white/90 drop-shadow">
+          <CardDescription className="text-white drop-shadow-lg font-semibold" style={{ textShadow: '1px 1px 3px rgba(0,0,0,0.8)' }}>
             Hair Stylist - Sistema de Gestão
           </CardDescription>
         </CardHeader>
 
         <CardContent>
           <Tabs value={isLogin ? 'login' : 'register'} onValueChange={(value) => setIsLogin(value === 'login')}>
-            <TabsList className="grid w-full grid-cols-2 mb-6 bg-white/20 backdrop-blur-sm">
-              <TabsTrigger value="login" className="text-white data-[state=active]:bg-salon-gold data-[state=active]:text-salon-dark">Entrar</TabsTrigger>
-              <TabsTrigger value="register" className="text-white data-[state=active]:bg-salon-gold data-[state=active]:text-salon-dark">Cadastrar</TabsTrigger>
+            <TabsList className="grid w-full grid-cols-2 mb-6 bg-transparent border border-salon-gold/50">
+              <TabsTrigger value="login" className="text-white font-semibold data-[state=active]:bg-salon-gold data-[state=active]:text-salon-dark" style={{ textShadow: '1px 1px 2px rgba(0,0,0,0.8)' }}>Entrar</TabsTrigger>
+              <TabsTrigger value="register" className="text-white font-semibold data-[state=active]:bg-salon-gold data-[state=active]:text-salon-dark" style={{ textShadow: '1px 1px 2px rgba(0,0,0,0.8)' }}>Cadastrar</TabsTrigger>
             </TabsList>
 
             <TabsContent value="login">
