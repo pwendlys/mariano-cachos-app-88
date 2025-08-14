@@ -608,6 +608,10 @@ const ProductManagement = () => {
                 onChange={handleImageUpload}
                 className="glass-card border-salon-gold/30 bg-transparent text-white file:bg-salon-gold file:text-salon-dark file:border-0 file:rounded file:px-3 file:py-1 file:mr-3"
               />
+              
+              <p className="text-xs text-muted-foreground">
+                Recomendado: 400x400px (1:1) - Formatos: JPG, PNG, WebP
+              </p>
             </div>
 
             <div className="flex justify-end space-x-2 pt-4">
