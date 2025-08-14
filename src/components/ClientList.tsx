@@ -53,10 +53,14 @@ const ClientList: React.FC<ClientListProps> = ({ filterType = 'all', onClose }) 
       const { data: clientesData, error: clientesError } = await supabase
         .from('clientes')
         .select(`
-          *,
-          usuario:usuarios!left(avatar_url)
+          id,
+          nome,
+          email,
+          telefone,
+          endereco,
+          created_at,
+          usuarios!inner(avatar_url)
         `)
-        .eq('usuarios.email', supabase.from('clientes').select('email'))
         .order('nome');
 
       if (clientesError) {
@@ -72,8 +76,13 @@ const ClientList: React.FC<ClientListProps> = ({ filterType = 'all', onClose }) 
       } else {
         // Processar dados para incluir avatar_url
         const clientesProcessados = clientesData?.map(cliente => ({
-          ...cliente,
-          avatar_url: cliente.usuario?.[0]?.avatar_url
+          id: cliente.id,
+          nome: cliente.nome,
+          email: cliente.email,
+          telefone: cliente.telefone,
+          endereco: cliente.endereco,
+          created_at: cliente.created_at,
+          avatar_url: cliente.usuarios?.[0]?.avatar_url
         })) || [];
         setClientes(clientesProcessados);
       }
