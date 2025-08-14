@@ -47,18 +47,18 @@ const Header = () => {
     <header className="fixed top-0 left-0 right-0 z-50 glass-card mx-2 sm:mx-4 mt-2 sm:mt-4 rounded-xl sm:rounded-2xl">
       <div className="flex items-center justify-between p-3 sm:p-4">
         <div className="flex items-center space-x-2 sm:space-x-3 min-w-0 flex-1">
-          <div className="w-8 h-8 sm:w-10 md:w-12 sm:h-10 md:h-12 rounded-full gradient-gold flex items-center justify-center flex-shrink-0">
+          <div className="w-8 h-8 sm:w-10 md:w-12 sm:h-10 md:h-12 rounded-full border-2 border-salon-gold bg-salon-dark flex items-center justify-center flex-shrink-0 p-0.5">
             {bannerSettings.logo ? (
               <img 
                 src={bannerSettings.logo} 
                 alt="Logo" 
-                className="w-6 h-6 sm:w-8 sm:h-8 md:w-10 md:h-10 object-contain rounded-full"
+                className="w-full h-full object-contain rounded-full"
               />
             ) : (
               <img 
                 src="/lovable-uploads/6c513fb2-7005-451a-bfba-cb471f2086a3.png" 
                 alt="Marcos Mariano Logo" 
-                className="w-6 h-6 sm:w-8 sm:h-8 md:w-10 md:h-10 object-contain rounded-full"
+                className="w-full h-full object-contain rounded-full"
               />
             )}
           </div>
