@@ -49,43 +49,40 @@ const ClientList: React.FC<ClientListProps> = ({ filterType = 'all', onClose }) 
     try {
       setLoading(true);
       
-      // Buscar clientes com avatar_url do usuário correspondente
+      // First, fetch all clients
       const { data: clientesData, error: clientesError } = await supabase
         .from('clientes')
-        .select(`
-          id,
-          nome,
-          email,
-          telefone,
-          endereco,
-          created_at,
-          usuarios!left(avatar_url)
-        `)
+        .select('*')
         .order('nome');
 
-      if (clientesError) {
-        console.error('Erro na consulta de clientes:', clientesError);
-        // Fallback para consulta simples
-        const { data: clientesSimples, error: errorSimples } = await supabase
-          .from('clientes')
-          .select('*')
-          .order('nome');
-        
-        if (errorSimples) throw errorSimples;
-        setClientes(clientesSimples || []);
-      } else {
-        // Processar dados para incluir avatar_url
-        const clientesProcessados = clientesData?.map(cliente => ({
-          id: cliente.id,
-          nome: cliente.nome,
-          email: cliente.email,
-          telefone: cliente.telefone,
-          endereco: cliente.endereco,
-          created_at: cliente.created_at,
-          avatar_url: cliente.usuarios?.avatar_url
-        })) || [];
-        setClientes(clientesProcessados);
+      if (clientesError) throw clientesError;
+
+      // Then fetch avatar URLs from usuarios table
+      const { data: usuariosData, error: usuariosError } = await supabase
+        .from('usuarios')
+        .select('email, avatar_url');
+
+      if (usuariosError) {
+        console.error('Erro ao buscar avatares:', usuariosError);
       }
+
+      // Create a map of email to avatar_url for quick lookup
+      const avatarMap = new Map();
+      if (usuariosData) {
+        usuariosData.forEach(user => {
+          if (user.avatar_url) {
+            avatarMap.set(user.email, user.avatar_url);
+          }
+        });
+      }
+
+      // Combine client data with avatar URLs
+      const clientesComAvatar = clientesData?.map(cliente => ({
+        ...cliente,
+        avatar_url: avatarMap.get(cliente.email)
+      })) || [];
+
+      setClientes(clientesComAvatar);
 
       // Buscar saldos (mantém a consulta original)
       const { data: saldosData, error: saldosError } = await supabase
