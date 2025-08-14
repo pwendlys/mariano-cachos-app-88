@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -102,8 +101,18 @@ const Auth = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-salon-dark via-salon-dark/95 to-salon-copper/20 p-4">
-      <Card className="w-full max-w-md glass-card">
+    <div className="min-h-screen flex items-center justify-center relative overflow-hidden p-4">
+      {/* Background Image with Overlay */}
+      <div 
+        className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+        style={{
+          backgroundImage: `url('/lovable-uploads/52c15ad1-d6a4-4a7f-92a0-aeae2f560008.png')`
+        }}
+      />
+      <div className="absolute inset-0 bg-salon-dark/80 backdrop-blur-sm" />
+      
+      {/* Content */}
+      <Card className="w-full max-w-md glass-card relative z-10 backdrop-blur-md bg-black/40 border-salon-gold/30">
         <CardHeader className="text-center">
           <div className="w-20 h-20 rounded-full border-2 border-salon-gold flex items-center justify-center mx-auto mb-4">
             <img 
