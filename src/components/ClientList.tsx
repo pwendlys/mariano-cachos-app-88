@@ -59,7 +59,7 @@ const ClientList: React.FC<ClientListProps> = ({ filterType = 'all', onClose }) 
           telefone,
           endereco,
           created_at,
-          usuarios!inner(avatar_url)
+          usuarios!left(avatar_url)
         `)
         .order('nome');
 
@@ -82,7 +82,7 @@ const ClientList: React.FC<ClientListProps> = ({ filterType = 'all', onClose }) 
           telefone: cliente.telefone,
           endereco: cliente.endereco,
           created_at: cliente.created_at,
-          avatar_url: cliente.usuarios?.[0]?.avatar_url
+          avatar_url: cliente.usuarios?.avatar_url
         })) || [];
         setClientes(clientesProcessados);
       }
