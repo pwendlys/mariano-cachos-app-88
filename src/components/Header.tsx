@@ -4,6 +4,7 @@ import { User, LogOut } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import CartIcon from './CartIcon';
 import NotificationsDropdown from './NotificationsDropdown';
 import { useBannerSettings } from '@/hooks/useBannerSettings';
@@ -80,9 +81,18 @@ const Header = () => {
               <Button 
                 variant="ghost" 
                 size="icon"
-                className="text-salon-gold hover:bg-salon-gold/10 h-8 w-8 sm:h-10 sm:w-10 md:h-12 md:w-12"
+                className="text-salon-gold hover:bg-salon-gold/10 h-8 w-8 sm:h-10 sm:w-10 md:h-12 md:w-12 p-0"
               >
-                <User size={isMobile ? 18 : 20} />
+                <Avatar className="h-full w-full border border-salon-gold/30">
+                  <AvatarImage 
+                    src={user?.avatar_url} 
+                    alt={user?.nome || 'Usuário'}
+                    className="object-cover"
+                  />
+                  <AvatarFallback className="bg-salon-gold/20 text-salon-gold">
+                    {user?.nome?.charAt(0)?.toUpperCase() || <User size={isMobile ? 18 : 20} />}
+                  </AvatarFallback>
+                </Avatar>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-48 sm:w-56">

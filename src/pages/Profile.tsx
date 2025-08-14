@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { User, Calendar, ShoppingBag, Star, Package, Settings, LogOut, ShoppingCart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -10,10 +9,11 @@ import { useNavigate } from 'react-router-dom';
 import { useSupabaseProducts } from '@/hooks/useSupabaseProducts';
 import { useUserAppointments } from '@/hooks/useUserAppointments';
 import { useUserPurchases } from '@/hooks/useUserPurchases';
+import AvatarUpload from '@/components/AvatarUpload';
 
 const Profile = () => {
   const { toast } = useToast();
-  const { user, logout } = useAuth();
+  const { user, logout, updateUserAvatar } = useAuth();
   const navigate = useNavigate();
   const { products, loading: productsLoading } = useSupabaseProducts();
   const { appointments, loading: appointmentsLoading, getStatusLabel, getStatusColor, formatDate } = useUserAppointments();
@@ -25,13 +25,26 @@ const Profile = () => {
     navigate('/auth');
   };
 
+  const handleAvatarUpdate = (newAvatarUrl: string) => {
+    updateUserAvatar(newAvatarUrl);
+    toast({
+      title: "Foto atualizada!",
+      description: "Sua foto de perfil foi atualizada com sucesso."
+    });
+  };
+
   return (
     <div className="px-4 space-y-6 animate-fade-in">
       <div className="text-center mb-6">
-        <div className="w-20 h-20 rounded-full bg-gradient-to-br from-salon-gold to-salon-copper mx-auto mb-4 flex items-center justify-center">
-          <User size={32} className="text-salon-dark" />
-        </div>
-        <h1 className="text-2xl font-bold text-salon-gold mb-2 font-playfair">
+        {user && (
+          <AvatarUpload
+            currentAvatarUrl={user.avatar_url}
+            userId={user.id}
+            userName={user.nome}
+            onAvatarUpdate={handleAvatarUpdate}
+          />
+        )}
+        <h1 className="text-2xl font-bold text-salon-gold mb-2 font-playfair mt-4">
           {user?.nome || 'Usuário'}
         </h1>
         <p className="text-muted-foreground">
@@ -306,7 +319,6 @@ const Profile = () => {
                       </span>
                     </div>
 
-                    {/* Lista de produtos comprados */}
                     <div className="space-y-3">
                       <h4 className="text-sm font-medium text-salon-copper">Produtos:</h4>
                       {purchase.itens.map((item, index) => (

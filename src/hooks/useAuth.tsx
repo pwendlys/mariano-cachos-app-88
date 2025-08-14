@@ -10,6 +10,7 @@ interface AuthUser {
   email: string;
   tipo: 'cliente' | 'admin';
   whatsapp?: string;
+  avatar_url?: string;
 }
 
 interface AuthContextType {
@@ -18,6 +19,7 @@ interface AuthContextType {
   login: (email: string, senha: string) => Promise<{ success: boolean; error?: string }>;
   register: (nome: string, email: string, whatsapp: string, senha: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<void>;
+  updateUserAvatar: (avatarUrl: string) => void;
   loading: boolean;
 }
 
@@ -67,7 +69,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         user_metadata: {
           nome: userData.nome,
           tipo: userData.tipo,
-          whatsapp: userData.whatsapp
+          whatsapp: userData.whatsapp,
+          avatar_url: userData.avatar_url
         }
       } as User;
 
@@ -87,7 +90,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         nome: userData.nome,
         email: userData.email,
         tipo: userData.tipo as 'cliente' | 'admin',
-        whatsapp: userData.whatsapp
+        whatsapp: userData.whatsapp,
+        avatar_url: userData.avatar_url
       });
 
       toast({
@@ -158,8 +162,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     });
   };
 
+  const updateUserAvatar = (avatarUrl: string) => {
+    if (user) {
+      setUser({
+        ...user,
+        avatar_url: avatarUrl
+      });
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ user, session, login, register, logout, loading }}>
+    <AuthContext.Provider value={{ user, session, login, register, logout, updateUserAvatar, loading }}>
       {children}
     </AuthContext.Provider>
   );
