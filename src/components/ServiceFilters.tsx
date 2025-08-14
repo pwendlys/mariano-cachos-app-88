@@ -35,6 +35,11 @@ const ServiceFilters: React.FC<ServiceFiltersProps> = ({
 
   const hasActiveFilters = searchTerm || selectedCategory;
 
+  const handleCategoryChange = (value: string) => {
+    // Convert "all" back to empty string for the parent component
+    onCategoryChange(value === "all" ? "" : value);
+  };
+
   return (
     <Card className="glass-card border-salon-gold/20 mb-4">
       <CardContent className="p-4 space-y-4">
@@ -52,13 +57,13 @@ const ServiceFilters: React.FC<ServiceFiltersProps> = ({
         {/* Category Filter and Clear Button */}
         <div className="flex gap-3">
           <div className="flex-1">
-            <Select value={selectedCategory} onValueChange={onCategoryChange}>
+            <Select value={selectedCategory || "all"} onValueChange={handleCategoryChange}>
               <SelectTrigger className="glass-card border-salon-gold/30 bg-transparent text-white h-12">
                 <Filter size={18} className="text-salon-copper mr-2" />
                 <SelectValue placeholder="Todas as categorias" />
               </SelectTrigger>
               <SelectContent className="bg-salon-dark border-salon-gold/30">
-                <SelectItem value="">Todas as categorias</SelectItem>
+                <SelectItem value="all">Todas as categorias</SelectItem>
                 {categories.map((category) => (
                   <SelectItem key={category} value={category}>
                     {categoryLabels[category] || category}
