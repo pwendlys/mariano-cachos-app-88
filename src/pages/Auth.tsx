@@ -113,7 +113,7 @@ const Auth = () => {
       {/* Content */}
       <Card className="w-full max-w-md relative z-10 bg-transparent border-salon-gold/70 shadow-2xl">
         <CardHeader className="text-center">
-          <div className="w-20 h-20 rounded-full border-3 border-salon-gold flex items-center justify-center mx-auto mb-4 bg-transparent">
+          <div className="w-20 h-20 rounded-full border border-salon-gold flex items-center justify-center mx-auto mb-4 bg-black/80">
             <img 
               src="/lovable-uploads/6c513fb2-7005-451a-bfba-cb471f2086a3.png" 
               alt="Marcos Mariano Logo" 
