@@ -25,34 +25,6 @@ const AvatarUpload: React.FC<AvatarUploadProps> = ({
   const { toast } = useToast();
   const { user } = useAuth();
 
-  // Função para criar uma sessão fake para o Supabase
-  const setFakeSession = async () => {
-    if (!user) return;
-    
-    try {
-      // Criar uma sessão fake para o Supabase reconhecer o usuário autenticado
-      await supabase.auth.setSession({
-        access_token: 'fake-token',
-        refresh_token: 'fake-refresh',
-        user: {
-          id: userId,
-          email: user.email,
-          aud: 'authenticated',
-          role: 'authenticated',
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-          app_metadata: {},
-          user_metadata: {
-            nome: user.nome,
-            tipo: user.tipo
-          }
-        }
-      });
-    } catch (error) {
-      console.log('Aviso: Não foi possível definir sessão fake:', error);
-    }
-  };
-
   const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -91,15 +63,17 @@ const AvatarUpload: React.FC<AvatarUploadProps> = ({
     try {
       setUploading(true);
 
-      // Definir sessão fake antes do upload
-      await setFakeSession();
+      if (!user?.email) {
+        throw new Error('Usuário não autenticado');
+      }
 
       // Gerar nome único para o arquivo baseado no email (substituindo caracteres especiais)
-      const emailSafe = user?.email.replace(/[^a-zA-Z0-9]/g, '_') || 'unknown';
+      const emailSafe = user.email.replace(/[^a-zA-Z0-9]/g, '_');
       const fileExt = file.name.split('.').pop() || 'jpg';
       const fileName = `${emailSafe}/avatar_${Date.now()}.${fileExt}`;
 
       console.log('Tentando fazer upload do arquivo:', fileName);
+      console.log('Email do usuário:', user.email);
 
       // Upload para o Supabase Storage
       const { data: uploadData, error: uploadError } = await supabase.storage
@@ -157,9 +131,6 @@ const AvatarUpload: React.FC<AvatarUploadProps> = ({
   const removeAvatar = async () => {
     try {
       setUploading(true);
-
-      // Definir sessão fake antes da remoção
-      await setFakeSession();
 
       // Atualizar na tabela usuarios (remover URL)
       const { error: updateError } = await supabase
