@@ -1,16 +1,17 @@
+
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from "@/components/ui/use-toast"
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import Agendamentos from '@/components/Agendamentos';
-import Servicos from '@/components/Servicos';
-import Produtos from '@/components/Produtos';
-import Profissionais from '@/components/Profissionais';
-import Caixa from '@/components/Caixa';
-import Comissoes from '@/components/Comissoes';
-import Cobrancas from '@/components/Cobrancas';
-import BannerSettings from '@/components/BannerSettings';
+import AppointmentManagement from '@/components/AppointmentManagement';
+import ServiceManagement from '@/components/ServiceManagement';
+import ProductManagement from '@/components/ProductManagement';
+import ProfessionalManagement from '@/components/ProfessionalManagement';
+import CashFlowManagement from '@/components/CashFlowManagement';
+import CommissionManagement from '@/components/CommissionManagement';
+import DebtCollectionManagement from '@/components/DebtCollectionManagement';
+import BannerManagement from '@/components/BannerManagement';
 import GalleryManagement from '@/components/GalleryManagement';
 
 const Admin = () => {
@@ -35,7 +36,7 @@ const Admin = () => {
       </div>
       
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-1 bg-salon-purple/20 p-1 rounded-xl mb-6">
+        <TabsList className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-9 gap-1 bg-salon-purple/20 p-1 rounded-xl mb-6">
           <TabsTrigger value="agendamentos" className="data-[state=active]:bg-salon-gold data-[state=active]:text-salon-dark text-salon-copper">
             Agendamentos
           </TabsTrigger>
@@ -66,35 +67,35 @@ const Admin = () => {
         </TabsList>
 
         <TabsContent value="agendamentos" className="mt-6">
-          <Agendamentos />
+          <AppointmentManagement />
         </TabsContent>
 
         <TabsContent value="servicos" className="mt-6">
-          <Servicos />
+          <ServiceManagement />
         </TabsContent>
 
         <TabsContent value="produtos" className="mt-6">
-          <Produtos />
+          <ProductManagement />
         </TabsContent>
 
         <TabsContent value="profissionais" className="mt-6">
-          <Profissionais />
+          <ProfessionalManagement />
         </TabsContent>
 
         <TabsContent value="caixa" className="mt-6">
-          <Caixa />
+          <CashFlowManagement />
         </TabsContent>
 
         <TabsContent value="comissoes" className="mt-6">
-          <Comissoes />
+          <CommissionManagement />
         </TabsContent>
 
         <TabsContent value="cobrancas" className="mt-6">
-          <Cobrancas />
+          <DebtCollectionManagement />
         </TabsContent>
 
         <TabsContent value="banner" className="mt-6">
-          <BannerSettings />
+          <BannerManagement />
         </TabsContent>
 
         <TabsContent value="galeria" className="mt-6">
