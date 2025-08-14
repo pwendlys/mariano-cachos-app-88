@@ -36,9 +36,7 @@ const ProductManagement = () => {
   const [editingProduct, setEditingProduct] = useState<any>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
-  const [selectedType, setSelectedType<'all' | 'ecommerce' | 'interno'>(
-    'all'
-  );
+  const [selectedType, setSelectedType] = useState<'all' | 'ecommerce' | 'interno'>('all');
   const [showLowStock, setShowLowStock] = useState(false);
   const [imagePreview, setImagePreview] = useState('');
   const [bannerImagePreview, setBannerImagePreview] = useState('');
@@ -301,7 +299,7 @@ const ProductManagement = () => {
           </SelectContent>
         </Select>
 
-        <Select value={selectedType} onValueChange={(value: 'all' | 'ecommerce' | 'interno') => setSelectedType(value)}>
+        <Select value={selectedType} onValueChange={setSelectedType}>
           <SelectTrigger className="w-full md:w-48 glass-card border-salon-gold/30 bg-transparent text-white">
             <SelectValue placeholder="Tipo" />
           </SelectTrigger>
