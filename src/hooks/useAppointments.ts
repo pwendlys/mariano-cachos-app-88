@@ -18,6 +18,7 @@ interface Appointment {
     nome: string;
     email: string;
     telefone: string;
+    avatar_url?: string;
   };
   servico: {
     nome: string;
@@ -64,6 +65,25 @@ export const useAppointments = () => {
         throw error;
       }
 
+      // Fetch user avatars
+      const { data: usuariosData, error: usuariosError } = await supabase
+        .from('usuarios')
+        .select('email, avatar_url');
+
+      if (usuariosError) {
+        console.error('Erro ao buscar avatares:', usuariosError);
+      }
+
+      // Create avatar map
+      const avatarMap = new Map();
+      if (usuariosData) {
+        usuariosData.forEach(user => {
+          if (user.avatar_url) {
+            avatarMap.set(user.email, user.avatar_url);
+          }
+        });
+      }
+
       const { data: profissionaisData, error: profError } = await supabase
         .from('profissionais')
         .select('id, nome, email');
@@ -79,6 +99,10 @@ export const useAppointments = () => {
 
       const appointmentsWithDetails: Appointment[] = (appointmentsData || []).map(appointment => ({
         ...appointment,
+        cliente: {
+          ...appointment.cliente,
+          avatar_url: avatarMap.get(appointment.cliente.email)
+        },
         profissional: appointment.profissional_id ? profissionaisMap.get(appointment.profissional_id) : undefined
       }));
 

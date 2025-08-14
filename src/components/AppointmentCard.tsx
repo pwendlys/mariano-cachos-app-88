@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import AppointmentValueEditor from './AppointmentValueEditor';
+import ClientAvatar from './ClientAvatar';
 
 interface Professional {
   id: string;
@@ -35,6 +36,7 @@ interface Appointment {
     nome: string;
     email: string;
     telefone: string;
+    avatar_url?: string;
   };
   servico: {
     nome: string;
@@ -141,7 +143,6 @@ const AppointmentCard: React.FC<AppointmentCardProps> = ({
     return timeString.slice(0, 5);
   };
 
-  // Permitir edição se não estiver concluído
   const canEdit = appointment.status !== 'concluido';
   const canEditDateTime = canEdit;
 
@@ -172,7 +173,11 @@ const AppointmentCard: React.FC<AppointmentCardProps> = ({
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
               <div className="flex items-center gap-3">
-                <User className="text-salon-gold" size={16} />
+                <ClientAvatar
+                  avatar_url={appointment.cliente.avatar_url}
+                  nome={appointment.cliente.nome}
+                  size="sm"
+                />
                 <div>
                   <p className="text-white font-medium">{appointment.cliente.nome}</p>
                   <p className="text-salon-copper text-sm">{appointment.cliente.email}</p>
