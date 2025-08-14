@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Search, Grid3X3, List, Package, Star } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -10,6 +11,7 @@ import { useNavigate } from 'react-router-dom';
 import ProductCard from '@/components/ProductCard';
 import StockWarnings from '@/components/StockWarnings';
 import OrnateHeading from '@/components/OrnateHeading';
+import ProductBannerCarousel from '@/components/ProductBannerCarousel';
 
 const SupabaseStore = () => {
   const { toast } = useToast();
@@ -108,6 +110,9 @@ const SupabaseStore = () => {
           subtitle="Cuide dos seus cachos com produtos de qualidade"
           showLogo={true}
         />
+
+        {/* Banner de Produtos em Destaque */}
+        <ProductBannerCarousel onAddToCart={handleAddToCart} />
 
         {/* Search and View Toggle */}
         <div className="flex space-x-2">

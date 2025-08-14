@@ -720,12 +720,14 @@ export type Database = {
           codigo_barras: string | null
           created_at: string
           descricao: string | null
+          em_destaque: boolean | null
           estoque: number
           estoque_minimo: number
           id: string
           imagem: string | null
           marca: string
           nome: string
+          ordem_destaque: number | null
           preco: number
           preco_custo: number | null
           tipo_produto: string
@@ -737,12 +739,14 @@ export type Database = {
           codigo_barras?: string | null
           created_at?: string
           descricao?: string | null
+          em_destaque?: boolean | null
           estoque?: number
           estoque_minimo?: number
           id?: string
           imagem?: string | null
           marca: string
           nome: string
+          ordem_destaque?: number | null
           preco: number
           preco_custo?: number | null
           tipo_produto?: string
@@ -754,12 +758,14 @@ export type Database = {
           codigo_barras?: string | null
           created_at?: string
           descricao?: string | null
+          em_destaque?: boolean | null
           estoque?: number
           estoque_minimo?: number
           id?: string
           imagem?: string | null
           marca?: string
           nome?: string
+          ordem_destaque?: number | null
           preco?: number
           preco_custo?: number | null
           tipo_produto?: string

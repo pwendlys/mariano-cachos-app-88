@@ -1,12 +1,14 @@
 
 import React, { useState } from 'react';
-import { Plus, Edit, Trash2, Upload, X, TrendingDown, Filter } from 'lucide-react';
+import { Plus, Edit, Trash2, Upload, X, TrendingDown, Filter, Star } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { useSupabaseProducts, Product } from '@/hooks/useSupabaseProducts';
 
@@ -38,7 +40,9 @@ const ProductManagement: React.FC<ProductManagementProps> = ({ onStockEntry }) =
     category: '',
     image: '',
     costPrice: '',
-    type: 'ecommerce' as 'ecommerce' | 'interno'
+    type: 'ecommerce' as 'ecommerce' | 'interno',
+    featured: false,
+    featuredOrder: ''
   });
   const [imagePreview, setImagePreview] = useState<string>('');
 
@@ -100,7 +104,9 @@ const ProductManagement: React.FC<ProductManagementProps> = ({ onStockEntry }) =
       category: product.category,
       image: product.image || '',
       costPrice: product.costPrice?.toString() || '',
-      type: product.type
+      type: product.type,
+      featured: false, // Will be loaded from DB
+      featuredOrder: ''
     });
     setImagePreview(product.image || '');
     setIsDialogOpen(true);
@@ -118,7 +124,9 @@ const ProductManagement: React.FC<ProductManagementProps> = ({ onStockEntry }) =
       category: '',
       image: '',
       costPrice: '',
-      type: 'ecommerce'
+      type: 'ecommerce',
+      featured: false,
+      featuredOrder: ''
     });
     setImagePreview('');
     setIsDialogOpen(true);
@@ -269,6 +277,36 @@ const ProductManagement: React.FC<ProductManagementProps> = ({ onStockEntry }) =
                     </SelectContent>
                   </Select>
                 </div>
+
+                {/* Produto em Destaque - apenas para e-commerce */}
+                {formData.type === 'ecommerce' && (
+                  <div className="space-y-4 p-4 border border-salon-gold/30 rounded-lg">
+                    <div className="flex items-center space-x-2">
+                      <Switch
+                        id="featured"
+                        checked={formData.featured}
+                        onCheckedChange={(checked) => setFormData({...formData, featured: checked})}
+                      />
+                      <Label htmlFor="featured" className="flex items-center gap-2">
+                        <Star size={16} className="text-salon-gold" />
+                        Produto em Destaque
+                      </Label>
+                    </div>
+                    
+                    {formData.featured && (
+                      <div>
+                        <label className="block text-sm font-medium mb-2">Ordem no Banner (menor = primeiro)</label>
+                        <Input
+                          type="number"
+                          value={formData.featuredOrder}
+                          onChange={(e) => setFormData({...formData, featuredOrder: e.target.value})}
+                          placeholder="1"
+                          className="glass-card border-salon-gold/30 bg-transparent text-white h-12"
+                        />
+                      </div>
+                    )}
+                  </div>
+                )}
                 
                 <div>
                   <label className="block text-sm font-medium mb-2">Descrição</label>
@@ -492,6 +530,7 @@ const ProductManagement: React.FC<ProductManagementProps> = ({ onStockEntry }) =
                     <span className={`text-xs px-2 py-1 rounded ${getProductTypeBadgeClass(product.type)}`}>
                       {getProductTypeLabel(product.type)}
                     </span>
+                    {/* Featured badge would go here if product has em_destaque field */}
                   </div>
                   <p className="text-sm text-salon-copper">{product.brand}</p>
                   <p className="text-sm text-muted-foreground mt-1">{product.description}</p>
