@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Plus, Edit, Trash2, Upload, X, TrendingDown, Filter, Star } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -105,8 +104,8 @@ const ProductManagement: React.FC<ProductManagementProps> = ({ onStockEntry }) =
       image: product.image || '',
       costPrice: product.costPrice?.toString() || '',
       type: product.type,
-      featured: false, // Will be loaded from DB
-      featuredOrder: ''
+      featured: product.featured || false,
+      featuredOrder: product.featuredOrder?.toString() || ''
     });
     setImagePreview(product.image || '');
     setIsDialogOpen(true);
@@ -171,7 +170,9 @@ const ProductManagement: React.FC<ProductManagementProps> = ({ onStockEntry }) =
       category: formData.category,
       image: formData.image || undefined,
       costPrice: formData.costPrice ? parseFloat(formData.costPrice) : undefined,
-      type: formData.type
+      type: formData.type,
+      featured: formData.featured,
+      featuredOrder: formData.featuredOrder ? parseInt(formData.featuredOrder) : 0
     };
 
     if (editingProduct) {
@@ -530,7 +531,12 @@ const ProductManagement: React.FC<ProductManagementProps> = ({ onStockEntry }) =
                     <span className={`text-xs px-2 py-1 rounded ${getProductTypeBadgeClass(product.type)}`}>
                       {getProductTypeLabel(product.type)}
                     </span>
-                    {/* Featured badge would go here if product has em_destaque field */}
+                    {product.featured && (
+                      <span className="text-xs px-2 py-1 rounded bg-salon-gold/20 text-salon-gold flex items-center gap-1">
+                        <Star size={12} className="fill-current" />
+                        Destaque
+                      </span>
+                    )}
                   </div>
                   <p className="text-sm text-salon-copper">{product.brand}</p>
                   <p className="text-sm text-muted-foreground mt-1">{product.description}</p>

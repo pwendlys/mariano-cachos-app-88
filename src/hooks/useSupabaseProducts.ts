@@ -16,6 +16,8 @@ export interface SupabaseProduct {
   codigo_barras?: string;
   ativo: boolean;
   tipo_produto: 'ecommerce' | 'interno';
+  em_destaque: boolean;
+  ordem_destaque: number;
   created_at?: string;
   updated_at?: string;
 }
@@ -33,6 +35,8 @@ export interface Product {
   image?: string;
   costPrice?: number;
   type: 'ecommerce' | 'interno';
+  featured?: boolean;
+  featuredOrder?: number;
 }
 
 // Helper functions to convert between interfaces
@@ -48,6 +52,8 @@ const convertToProduct = (supabaseProduct: SupabaseProduct): Product => ({
   image: supabaseProduct.imagem,
   costPrice: supabaseProduct.preco_custo,
   type: supabaseProduct.tipo_produto,
+  featured: supabaseProduct.em_destaque,
+  featuredOrder: supabaseProduct.ordem_destaque,
 });
 
 const convertFromProduct = (product: Product): Omit<SupabaseProduct, 'id' | 'created_at' | 'updated_at' | 'ativo'> => ({
@@ -62,6 +68,8 @@ const convertFromProduct = (product: Product): Omit<SupabaseProduct, 'id' | 'cre
   preco_custo: product.costPrice,
   codigo_barras: '',
   tipo_produto: product.type,
+  em_destaque: product.featured || false,
+  ordem_destaque: product.featuredOrder || 0,
 });
 
 export const useSupabaseProducts = (productType?: 'ecommerce' | 'interno' | 'all') => {
