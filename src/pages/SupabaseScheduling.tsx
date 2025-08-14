@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Calendar, Clock, User, MessageSquare, Check, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -11,6 +12,8 @@ import ServiceSelectionCard from '@/components/ServiceSelectionCard';
 import TimeSlotGrid from '@/components/TimeSlotGrid';
 import AppointmentSummaryCard from '@/components/AppointmentSummaryCard';
 import OrnateHeading from '@/components/OrnateHeading';
+import ServiceFilters from '@/components/ServiceFilters';
+import EncaixeConfirmationModal from '@/components/EncaixeConfirmationModal';
 
 const SupabaseScheduling = () => {
   const { services, createMultipleAppointments, isSlotAvailable, getSlotStatus, loading } = useSupabaseScheduling();
@@ -25,6 +28,14 @@ const SupabaseScheduling = () => {
   const [clientPhone, setClientPhone] = useState('');
   const [observations, setObservations] = useState('');
   const [showPixPopup, setShowPixPopup] = useState(false);
+  
+  // Service filtering states
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('');
+  
+  // Encaixe states
+  const [showEncaixeModal, setShowEncaixeModal] = useState(false);
+  const [encaixeTime, setEncaixeTime] = useState('');
 
   // Fixed deposit amount of 50 reais
   const DEPOSIT_AMOUNT = 50.00;
@@ -42,6 +53,16 @@ const SupabaseScheduling = () => {
     '09:00', '09:30', '10:00', '10:30', '11:00', '11:30',
     '14:00', '14:30', '15:00', '15:30', '16:00', '16:30', '17:00'
   ];
+
+  // Get unique categories from services
+  const categories = Array.from(new Set(services.map(s => s.categoria))).sort();
+
+  // Filter services based on search and category
+  const filteredServices = services.filter(service => {
+    const matchesSearch = service.nome.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesCategory = !selectedCategory || service.categoria === selectedCategory;
+    return matchesSearch && matchesCategory;
+  });
 
   const getSelectedServicesData = () => {
     return services.filter(s => selectedServices.includes(s.id));
@@ -61,6 +82,53 @@ const SupabaseScheduling = () => {
         ? prev.filter(id => id !== serviceId)
         : [...prev, serviceId]
     );
+  };
+
+  const handleClearFilters = () => {
+    setSearchTerm('');
+    setSelectedCategory('');
+  };
+
+  const handleEncaixeRequest = (time: string) => {
+    setEncaixeTime(time);
+    setShowEncaixeModal(true);
+  };
+
+  const handleConfirmEncaixe = async () => {
+    if (!selectedServices.length || !selectedDate || !encaixeTime || !clientName || !clientEmail || !clientPhone) {
+      return;
+    }
+
+    const success = await createMultipleAppointments({
+      serviceIds: selectedServices,
+      data: selectedDate,
+      horario: encaixeTime,
+      clientName,
+      clientEmail,
+      clientPhone,
+      observacoes: `${observations}\n\n[ENCAIXE SOLICITADO]`,
+      chave_pix: undefined,
+      chave_pix_abacate: undefined,
+      qr_code_data: undefined,
+      transaction_id: undefined,
+      comprovante_pix: undefined
+    });
+
+    if (success) {
+      // Reset form
+      setCurrentStep(1);
+      setSelectedServices([]);
+      setSelectedDate('');
+      setSelectedTime('');
+      setEncaixeTime('');
+      if (!user) {
+        setClientName('');
+        setClientEmail('');
+        setClientPhone('');
+      }
+      setObservations('');
+      setShowEncaixeModal(false);
+    }
   };
 
   const handleNextStep = () => {
@@ -184,14 +252,39 @@ const SupabaseScheduling = () => {
                 <p className="text-sm mt-2">Entre em contato com o administrador.</p>
               </div>
             ) : (
-              services.map((service) => (
-                <ServiceSelectionCard
-                  key={service.id}
-                  service={service}
-                  isSelected={selectedServices.includes(service.id)}
-                  onToggle={handleServiceToggle}
+              <>
+                <ServiceFilters
+                  searchTerm={searchTerm}
+                  selectedCategory={selectedCategory}
+                  onSearchChange={setSearchTerm}
+                  onCategoryChange={setSelectedCategory}
+                  onClearFilters={handleClearFilters}
+                  categories={categories}
+                  totalResults={filteredServices.length}
                 />
-              ))
+                
+                {filteredServices.length === 0 ? (
+                  <div className="text-center p-8 text-muted-foreground">
+                    <p>Nenhum serviço encontrado para os filtros aplicados.</p>
+                    <Button
+                      variant="outline"
+                      onClick={handleClearFilters}
+                      className="mt-2 border-salon-gold/30 text-salon-gold hover:bg-salon-gold/10"
+                    >
+                      Limpar filtros
+                    </Button>
+                  </div>
+                ) : (
+                  filteredServices.map((service) => (
+                    <ServiceSelectionCard
+                      key={service.id}
+                      service={service}
+                      isSelected={selectedServices.includes(service.id)}
+                      onToggle={handleServiceToggle}
+                    />
+                  ))
+                )}
+              </>
             )}
           </CardContent>
         </Card>
@@ -239,6 +332,7 @@ const SupabaseScheduling = () => {
               onTimeSelect={setSelectedTime}
               getSlotStatus={getSlotStatus}
               isSlotAvailable={isSlotAvailable}
+              onEncaixeRequest={handleEncaixeRequest}
             />
           </CardContent>
         </Card>
@@ -381,6 +475,16 @@ const SupabaseScheduling = () => {
         customerEmail={clientEmail}
         customerPhone={clientPhone}
         onPaymentConfirm={handlePaymentConfirm}
+      />
+
+      {/* Encaixe Confirmation Modal */}
+      <EncaixeConfirmationModal
+        isOpen={showEncaixeModal}
+        onClose={() => setShowEncaixeModal(false)}
+        onConfirm={handleConfirmEncaixe}
+        selectedTime={encaixeTime}
+        selectedDate={selectedDate}
+        serviceNames={getSelectedServicesData().map(s => s.nome)}
       />
     </div>
   );

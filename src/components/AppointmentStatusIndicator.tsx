@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Calendar, Clock, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
+import { Calendar, Clock, CheckCircle, AlertCircle, Plus } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 
 interface AppointmentStatusIndicatorProps {
@@ -10,12 +10,14 @@ interface AppointmentStatusIndicatorProps {
     clientName?: string;
     serviceName?: string;
   };
+  onEncaixeRequest?: () => void;
 }
 
 const AppointmentStatusIndicator: React.FC<AppointmentStatusIndicatorProps> = ({
   status,
   time,
-  appointmentInfo
+  appointmentInfo,
+  onEncaixeRequest
 }) => {
   const getStatusConfig = () => {
     switch (status) {
@@ -27,9 +29,9 @@ const AppointmentStatusIndicator: React.FC<AppointmentStatusIndicatorProps> = ({
         };
       case 'ocupado':
         return {
-          icon: CheckCircle,
-          color: 'bg-red-500/20 text-red-400 border-red-500/30',
-          label: 'Ocupado'
+          icon: Plus,
+          color: 'bg-orange-500/20 text-orange-400 border-orange-500/30 hover:bg-orange-500/30 cursor-pointer transition-colors',
+          label: 'Solicitar o encaixe'
         };
       case 'pendente':
         return {
@@ -49,9 +51,19 @@ const AppointmentStatusIndicator: React.FC<AppointmentStatusIndicatorProps> = ({
   const config = getStatusConfig();
   const Icon = config.icon;
 
+  const handleClick = () => {
+    if (status === 'ocupado' && onEncaixeRequest) {
+      onEncaixeRequest();
+    }
+  };
+
   return (
     <div className="flex items-center space-x-2">
-      <Badge variant="outline" className={`${config.color} flex items-center space-x-1 px-2 py-1`}>
+      <Badge 
+        variant="outline" 
+        className={`${config.color} flex items-center space-x-1 px-2 py-1`}
+        onClick={handleClick}
+      >
         <Icon size={12} />
         <span className="text-xs font-medium">{time}</span>
       </Badge>

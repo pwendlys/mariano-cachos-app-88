@@ -12,6 +12,7 @@ interface TimeSlotGridProps {
   onTimeSelect: (time: string) => void;
   getSlotStatus: (date: string, time: string) => 'livre' | 'ocupado' | 'pendente';
   isSlotAvailable: (date: string, time: string, duration: number) => boolean;
+  onEncaixeRequest?: (time: string) => void;
 }
 
 const TimeSlotGrid: React.FC<TimeSlotGridProps> = ({
@@ -21,7 +22,8 @@ const TimeSlotGrid: React.FC<TimeSlotGridProps> = ({
   serviceDuration,
   onTimeSelect,
   getSlotStatus,
-  isSlotAvailable
+  isSlotAvailable,
+  onEncaixeRequest
 }) => {
   const getTimeButtonClass = (time: string) => {
     if (!selectedDate) {
@@ -36,7 +38,7 @@ const TimeSlotGrid: React.FC<TimeSlotGridProps> = ({
     
     switch (status) {
       case 'ocupado':
-        return 'bg-red-600/20 border-red-600/50 text-red-400 hover:bg-red-600/30 cursor-not-allowed';
+        return 'bg-orange-600/20 border-orange-600/50 text-orange-400 hover:bg-orange-600/30 cursor-pointer transition-colors';
       case 'pendente':
         return 'bg-yellow-600/20 border-yellow-600/50 text-yellow-400 hover:bg-yellow-600/30 cursor-not-allowed';
       default:
@@ -46,7 +48,21 @@ const TimeSlotGrid: React.FC<TimeSlotGridProps> = ({
 
   const canSelectTime = (time: string) => {
     if (!selectedDate) return false;
+    const status = getSlotStatus(selectedDate, time);
+    if (status === 'ocupado') return false;
     return isSlotAvailable(selectedDate, time, serviceDuration);
+  };
+
+  const handleTimeClick = (time: string) => {
+    if (!selectedDate) return;
+    
+    const status = getSlotStatus(selectedDate, time);
+    
+    if (status === 'ocupado' && onEncaixeRequest) {
+      onEncaixeRequest(time);
+    } else if (canSelectTime(time)) {
+      onTimeSelect(time);
+    }
   };
 
   return (
@@ -62,15 +78,14 @@ const TimeSlotGrid: React.FC<TimeSlotGridProps> = ({
           <span className="text-sm text-salon-copper">Aguardando Aprovação</span>
         </div>
         <div className="flex items-center gap-2">
-          <div className="w-3 h-3 bg-red-600/30 border border-red-600/50 rounded"></div>
-          <span className="text-sm text-salon-copper">Ocupado</span>
+          <div className="w-3 h-3 bg-orange-600/30 border border-orange-600/50 rounded"></div>
+          <span className="text-sm text-salon-copper">Solicitar o encaixe</span>
         </div>
       </div>
 
       {/* Time Grid */}
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
         {availableTimes.map((time) => {
-          const canSelect = canSelectTime(time);
           const buttonClass = getTimeButtonClass(time);
           const status = selectedDate ? getSlotStatus(selectedDate, time) : 'livre';
           
@@ -79,8 +94,8 @@ const TimeSlotGrid: React.FC<TimeSlotGridProps> = ({
               <Button
                 variant="outline"
                 className={`w-full h-14 text-lg font-medium transition-all duration-200 ${buttonClass}`}
-                onClick={() => canSelect ? onTimeSelect(time) : null}
-                disabled={!canSelect}
+                onClick={() => handleTimeClick(time)}
+                disabled={!selectedDate || status === 'pendente'}
               >
                 <Clock size={18} className="mr-2" />
                 {time}
@@ -90,6 +105,7 @@ const TimeSlotGrid: React.FC<TimeSlotGridProps> = ({
                 <AppointmentStatusIndicator
                   status={status}
                   time={time}
+                  onEncaixeRequest={() => onEncaixeRequest && onEncaixeRequest(time)}
                 />
               )}
             </div>
