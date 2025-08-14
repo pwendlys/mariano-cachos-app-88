@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -13,6 +12,7 @@ interface FeaturedSupabaseProduct {
   estoque: number;
   descricao?: string;
   imagem?: string;
+  imagem_banner?: string;
   ativo: boolean;
   tipo_produto: 'ecommerce' | 'interno';
   em_destaque: boolean;
@@ -29,6 +29,7 @@ const convertToProduct = (product: FeaturedSupabaseProduct): Product => ({
   minStock: 0,
   category: product.categoria,
   image: product.imagem,
+  bannerImage: product.imagem_banner,
   type: product.tipo_produto,
 });
 

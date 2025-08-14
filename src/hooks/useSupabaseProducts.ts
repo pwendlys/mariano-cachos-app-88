@@ -13,6 +13,7 @@ export interface SupabaseProduct {
   estoque_minimo: number;
   descricao?: string;
   imagem?: string;
+  imagem_banner?: string;
   codigo_barras?: string;
   ativo: boolean;
   tipo_produto: 'ecommerce' | 'interno';
@@ -33,6 +34,7 @@ export interface Product {
   minStock: number;
   category: string;
   image?: string;
+  bannerImage?: string;
   costPrice?: number;
   type: 'ecommerce' | 'interno';
   featured?: boolean;
@@ -50,6 +52,7 @@ const convertToProduct = (supabaseProduct: SupabaseProduct): Product => ({
   minStock: supabaseProduct.estoque_minimo,
   category: supabaseProduct.categoria,
   image: supabaseProduct.imagem,
+  bannerImage: supabaseProduct.imagem_banner,
   costPrice: supabaseProduct.preco_custo,
   type: supabaseProduct.tipo_produto,
   featured: supabaseProduct.em_destaque,
@@ -65,6 +68,7 @@ const convertFromProduct = (product: Product): Omit<SupabaseProduct, 'id' | 'cre
   estoque_minimo: product.minStock,
   categoria: product.category,
   imagem: product.image,
+  imagem_banner: product.bannerImage,
   preco_custo: product.costPrice,
   codigo_barras: '',
   tipo_produto: product.type,
