@@ -102,38 +102,37 @@ const Auth = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center relative overflow-hidden p-4">
-      {/* Background Image with Overlay */}
+      {/* Background Image */}
       <div 
         className="absolute inset-0 bg-cover bg-center bg-no-repeat"
         style={{
           backgroundImage: `url('/lovable-uploads/52c15ad1-d6a4-4a7f-92a0-aeae2f560008.png')`
         }}
       />
-      <div className="absolute inset-0 bg-salon-dark/80 backdrop-blur-sm" />
       
       {/* Content */}
-      <Card className="w-full max-w-md glass-card relative z-10 backdrop-blur-md bg-black/40 border-salon-gold/30">
+      <Card className="w-full max-w-md glass-card relative z-10 backdrop-blur-lg bg-white/10 border-salon-gold/50 shadow-2xl">
         <CardHeader className="text-center">
-          <div className="w-20 h-20 rounded-full border-2 border-salon-gold flex items-center justify-center mx-auto mb-4">
+          <div className="w-20 h-20 rounded-full border-2 border-salon-gold flex items-center justify-center mx-auto mb-4 bg-white/20 backdrop-blur-sm">
             <img 
               src="/lovable-uploads/6c513fb2-7005-451a-bfba-cb471f2086a3.png" 
               alt="Marcos Mariano Logo" 
               className="w-16 h-16 object-contain rounded-full"
             />
           </div>
-          <CardTitle className="text-2xl font-playfair text-gradient-gold">
+          <CardTitle className="text-2xl font-playfair text-gradient-gold drop-shadow-lg">
             Marcos Mariano
           </CardTitle>
-          <CardDescription className="text-muted-foreground">
+          <CardDescription className="text-white/90 drop-shadow">
             Hair Stylist - Sistema de Gestão
           </CardDescription>
         </CardHeader>
 
         <CardContent>
           <Tabs value={isLogin ? 'login' : 'register'} onValueChange={(value) => setIsLogin(value === 'login')}>
-            <TabsList className="grid w-full grid-cols-2 mb-6">
-              <TabsTrigger value="login">Entrar</TabsTrigger>
-              <TabsTrigger value="register">Cadastrar</TabsTrigger>
+            <TabsList className="grid w-full grid-cols-2 mb-6 bg-white/20 backdrop-blur-sm">
+              <TabsTrigger value="login" className="text-white data-[state=active]:bg-salon-gold data-[state=active]:text-salon-dark">Entrar</TabsTrigger>
+              <TabsTrigger value="register" className="text-white data-[state=active]:bg-salon-gold data-[state=active]:text-salon-dark">Cadastrar</TabsTrigger>
             </TabsList>
 
             <TabsContent value="login">
