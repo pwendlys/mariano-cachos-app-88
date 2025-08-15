@@ -8,7 +8,7 @@ interface AuthUser {
   id: string;
   nome: string;
   email: string;
-  tipo: 'cliente' | 'admin';
+  tipo: 'cliente' | 'admin' | 'convidado';
   whatsapp?: string;
   avatar_url?: string;
 }

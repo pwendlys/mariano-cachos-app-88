@@ -1,100 +1,153 @@
 
 import React from 'react';
-import { NavLink, useLocation } from 'react-router-dom';
-import {
-  Calendar,
-  Scissors,
-  Package,
-  Users,
-  DollarSign,
-  Calculator,
-  FileText,
-  Image,
-  ImageIcon,
-  BarChart3,
-  LogOut
-} from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
-import { useToast } from "@/hooks/use-toast";
 import {
   Sidebar,
   SidebarContent,
+  SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
   SidebarGroupLabel,
+  SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarHeader,
-  SidebarFooter,
-} from "@/components/ui/sidebar";
-import { Button } from '@/components/ui/button';
+  SidebarRail,
+} from '@/components/ui/sidebar';
+import { 
+  Calendar, 
+  Scissors, 
+  Package, 
+  DollarSign, 
+  Users, 
+  CreditCard,
+  TrendingUp,
+  Settings,
+  Image,
+  Camera,
+  BarChart3
+} from 'lucide-react';
+import { useAuth } from '@/hooks/useAuth';
 
-interface SidebarItem {
-  title: string;
-  url: string;
-  icon: React.ComponentType<any>;
+interface AppSidebarProps {
+  activeTab: string;
+  onTabChange: (tab: string) => void;
 }
 
-const items: SidebarItem[] = [
-  { title: "Dashboard", url: "/admin?tab=dashboard", icon: BarChart3 },
-  { title: "Agendamentos", url: "/admin?tab=agendamentos", icon: Calendar },
-  { title: "Serviços", url: "/admin?tab=servicos", icon: Scissors },
-  { title: "Produtos", url: "/admin?tab=produtos", icon: Package },
-  { title: "Profissionais", url: "/admin?tab=profissionais", icon: Users },
-  { title: "Caixa", url: "/admin?tab=caixa", icon: DollarSign },
-  { title: "Comissões", url: "/admin?tab=comissoes", icon: Calculator },
-  { title: "Cobranças", url: "/admin?tab=cobrancas", icon: FileText },
-  { title: "Banner", url: "/admin?tab=banner", icon: Image },
-  { title: "Galeria", url: "/admin?tab=galeria", icon: ImageIcon },
-];
+const AppSidebar: React.FC<AppSidebarProps> = ({ activeTab, onTabChange }) => {
+  const { user } = useAuth();
 
-export function AppSidebar() {
-  const location = useLocation();
-  const navigate = useNavigate();
-  const { toast } = useToast();
-  
-  const currentTab = new URLSearchParams(location.search).get('tab') || 'dashboard';
-  
-  const isActive = (url: string) => {
-    const tabFromUrl = new URLSearchParams(new URL(url, window.location.origin).search).get('tab');
-    return currentTab === tabFromUrl;
+  // Definir itens do menu baseado no tipo de usuário
+  const getMenuItems = () => {
+    const allItems = [
+      {
+        id: 'dashboard',
+        title: 'Dashboard',
+        icon: BarChart3,
+        allowedRoles: ['admin'] // Apenas admin
+      },
+      {
+        id: 'agendamentos',
+        title: 'Agendamentos',
+        icon: Calendar,
+        allowedRoles: ['admin', 'convidado']
+      },
+      {
+        id: 'servicos',
+        title: 'Serviços',
+        icon: Scissors,
+        allowedRoles: ['admin', 'convidado']
+      },
+      {
+        id: 'produtos',
+        title: 'Produtos',
+        icon: Package,
+        allowedRoles: ['admin', 'convidado']
+      },
+      {
+        id: 'vendas',
+        title: 'Vendas',
+        icon: DollarSign,
+        allowedRoles: ['admin'] // Apenas admin
+      },
+      {
+        id: 'clientes',
+        title: 'Clientes',
+        icon: Users,
+        allowedRoles: ['admin'] // Apenas admin
+      },
+      {
+        id: 'cobrancas',
+        title: 'Cobranças',
+        icon: CreditCard,
+        allowedRoles: ['admin', 'convidado']
+      },
+      {
+        id: 'fluxo-caixa',
+        title: 'Fluxo de Caixa',
+        icon: TrendingUp,
+        allowedRoles: ['admin'] // Apenas admin
+      },
+      {
+        id: 'banner',
+        title: 'Banner',
+        icon: Image,
+        allowedRoles: ['admin', 'convidado']
+      },
+      {
+        id: 'galeria',
+        title: 'Galeria',
+        icon: Camera,
+        allowedRoles: ['admin', 'convidado']
+      },
+      {
+        id: 'configuracoes',
+        title: 'Configurações',
+        icon: Settings,
+        allowedRoles: ['admin'] // Apenas admin
+      }
+    ];
+
+    // Filtrar itens baseado no tipo de usuário
+    return allItems.filter(item => 
+      user?.tipo && item.allowedRoles.includes(user.tipo)
+    );
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem('supabase.auth.token');
-    navigate('/login');
-    toast({
-      title: "Logout realizado",
-      description: "Você será redirecionado para a página de login.",
-    });
-  };
+  const menuItems = getMenuItems();
 
   return (
-    <Sidebar collapsible="icon" className="border-r border-salon-gold/20">
+    <Sidebar variant="inset">
       <SidebarHeader className="border-b border-salon-gold/20 p-4">
         <div className="flex items-center gap-2">
-          <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-salon-gold to-salon-copper flex items-center justify-center">
-            <BarChart3 className="h-4 w-4 text-salon-dark" />
+          <div className="w-8 h-8 bg-salon-gold rounded-md flex items-center justify-center">
+            <Scissors className="w-4 h-4 text-salon-dark" />
           </div>
-          <div className="group-data-[collapsible=icon]:hidden">
-            <h2 className="text-lg font-bold text-gradient-gold font-playfair">Admin</h2>
+          <div>
+            <h2 className="font-semibold text-salon-gold">Admin Panel</h2>
+            <p className="text-xs text-salon-copper capitalize">
+              {user?.tipo === 'convidado' ? 'Usuário Convidado' : 
+               user?.tipo === 'admin' ? 'Administrador' : 'Cliente'}
+            </p>
           </div>
         </div>
       </SidebarHeader>
-
+      
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel className="text-salon-copper">Menu Principal</SidebarGroupLabel>
+          <SidebarGroupLabel className="text-salon-gold">
+            Menu Principal
+          </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {items.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild isActive={isActive(item.url)}>
-                    <NavLink to={item.url} className="flex items-center gap-2">
-                      <item.icon className="h-4 w-4" />
-                      <span>{item.title}</span>
-                    </NavLink>
+              {menuItems.map((item) => (
+                <SidebarMenuItem key={item.id}>
+                  <SidebarMenuButton
+                    onClick={() => onTabChange(item.id)}
+                    isActive={activeTab === item.id}
+                    className="data-[active=true]:bg-salon-gold/20 data-[active=true]:text-salon-gold hover:bg-salon-gold/10"
+                  >
+                    <item.icon className="w-4 h-4" />
+                    <span>{item.title}</span>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
@@ -102,18 +155,16 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
-
+      
       <SidebarFooter className="border-t border-salon-gold/20 p-4">
-        <Button 
-          variant="outline" 
-          size="sm" 
-          onClick={handleLogout}
-          className="w-full justify-start gap-2 border-salon-gold/20 text-salon-copper hover:bg-salon-gold/10"
-        >
-          <LogOut className="h-4 w-4" />
-          <span className="group-data-[collapsible=icon]:hidden">Sair</span>
-        </Button>
+        <div className="text-xs text-salon-copper">
+          Logado como: <span className="text-salon-gold">{user?.nome}</span>
+        </div>
       </SidebarFooter>
+      
+      <SidebarRail />
     </Sidebar>
   );
-}
+};
+
+export default AppSidebar;

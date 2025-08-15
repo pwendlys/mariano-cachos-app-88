@@ -7,6 +7,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AuthProvider } from "@/hooks/useAuth";
 import ProtectedRoute from "@/components/ProtectedRoute";
+import RoleProtectedRoute from "@/components/RoleProtectedRoute";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import SupabaseScheduling from "./pages/SupabaseScheduling";
@@ -75,11 +76,9 @@ const App = () => (
                   </ProtectedRoute>
                 } />
                 <Route path="/admin" element={
-                  <ProtectedRoute requireAdmin={true}>
-                    <MobileLayout>
-                      <Admin />
-                    </MobileLayout>
-                  </ProtectedRoute>
+                  <RoleProtectedRoute allowedRoles={['admin', 'convidado']}>
+                    <Admin />
+                  </RoleProtectedRoute>
                 } />
                 <Route path="/perfil" element={
                   <ProtectedRoute>

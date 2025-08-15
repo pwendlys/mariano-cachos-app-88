@@ -1011,6 +1011,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      is_admin_or_guest: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
       is_current_user_admin: {
         Args: Record<PropertyKey, never>
         Returns: boolean
