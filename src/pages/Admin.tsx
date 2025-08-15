@@ -8,6 +8,7 @@ import ProductManagement from '@/components/ProductManagement';
 import CashFlowManagement from '@/components/CashFlowManagement';
 import ClientList from '@/components/ClientList';
 import DebtCollectionsDashboard from '@/components/DebtCollectionsDashboard';
+import DebtCollectionManagement from '@/components/DebtCollectionManagement';
 import CommissionManagement from '@/components/CommissionManagement';
 import BannerManagement from '@/components/BannerManagement';
 import GalleryManagement from '@/components/GalleryManagement';
@@ -15,6 +16,7 @@ import ProfessionalsTabManager from '@/components/ProfessionalsTabManager';
 import { SidebarProvider, SidebarInset, SidebarTrigger } from '@/components/ui/sidebar';
 import { Separator } from '@/components/ui/separator';
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from '@/components/ui/breadcrumb';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/hooks/useAuth';
 import { useSupabaseCashFlow } from '@/hooks/useSupabaseCashFlow';
 
@@ -106,7 +108,24 @@ const Admin = () => {
       case 'vendas':
         return <CashFlowManagement />;
       case 'clientes':
-        return <ClientList />;
+        return (
+          <Tabs defaultValue="clientes" className="w-full">
+            <TabsList className="grid w-full grid-cols-2 mb-6">
+              <TabsTrigger value="clientes" className="text-salon-gold data-[state=active]:bg-salon-gold data-[state=active]:text-salon-dark">
+                Lista de Clientes
+              </TabsTrigger>
+              <TabsTrigger value="usuarios-devedores" className="text-salon-gold data-[state=active]:bg-salon-gold data-[state=active]:text-salon-dark">
+                Usuários & Devedores
+              </TabsTrigger>
+            </TabsList>
+            <TabsContent value="clientes">
+              <ClientList />
+            </TabsContent>
+            <TabsContent value="usuarios-devedores">
+              <DebtCollectionManagement />
+            </TabsContent>
+          </Tabs>
+        );
       case 'cobrancas':
         return <DebtCollectionsDashboard />;
       case 'fluxo-caixa':
