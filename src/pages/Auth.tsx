@@ -1,16 +1,24 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/hooks/useAuth';
+import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
 import { Eye, EyeOff, User, Mail, Phone, Lock } from 'lucide-react';
+import ForgotPasswordModal from '@/components/ForgotPasswordModal';
+import ResetPasswordForm from '@/components/ResetPasswordForm';
 
 const Auth = () => {
+  const [searchParams] = useSearchParams();
+  const action = searchParams.get('action');
+  
   const [isLogin, setIsLogin] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [useSupabaseAuth, setUseSupabaseAuth] = useState(false);
   const [formData, setFormData] = useState({
     nome: '',
     email: '',
@@ -20,14 +28,42 @@ const Auth = () => {
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   
-  const { user, login, register, loading } = useAuth();
+  const { user: customUser, login, register, loading: customLoading } = useAuth();
+  const { 
+    user: supabaseUser, 
+    loginWithSupabase, 
+    registerWithSupabase, 
+    loading: supabaseLoading 
+  } = useSupabaseAuth();
+  
   const navigate = useNavigate();
 
+  // Determinar qual sistema de auth usar
+  const currentUser = useSupabaseAuth ? supabaseUser : customUser;
+  const currentLoading = useSupabaseAuth ? supabaseLoading : customLoading;
+
   useEffect(() => {
-    if (user) {
+    if (currentUser) {
       navigate('/');
     }
-  }, [user, navigate]);
+  }, [currentUser, navigate]);
+
+  // Se é reset de senha, mostrar formulário específico
+  if (action === 'reset-password') {
+    return (
+      <div className="min-h-screen flex items-center justify-center relative overflow-hidden p-4">
+        {/* Background Image */}
+        <div 
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+          style={{
+            backgroundImage: `url('/lovable-uploads/52c15ad1-d6a4-4a7f-92a0-aeae2f560008.png')`
+          }}
+        />
+        
+        <ResetPasswordForm onSuccess={() => navigate('/auth')} />
+      </div>
+    );
+  }
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
@@ -69,19 +105,29 @@ const Auth = () => {
     
     if (!validateForm()) return;
 
+    let result;
+    
     if (isLogin) {
-      const result = await login(formData.email, formData.senha);
-      if (!result.success && result.error) {
-        setErrors({ submit: result.error });
+      if (useSupabaseAuth) {
+        result = await loginWithSupabase(formData.email, formData.senha);
+      } else {
+        result = await login(formData.email, formData.senha);
       }
     } else {
-      const result = await register(formData.nome, formData.email, formData.whatsapp, formData.senha);
-      if (result.success) {
+      if (useSupabaseAuth) {
+        result = await registerWithSupabase(formData.nome, formData.email, formData.whatsapp, formData.senha);
+      } else {
+        result = await register(formData.nome, formData.email, formData.whatsapp, formData.senha);
+      }
+      
+      if (result.success && !useSupabaseAuth) {
         setIsLogin(true);
         setFormData({ nome: '', email: '', whatsapp: '', senha: '', confirmarSenha: '' });
-      } else if (result.error) {
-        setErrors({ submit: result.error });
       }
+    }
+
+    if (!result.success && result.error) {
+      setErrors({ submit: result.error });
     }
   };
 
@@ -129,6 +175,34 @@ const Auth = () => {
         </CardHeader>
 
         <CardContent>
+          {/* Seletor de sistema de auth */}
+          <div className="mb-4 text-center">
+            <div className="inline-flex bg-black/30 rounded-lg p-1">
+              <button
+                type="button"
+                onClick={() => setUseSupabaseAuth(false)}
+                className={`px-3 py-1 rounded text-xs font-medium transition-colors ${
+                  !useSupabaseAuth 
+                    ? 'bg-salon-gold text-salon-dark' 
+                    : 'text-white hover:bg-white/10'
+                }`}
+              >
+                Sistema Antigo
+              </button>
+              <button
+                type="button"
+                onClick={() => setUseSupabaseAuth(true)}
+                className={`px-3 py-1 rounded text-xs font-medium transition-colors ${
+                  useSupabaseAuth 
+                    ? 'bg-salon-gold text-salon-dark' 
+                    : 'text-white hover:bg-white/10'
+                }`}
+              >
+                Sistema Novo
+              </button>
+            </div>
+          </div>
+
           <Tabs value={isLogin ? 'login' : 'register'} onValueChange={(value) => setIsLogin(value === 'login')}>
             <TabsList className="grid w-full grid-cols-2 mb-6 bg-transparent border border-salon-gold/50">
               <TabsTrigger value="login" className="text-white font-semibold data-[state=active]:bg-salon-gold data-[state=active]:text-salon-dark" style={{ textShadow: '1px 1px 2px rgba(0,0,0,0.8)' }}>Entrar</TabsTrigger>
@@ -176,10 +250,23 @@ const Auth = () => {
                   {errors.senha && <p className="text-sm text-red-500">{errors.senha}</p>}
                 </div>
 
+                {/* Link esqueci minha senha - apenas no sistema novo */}
+                {useSupabaseAuth && (
+                  <div className="text-center">
+                    <button
+                      type="button"
+                      onClick={() => setShowForgotPassword(true)}
+                      className="text-sm text-salon-gold hover:text-salon-copper underline"
+                    >
+                      Esqueci minha senha
+                    </button>
+                  </div>
+                )}
+
                 {errors.submit && <p className="text-sm text-red-500 text-center">{errors.submit}</p>}
 
-                <Button type="submit" className="w-full" disabled={loading}>
-                  {loading ? 'Entrando...' : 'Entrar'}
+                <Button type="submit" className="w-full" disabled={currentLoading}>
+                  {currentLoading ? 'Entrando...' : 'Entrar'}
                 </Button>
               </form>
             </TabsContent>
@@ -275,18 +362,26 @@ const Auth = () => {
 
                 {errors.submit && <p className="text-sm text-red-500 text-center">{errors.submit}</p>}
 
-                <Button type="submit" className="w-full" disabled={loading}>
-                  {loading ? 'Cadastrando...' : 'Cadastrar'}
+                <Button type="submit" className="w-full" disabled={currentLoading}>
+                  {currentLoading ? 'Cadastrando...' : 'Cadastrar'}
                 </Button>
 
-                <div className="text-center text-sm text-muted-foreground">
-                  <p>Após o cadastro, você receberá um email de confirmação.</p>
-                </div>
+                {useSupabaseAuth && (
+                  <div className="text-center text-sm text-muted-foreground">
+                    <p>Você receberá um email de confirmação após o cadastro.</p>
+                  </div>
+                )}
               </form>
             </TabsContent>
           </Tabs>
         </CardContent>
       </Card>
+
+      {/* Modal de recuperação de senha */}
+      <ForgotPasswordModal 
+        isOpen={showForgotPassword}
+        onClose={() => setShowForgotPassword(false)}
+      />
     </div>
   );
 };
