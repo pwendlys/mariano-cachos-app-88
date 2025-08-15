@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from "@/components/ui/use-toast"
@@ -36,32 +35,32 @@ const Admin = () => {
       </div>
       
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-9 gap-1 bg-salon-purple/20 p-1 rounded-xl mb-6">
-          <TabsTrigger value="agendamentos" className="data-[state=active]:bg-salon-gold data-[state=active]:text-salon-dark text-salon-copper">
+        <TabsList className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-9 gap-2 bg-salon-purple/20 p-2 rounded-xl mb-6 auto-rows-min">
+          <TabsTrigger value="agendamentos" className="data-[state=active]:bg-salon-gold data-[state=active]:text-salon-dark text-salon-copper text-xs sm:text-sm px-2 py-2 h-auto min-h-[2.5rem] flex items-center justify-center text-center">
             Agendamentos
           </TabsTrigger>
-          <TabsTrigger value="servicos" className="data-[state=active]:bg-salon-gold data-[state=active]:text-salon-dark text-salon-copper">
+          <TabsTrigger value="servicos" className="data-[state=active]:bg-salon-gold data-[state=active]:text-salon-dark text-salon-copper text-xs sm:text-sm px-2 py-2 h-auto min-h-[2.5rem] flex items-center justify-center text-center">
             Serviços
           </TabsTrigger>
-          <TabsTrigger value="produtos" className="data-[state=active]:bg-salon-gold data-[state=active]:text-salon-dark text-salon-copper">
+          <TabsTrigger value="produtos" className="data-[state=active]:bg-salon-gold data-[state=active]:text-salon-dark text-salon-copper text-xs sm:text-sm px-2 py-2 h-auto min-h-[2.5rem] flex items-center justify-center text-center">
             Produtos
           </TabsTrigger>
-          <TabsTrigger value="profissionais" className="data-[state=active]:bg-salon-gold data-[state=active]:text-salon-dark text-salon-copper">
+          <TabsTrigger value="profissionais" className="data-[state=active]:bg-salon-gold data-[state=active]:text-salon-dark text-salon-copper text-xs sm:text-sm px-2 py-2 h-auto min-h-[2.5rem] flex items-center justify-center text-center">
             Profissionais
           </TabsTrigger>
-          <TabsTrigger value="caixa" className="data-[state=active]:bg-salon-gold data-[state=active]:text-salon-dark text-salon-copper">
+          <TabsTrigger value="caixa" className="data-[state=active]:bg-salon-gold data-[state=active]:text-salon-dark text-salon-copper text-xs sm:text-sm px-2 py-2 h-auto min-h-[2.5rem] flex items-center justify-center text-center">
             Caixa
           </TabsTrigger>
-          <TabsTrigger value="comissoes" className="data-[state=active]:bg-salon-gold data-[state=active]:text-salon-dark text-salon-copper">
+          <TabsTrigger value="comissoes" className="data-[state=active]:bg-salon-gold data-[state=active]:text-salon-dark text-salon-copper text-xs sm:text-sm px-2 py-2 h-auto min-h-[2.5rem] flex items-center justify-center text-center">
             Comissões
           </TabsTrigger>
-          <TabsTrigger value="cobrancas" className="data-[state=active]:bg-salon-gold data-[state=active]:text-salon-dark text-salon-copper">
+          <TabsTrigger value="cobrancas" className="data-[state=active]:bg-salon-gold data-[state=active]:text-salon-dark text-salon-copper text-xs sm:text-sm px-2 py-2 h-auto min-h-[2.5rem] flex items-center justify-center text-center">
             Cobranças
           </TabsTrigger>
-          <TabsTrigger value="banner" className="data-[state=active]:bg-salon-gold data-[state=active]:text-salon-dark text-salon-copper">
+          <TabsTrigger value="banner" className="data-[state=active]:bg-salon-gold data-[state=active]:text-salon-dark text-salon-copper text-xs sm:text-sm px-2 py-2 h-auto min-h-[2.5rem] flex items-center justify-center text-center">
             Banner
           </TabsTrigger>
-          <TabsTrigger value="galeria" className="data-[state=active]:bg-salon-gold data-[state=active]:text-salon-dark text-salon-copper">
+          <TabsTrigger value="galeria" className="data-[state=active]:bg-salon-gold data-[state=active]:text-salon-dark text-salon-copper text-xs sm:text-sm px-2 py-2 h-auto min-h-[2.5rem] flex items-center justify-center text-center">
             Galeria
           </TabsTrigger>
         </TabsList>
