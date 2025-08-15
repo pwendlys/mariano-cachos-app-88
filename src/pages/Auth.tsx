@@ -18,7 +18,7 @@ const Auth = () => {
   const [isLogin, setIsLogin] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
-  const [useSupabaseAuth, setUseSupabaseAuth] = useState(false);
+  const [useSupabaseSystem, setUseSupabaseSystem] = useState(false);
   const [formData, setFormData] = useState({
     nome: '',
     email: '',
@@ -39,8 +39,8 @@ const Auth = () => {
   const navigate = useNavigate();
 
   // Determinar qual sistema de auth usar
-  const currentUser = useSupabaseAuth ? supabaseUser : customUser;
-  const currentLoading = useSupabaseAuth ? supabaseLoading : customLoading;
+  const currentUser = useSupabaseSystem ? supabaseUser : customUser;
+  const currentLoading = useSupabaseSystem ? supabaseLoading : customLoading;
 
   useEffect(() => {
     if (currentUser) {
@@ -108,19 +108,19 @@ const Auth = () => {
     let result;
     
     if (isLogin) {
-      if (useSupabaseAuth) {
+      if (useSupabaseSystem) {
         result = await loginWithSupabase(formData.email, formData.senha);
       } else {
         result = await login(formData.email, formData.senha);
       }
     } else {
-      if (useSupabaseAuth) {
+      if (useSupabaseSystem) {
         result = await registerWithSupabase(formData.nome, formData.email, formData.whatsapp, formData.senha);
       } else {
         result = await register(formData.nome, formData.email, formData.whatsapp, formData.senha);
       }
       
-      if (result.success && !useSupabaseAuth) {
+      if (result.success && !useSupabaseSystem) {
         setIsLogin(true);
         setFormData({ nome: '', email: '', whatsapp: '', senha: '', confirmarSenha: '' });
       }
@@ -180,9 +180,9 @@ const Auth = () => {
             <div className="inline-flex bg-black/30 rounded-lg p-1">
               <button
                 type="button"
-                onClick={() => setUseSupabaseAuth(false)}
+                onClick={() => setUseSupabaseSystem(false)}
                 className={`px-3 py-1 rounded text-xs font-medium transition-colors ${
-                  !useSupabaseAuth 
+                  !useSupabaseSystem 
                     ? 'bg-salon-gold text-salon-dark' 
                     : 'text-white hover:bg-white/10'
                 }`}
@@ -191,9 +191,9 @@ const Auth = () => {
               </button>
               <button
                 type="button"
-                onClick={() => setUseSupabaseAuth(true)}
+                onClick={() => setUseSupabaseSystem(true)}
                 className={`px-3 py-1 rounded text-xs font-medium transition-colors ${
-                  useSupabaseAuth 
+                  useSupabaseSystem 
                     ? 'bg-salon-gold text-salon-dark' 
                     : 'text-white hover:bg-white/10'
                 }`}
@@ -251,7 +251,7 @@ const Auth = () => {
                 </div>
 
                 {/* Link esqueci minha senha - apenas no sistema novo */}
-                {useSupabaseAuth && (
+                {useSupabaseSystem && (
                   <div className="text-center">
                     <button
                       type="button"
@@ -366,7 +366,7 @@ const Auth = () => {
                   {currentLoading ? 'Cadastrando...' : 'Cadastrar'}
                 </Button>
 
-                {useSupabaseAuth && (
+                {useSupabaseSystem && (
                   <div className="text-center text-sm text-muted-foreground">
                     <p>Você receberá um email de confirmação após o cadastro.</p>
                   </div>
