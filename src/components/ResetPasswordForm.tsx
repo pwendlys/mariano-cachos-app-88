@@ -1,11 +1,11 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Lock, Eye, EyeOff, CheckCircle } from 'lucide-react';
-import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
+import { supabase } from '@/integrations/supabase/client';
 
 interface ResetPasswordFormProps {
   onSuccess: () => void;
@@ -21,8 +21,19 @@ const ResetPasswordForm: React.FC<ResetPasswordFormProps> = ({ onSuccess }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
-  
-  const { updatePassword } = useSupabaseAuth();
+  const [userEmail, setUserEmail] = useState<string | null>(null);
+
+  useEffect(() => {
+    // Verificar se há uma sessão de recuperação de senha
+    const checkSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user?.email) {
+        setUserEmail(session.user.email);
+      }
+    };
+    
+    checkSession();
+  }, []);
 
   const validateForm = () => {
     if (!formData.password) {
@@ -49,16 +60,39 @@ const ResetPasswordForm: React.FC<ResetPasswordFormProps> = ({ onSuccess }) => {
     
     if (!validateForm()) return;
 
+    if (!userEmail) {
+      setError('Sessão inválida. Solicite um novo link de recuperação.');
+      return;
+    }
+
     setLoading(true);
-    const result = await updatePassword(formData.password);
-    
-    if (result.success) {
-      setSuccess(true);
-      setTimeout(() => {
-        onSuccess();
-      }, 2000);
-    } else {
-      setError(result.error || 'Erro ao atualizar senha');
+
+    try {
+      // Atualizar a senha na tabela usuarios customizada
+      const { error: updateError } = await supabase
+        .from('usuarios')
+        .update({ 
+          senha: formData.password, // Em produção, isto deveria ser hasheado
+          updated_at: new Date().toISOString()
+        })
+        .eq('email', userEmail)
+        .eq('ativo', true);
+
+      if (updateError) {
+        console.error('Erro ao atualizar senha:', updateError);
+        setError('Erro ao atualizar senha');
+      } else {
+        // Fazer logout da sessão temporária do Supabase Auth
+        await supabase.auth.signOut();
+        
+        setSuccess(true);
+        setTimeout(() => {
+          onSuccess();
+        }, 2000);
+      }
+    } catch (error) {
+      console.error('Erro:', error);
+      setError('Erro interno do sistema');
     }
     
     setLoading(false);

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -6,7 +7,6 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/hooks/useAuth';
-import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
 import { Eye, EyeOff, User, Mail, Phone, Lock } from 'lucide-react';
 import ForgotPasswordModal from '@/components/ForgotPasswordModal';
 import ResetPasswordForm from '@/components/ResetPasswordForm';
@@ -18,7 +18,6 @@ const Auth = () => {
   const [isLogin, setIsLogin] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
-  const [useSupabaseSystem, setUseSupabaseSystem] = useState(false);
   const [formData, setFormData] = useState({
     nome: '',
     email: '',
@@ -28,25 +27,14 @@ const Auth = () => {
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   
-  const { user: customUser, login, register, loading: customLoading } = useAuth();
-  const { 
-    user: supabaseUser, 
-    loginWithSupabase, 
-    registerWithSupabase, 
-    loading: supabaseLoading 
-  } = useSupabaseAuth();
-  
+  const { user, login, register, loading } = useAuth();
   const navigate = useNavigate();
 
-  // Determinar qual sistema de auth usar
-  const currentUser = useSupabaseSystem ? supabaseUser : customUser;
-  const currentLoading = useSupabaseSystem ? supabaseLoading : customLoading;
-
   useEffect(() => {
-    if (currentUser) {
+    if (user) {
       navigate('/');
     }
-  }, [currentUser, navigate]);
+  }, [user, navigate]);
 
   // Se é reset de senha, mostrar formulário específico
   if (action === 'reset-password') {
@@ -108,19 +96,11 @@ const Auth = () => {
     let result;
     
     if (isLogin) {
-      if (useSupabaseSystem) {
-        result = await loginWithSupabase(formData.email, formData.senha);
-      } else {
-        result = await login(formData.email, formData.senha);
-      }
+      result = await login(formData.email, formData.senha);
     } else {
-      if (useSupabaseSystem) {
-        result = await registerWithSupabase(formData.nome, formData.email, formData.whatsapp, formData.senha);
-      } else {
-        result = await register(formData.nome, formData.email, formData.whatsapp, formData.senha);
-      }
+      result = await register(formData.nome, formData.email, formData.whatsapp, formData.senha);
       
-      if (result.success && !useSupabaseSystem) {
+      if (result.success) {
         setIsLogin(true);
         setFormData({ nome: '', email: '', whatsapp: '', senha: '', confirmarSenha: '' });
       }
@@ -175,34 +155,6 @@ const Auth = () => {
         </CardHeader>
 
         <CardContent>
-          {/* Seletor de sistema de auth */}
-          <div className="mb-4 text-center">
-            <div className="inline-flex bg-black/30 rounded-lg p-1">
-              <button
-                type="button"
-                onClick={() => setUseSupabaseSystem(false)}
-                className={`px-3 py-1 rounded text-xs font-medium transition-colors ${
-                  !useSupabaseSystem 
-                    ? 'bg-salon-gold text-salon-dark' 
-                    : 'text-white hover:bg-white/10'
-                }`}
-              >
-                Sistema Antigo
-              </button>
-              <button
-                type="button"
-                onClick={() => setUseSupabaseSystem(true)}
-                className={`px-3 py-1 rounded text-xs font-medium transition-colors ${
-                  useSupabaseSystem 
-                    ? 'bg-salon-gold text-salon-dark' 
-                    : 'text-white hover:bg-white/10'
-                }`}
-              >
-                Sistema Novo
-              </button>
-            </div>
-          </div>
-
           <Tabs value={isLogin ? 'login' : 'register'} onValueChange={(value) => setIsLogin(value === 'login')}>
             <TabsList className="grid w-full grid-cols-2 mb-6 bg-transparent border border-salon-gold/50">
               <TabsTrigger value="login" className="text-white font-semibold data-[state=active]:bg-salon-gold data-[state=active]:text-salon-dark" style={{ textShadow: '1px 1px 2px rgba(0,0,0,0.8)' }}>Entrar</TabsTrigger>
@@ -250,23 +202,21 @@ const Auth = () => {
                   {errors.senha && <p className="text-sm text-red-500">{errors.senha}</p>}
                 </div>
 
-                {/* Link esqueci minha senha - apenas no sistema novo */}
-                {useSupabaseSystem && (
-                  <div className="text-center">
-                    <button
-                      type="button"
-                      onClick={() => setShowForgotPassword(true)}
-                      className="text-sm text-salon-gold hover:text-salon-copper underline"
-                    >
-                      Esqueci minha senha
-                    </button>
-                  </div>
-                )}
+                {/* Botão Esqueci minha senha */}
+                <div className="text-center">
+                  <button
+                    type="button"
+                    onClick={() => setShowForgotPassword(true)}
+                    className="text-sm text-salon-gold hover:text-salon-copper underline"
+                  >
+                    Esqueci minha senha
+                  </button>
+                </div>
 
                 {errors.submit && <p className="text-sm text-red-500 text-center">{errors.submit}</p>}
 
-                <Button type="submit" className="w-full" disabled={currentLoading}>
-                  {currentLoading ? 'Entrando...' : 'Entrar'}
+                <Button type="submit" className="w-full" disabled={loading}>
+                  {loading ? 'Entrando...' : 'Entrar'}
                 </Button>
               </form>
             </TabsContent>
@@ -362,15 +312,9 @@ const Auth = () => {
 
                 {errors.submit && <p className="text-sm text-red-500 text-center">{errors.submit}</p>}
 
-                <Button type="submit" className="w-full" disabled={currentLoading}>
-                  {currentLoading ? 'Cadastrando...' : 'Cadastrar'}
+                <Button type="submit" className="w-full" disabled={loading}>
+                  {loading ? 'Cadastrando...' : 'Cadastrar'}
                 </Button>
-
-                {useSupabaseSystem && (
-                  <div className="text-center text-sm text-muted-foreground">
-                    <p>Você receberá um email de confirmação após o cadastro.</p>
-                  </div>
-                )}
               </form>
             </TabsContent>
           </Tabs>

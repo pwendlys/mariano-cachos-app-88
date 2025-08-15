@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Mail, ArrowLeft } from 'lucide-react';
-import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
+import { supabase } from '@/integrations/supabase/client';
 
 interface ForgotPasswordModalProps {
   isOpen: boolean;
@@ -17,8 +17,6 @@ const ForgotPasswordModal: React.FC<ForgotPasswordModalProps> = ({ isOpen, onClo
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState('');
-  
-  const { resetPassword } = useSupabaseAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -35,12 +33,38 @@ const ForgotPasswordModal: React.FC<ForgotPasswordModalProps> = ({ isOpen, onClo
     }
 
     setLoading(true);
-    const result = await resetPassword(email);
-    
-    if (result.success) {
-      setSuccess(true);
-    } else {
-      setError(result.error || 'Erro ao enviar email');
+
+    try {
+      // Verificar se o email existe na tabela usuarios
+      const { data: userData, error: userError } = await supabase
+        .from('usuarios')
+        .select('id, email, nome')
+        .eq('email', email)
+        .eq('ativo', true)
+        .single();
+
+      if (userError || !userData) {
+        setError('E-mail não encontrado ou usuário inativo');
+        setLoading(false);
+        return;
+      }
+
+      // Enviar email de recuperação usando Supabase Auth
+      const redirectUrl = `${window.location.origin}/auth?action=reset-password`;
+      
+      const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: redirectUrl
+      });
+
+      if (resetError) {
+        console.error('Erro ao enviar email:', resetError);
+        setError('Erro ao enviar email de recuperação');
+      } else {
+        setSuccess(true);
+      }
+    } catch (error) {
+      console.error('Erro:', error);
+      setError('Erro interno do sistema');
     }
     
     setLoading(false);
