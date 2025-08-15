@@ -36,37 +36,35 @@ const Admin = () => {
       </div>
       
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <div className="overflow-x-auto">
-          <TabsList className="flex flex-wrap gap-1 bg-salon-purple/20 p-2 rounded-xl mb-6 min-w-max">
-            <TabsTrigger value="agendamentos" className="data-[state=active]:bg-salon-gold data-[state=active]:text-salon-dark text-salon-copper whitespace-nowrap">
-              Agendamentos
-            </TabsTrigger>
-            <TabsTrigger value="servicos" className="data-[state=active]:bg-salon-gold data-[state=active]:text-salon-dark text-salon-copper whitespace-nowrap">
-              Serviços
-            </TabsTrigger>
-            <TabsTrigger value="produtos" className="data-[state=active]:bg-salon-gold data-[state=active]:text-salon-dark text-salon-copper whitespace-nowrap">
-              Produtos
-            </TabsTrigger>
-            <TabsTrigger value="profissionais" className="data-[state=active]:bg-salon-gold data-[state=active]:text-salon-dark text-salon-copper whitespace-nowrap">
-              Profissionais
-            </TabsTrigger>
-            <TabsTrigger value="caixa" className="data-[state=active]:bg-salon-gold data-[state=active]:text-salon-dark text-salon-copper whitespace-nowrap">
-              Caixa
-            </TabsTrigger>
-            <TabsTrigger value="comissoes" className="data-[state=active]:bg-salon-gold data-[state=active]:text-salon-dark text-salon-copper whitespace-nowrap">
-              Comissões
-            </TabsTrigger>
-            <TabsTrigger value="cobrancas" className="data-[state=active]:bg-salon-gold data-[state=active]:text-salon-dark text-salon-copper whitespace-nowrap">
-              Cobranças
-            </TabsTrigger>
-            <TabsTrigger value="banner" className="data-[state=active]:bg-salon-gold data-[state=active]:text-salon-dark text-salon-copper whitespace-nowrap">
-              Banner
-            </TabsTrigger>
-            <TabsTrigger value="galeria" className="data-[state=active]:bg-salon-gold data-[state=active]:text-salon-dark text-salon-copper whitespace-nowrap">
-              Galeria
-            </TabsTrigger>
-          </TabsList>
-        </div>
+        <TabsList className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-9 gap-1 bg-salon-purple/20 p-1 rounded-xl mb-6">
+          <TabsTrigger value="agendamentos" className="data-[state=active]:bg-salon-gold data-[state=active]:text-salon-dark text-salon-copper">
+            Agendamentos
+          </TabsTrigger>
+          <TabsTrigger value="servicos" className="data-[state=active]:bg-salon-gold data-[state=active]:text-salon-dark text-salon-copper">
+            Serviços
+          </TabsTrigger>
+          <TabsTrigger value="produtos" className="data-[state=active]:bg-salon-gold data-[state=active]:text-salon-dark text-salon-copper">
+            Produtos
+          </TabsTrigger>
+          <TabsTrigger value="profissionais" className="data-[state=active]:bg-salon-gold data-[state=active]:text-salon-dark text-salon-copper">
+            Profissionais
+          </TabsTrigger>
+          <TabsTrigger value="caixa" className="data-[state=active]:bg-salon-gold data-[state=active]:text-salon-dark text-salon-copper">
+            Caixa
+          </TabsTrigger>
+          <TabsTrigger value="comissoes" className="data-[state=active]:bg-salon-gold data-[state=active]:text-salon-dark text-salon-copper">
+            Comissões
+          </TabsTrigger>
+          <TabsTrigger value="cobrancas" className="data-[state=active]:bg-salon-gold data-[state=active]:text-salon-dark text-salon-copper">
+            Cobranças
+          </TabsTrigger>
+          <TabsTrigger value="banner" className="data-[state=active]:bg-salon-gold data-[state=active]:text-salon-dark text-salon-copper">
+            Banner
+          </TabsTrigger>
+          <TabsTrigger value="galeria" className="data-[state=active]:bg-salon-gold data-[state=active]:text-salon-dark text-salon-copper">
+            Galeria
+          </TabsTrigger>
+        </TabsList>
 
         <TabsContent value="agendamentos" className="mt-6">
           <AppointmentManagement />
