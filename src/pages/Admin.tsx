@@ -17,12 +17,16 @@ import { SidebarProvider, SidebarInset, SidebarTrigger } from '@/components/ui/s
 import { Separator } from '@/components/ui/separator';
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from '@/components/ui/breadcrumb';
 import { useAuth } from '@/hooks/useAuth';
+import { useSupabaseCashFlow } from '@/hooks/useSupabaseCashFlow';
 
 const Admin = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const { user } = useAuth();
   const tabFromUrl = searchParams.get('tab') || 'dashboard';
   const [activeTab, setActiveTab] = useState(tabFromUrl);
+
+  // Use the cash flow hook to get appointments data
+  const { appointments, loading, updateCollectionStatus } = useSupabaseCashFlow();
 
   // Definir abas permitidas por tipo de usuário
   const getAllowedTabs = () => {
@@ -87,7 +91,13 @@ const Admin = () => {
       case 'dashboard':
         return <Dashboard />;
       case 'agendamentos':
-        return <AppointmentsTab />;
+        return (
+          <AppointmentsTab 
+            appointments={appointments}
+            onUpdateCollectionStatus={updateCollectionStatus}
+            loading={loading}
+          />
+        );
       case 'servicos':
         return <ServiceManagement />;
       case 'produtos':

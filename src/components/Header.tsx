@@ -43,10 +43,13 @@ const Header = () => {
               </Link>
             )}
             
-            <CartIcon />
+            <CartIcon itemCount={0} />
             
             <div className="flex items-center space-x-3">
-              <ClientAvatar />
+              <ClientAvatar 
+                avatar_url={user?.avatar_url} 
+                nome={user?.nome || 'Usuário'} 
+              />
               <div className="hidden sm:block">
                 <div className="flex items-center space-x-2">
                   <span className="text-salon-gold font-medium">{user?.nome}</span>

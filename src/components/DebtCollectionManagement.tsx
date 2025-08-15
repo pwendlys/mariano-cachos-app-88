@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -58,7 +59,14 @@ const DebtCollectionManagement = () => {
         .select('*')
         .order('created_at', { ascending: false });
       if (error) throw error;
-      setUsuarios(data || []);
+      
+      // Cast the tipo field to the correct union type
+      const typedUsers = (data || []).map(user => ({
+        ...user,
+        tipo: user.tipo as 'cliente' | 'admin' | 'convidado'
+      }));
+      
+      setUsuarios(typedUsers);
     } catch (error) {
       console.error('Erro ao buscar usuários:', error);
       toast.error('Erro ao buscar usuários');
