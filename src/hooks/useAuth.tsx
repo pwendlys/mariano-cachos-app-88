@@ -17,7 +17,7 @@ interface AuthContextType {
   user: AuthUser | null;
   session: Session | null;
   login: (email: string, senha: string) => Promise<{ success: boolean; error?: string }>;
-  register: (nome: string, email: string, whatsapp: string, senha: string) => Promise<{ success: boolean; error?: string }>;
+  register: (nome: string, email: string, whatsapp: string, senha: string, tipo?: 'cliente' | 'admin') => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<void>;
   updateUserAvatar: (avatarUrl: string) => void;
   loading: boolean;
@@ -32,25 +32,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const { toast } = useToast();
 
   useEffect(() => {
-    // Buscar sessão inicial
-    const getInitialSession = async () => {
-      try {
-        const { data: { session: initialSession } } = await supabase.auth.getSession();
-        
-        if (initialSession?.user) {
-          await handleAuthUser(initialSession.user, initialSession);
-        }
-      } catch (error) {
-        console.error('Erro ao buscar sessão inicial:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
+    let mounted = true;
 
-    getInitialSession();
-
-    // Escutar mudanças de autenticação
+    // Configurar listener de mudanças de auth primeiro
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (!mounted) return;
+      
       console.log('Auth state changed:', event, session?.user?.email);
       
       if (session?.user) {
@@ -63,7 +50,27 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setLoading(false);
     });
 
+    // Buscar sessão inicial
+    const getInitialSession = async () => {
+      try {
+        const { data: { session: initialSession } } = await supabase.auth.getSession();
+        
+        if (mounted && initialSession?.user) {
+          await handleAuthUser(initialSession.user, initialSession);
+        }
+      } catch (error) {
+        console.error('Erro ao buscar sessão inicial:', error);
+      } finally {
+        if (mounted) {
+          setLoading(false);
+        }
+      }
+    };
+
+    getInitialSession();
+
     return () => {
+      mounted = false;
       subscription.unsubscribe();
     };
   }, []);
@@ -159,6 +166,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
               return { success: false, error: 'Erro ao migrar usuário. Tente novamente.' };
             }
 
+            // Atualizar senha na tabela usuarios para indicar migração
+            await supabase
+              .from('usuarios')
+              .update({ senha: 'supabase_auth' })
+              .eq('id', userData.id);
+
             toast({
               title: "Login realizado com sucesso!",
               description: `Bem-vindo, ${userData.nome}! Sua conta foi migrada para o novo sistema.`,
@@ -191,7 +204,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const register = async (nome: string, email: string, whatsapp: string, senha: string) => {
+  const register = async (nome: string, email: string, whatsapp: string, senha: string, tipo: 'cliente' | 'admin' = 'cliente') => {
     try {
       setLoading(true);
       
@@ -202,7 +215,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         options: {
           data: {
             nome,
-            tipo: 'cliente',
+            tipo,
             whatsapp,
           }
         }
@@ -217,10 +230,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
 
       if (authData.user) {
-        toast({
-          title: "Cadastro realizado com sucesso!",
-          description: "Você pode fazer login agora com suas credenciais.",
-        });
         return { success: true };
       }
 

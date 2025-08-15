@@ -19,52 +19,83 @@ const Admin = () => {
   const [activeTab, setActiveTab] = useState("agendamentos");
   const { toast } = useToast()
 
+  const handleLogout = async () => {
+    localStorage.removeItem('supabase.auth.token');
+    navigate('/auth');
+    toast({
+      title: "Logout realizado",
+      description: "Você será redirecionado para a página de login.",
+    });
+  };
+
   return (
-    <div className="px-4 space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold text-gradient-gold">Painel Administrativo</h1>
-        <Button variant="outline" size="sm" onClick={() => {
-          localStorage.removeItem('supabase.auth.token');
-          navigate('/login');
-          toast({
-            title: "Logout realizado",
-            description: "Você será redirecionado para a página de login.",
-          })
-        }}>
+    <div className="px-2 sm:px-4 space-y-4 sm:space-y-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <h1 className="text-xl sm:text-2xl font-bold text-gradient-gold">Painel Administrativo</h1>
+        <Button variant="outline" size="sm" onClick={handleLogout}>
           Sair
         </Button>
       </div>
       
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-9 gap-1 bg-salon-purple/20 p-1 rounded-xl mb-6">
-          <TabsTrigger value="agendamentos" className="data-[state=active]:bg-salon-gold data-[state=active]:text-salon-dark text-salon-copper">
-            Agendamentos
-          </TabsTrigger>
-          <TabsTrigger value="servicos" className="data-[state=active]:bg-salon-gold data-[state=active]:text-salon-dark text-salon-copper">
-            Serviços
-          </TabsTrigger>
-          <TabsTrigger value="produtos" className="data-[state=active]:bg-salon-gold data-[state=active]:text-salon-dark text-salon-copper">
-            Produtos
-          </TabsTrigger>
-          <TabsTrigger value="profissionais" className="data-[state=active]:bg-salon-gold data-[state=active]:text-salon-dark text-salon-copper">
-            Profissionais
-          </TabsTrigger>
-          <TabsTrigger value="caixa" className="data-[state=active]:bg-salon-gold data-[state=active]:text-salon-dark text-salon-copper">
-            Caixa
-          </TabsTrigger>
-          <TabsTrigger value="comissoes" className="data-[state=active]:bg-salon-gold data-[state=active]:text-salon-dark text-salon-copper">
-            Comissões
-          </TabsTrigger>
-          <TabsTrigger value="cobrancas" className="data-[state=active]:bg-salon-gold data-[state=active]:text-salon-dark text-salon-copper">
-            Cobranças
-          </TabsTrigger>
-          <TabsTrigger value="banner" className="data-[state=active]:bg-salon-gold data-[state=active]:text-salon-dark text-salon-copper">
-            Banner
-          </TabsTrigger>
-          <TabsTrigger value="galeria" className="data-[state=active]:bg-salon-gold data-[state=active]:text-salon-dark text-salon-copper">
-            Galeria
-          </TabsTrigger>
-        </TabsList>
+        <div className="overflow-x-auto">
+          <TabsList className="flex flex-wrap gap-1 bg-salon-purple/20 p-1 rounded-xl mb-6 min-w-max">
+            <TabsTrigger 
+              value="agendamentos" 
+              className="data-[state=active]:bg-salon-gold data-[state=active]:text-salon-dark text-salon-copper text-xs sm:text-sm px-2 sm:px-3 py-1.5 whitespace-nowrap"
+            >
+              Agendamentos
+            </TabsTrigger>
+            <TabsTrigger 
+              value="servicos" 
+              className="data-[state=active]:bg-salon-gold data-[state=active]:text-salon-dark text-salon-copper text-xs sm:text-sm px-2 sm:px-3 py-1.5 whitespace-nowrap"
+            >
+              Serviços
+            </TabsTrigger>
+            <TabsTrigger 
+              value="produtos" 
+              className="data-[state=active]:bg-salon-gold data-[state=active]:text-salon-dark text-salon-copper text-xs sm:text-sm px-2 sm:px-3 py-1.5 whitespace-nowrap"
+            >
+              Produtos
+            </TabsTrigger>
+            <TabsTrigger 
+              value="profissionais" 
+              className="data-[state=active]:bg-salon-gold data-[state=active]:text-salon-dark text-salon-copper text-xs sm:text-sm px-2 sm:px-3 py-1.5 whitespace-nowrap"
+            >
+              Profissionais
+            </TabsTrigger>
+            <TabsTrigger 
+              value="caixa" 
+              className="data-[state=active]:bg-salon-gold data-[state=active]:text-salon-dark text-salon-copper text-xs sm:text-sm px-2 sm:px-3 py-1.5 whitespace-nowrap"
+            >
+              Caixa
+            </TabsTrigger>
+            <TabsTrigger 
+              value="comissoes" 
+              className="data-[state=active]:bg-salon-gold data-[state=active]:text-salon-dark text-salon-copper text-xs sm:text-sm px-2 sm:px-3 py-1.5 whitespace-nowrap"
+            >
+              Comissões
+            </TabsTrigger>
+            <TabsTrigger 
+              value="cobrancas" 
+              className="data-[state=active]:bg-salon-gold data-[state=active]:text-salon-dark text-salon-copper text-xs sm:text-sm px-2 sm:px-3 py-1.5 whitespace-nowrap"
+            >
+              Cobranças
+            </TabsTrigger>
+            <TabsTrigger 
+              value="banner" 
+              className="data-[state=active]:bg-salon-gold data-[state=active]:text-salon-dark text-salon-copper text-xs sm:text-sm px-2 sm:px-3 py-1.5 whitespace-nowrap"
+            >
+              Banner
+            </TabsTrigger>
+            <TabsTrigger 
+              value="galeria" 
+              className="data-[state=active]:bg-salon-gold data-[state=active]:text-salon-dark text-salon-copper text-xs sm:text-sm px-2 sm:px-3 py-1.5 whitespace-nowrap"
+            >
+              Galeria
+            </TabsTrigger>
+          </TabsList>
+        </div>
 
         <TabsContent value="agendamentos" className="mt-6">
           <AppointmentManagement />
