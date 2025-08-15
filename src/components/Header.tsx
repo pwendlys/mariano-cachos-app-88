@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -22,7 +23,7 @@ const Header = () => {
           <Link to="/" className="flex items-center space-x-3">
             <div className="w-10 h-10 rounded-full ring-2 ring-salon-gold flex items-center justify-center shadow-lg overflow-hidden">
               <img 
-                src="/lovable-uploads/9554bba6-92bb-44cc-ba87-b689b0542615.png" 
+                src="/lovable-uploads/2c7426a6-ccbe-478a-95f7-439af5d69582.png" 
                 alt="Marcos Mariano Logo" 
                 className="w-full h-full object-cover"
               />

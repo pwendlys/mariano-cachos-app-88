@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -140,7 +141,7 @@ const Auth = () => {
         <CardHeader className="text-center">
           <div className="w-20 h-20 rounded-full ring-2 ring-salon-gold flex items-center justify-center mx-auto mb-4 bg-black/80 overflow-hidden">
             <img 
-              src="/lovable-uploads/9554bba6-92bb-44cc-ba87-b689b0542615.png" 
+              src="/lovable-uploads/2c7426a6-ccbe-478a-95f7-439af5d69582.png" 
               alt="Marcos Mariano Logo" 
               className="w-full h-full object-cover"
             />

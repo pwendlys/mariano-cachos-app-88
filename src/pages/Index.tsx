@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Calendar, ShoppingBag, Star, Sparkles, Award, Users } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -76,7 +77,7 @@ const Index = () => {
                 />
               ) : (
                 <img 
-                  src="/lovable-uploads/9554bba6-92bb-44cc-ba87-b689b0542615.png" 
+                  src="/lovable-uploads/2c7426a6-ccbe-478a-95f7-439af5d69582.png" 
                   alt="Marcos Mariano Logo" 
                   className="w-full h-full object-cover"
                 />
