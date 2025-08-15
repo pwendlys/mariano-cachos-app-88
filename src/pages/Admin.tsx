@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import AppSidebar from '@/components/admin/AppSidebar';
@@ -26,7 +25,7 @@ const Admin = () => {
   const [activeTab, setActiveTab] = useState(tabFromUrl);
 
   // Use the cash flow hook to get appointments data
-  const { appointments, loading, updateCollectionStatus } = useSupabaseCashFlow();
+  const { appointments, loading, updateAppointmentCollectionStatus } = useSupabaseCashFlow();
 
   // Definir abas permitidas por tipo de usuário
   const getAllowedTabs = () => {
@@ -94,7 +93,7 @@ const Admin = () => {
         return (
           <AppointmentsTab 
             appointments={appointments}
-            onUpdateCollectionStatus={updateCollectionStatus}
+            onUpdateCollectionStatus={updateAppointmentCollectionStatus}
             loading={loading}
           />
         );
