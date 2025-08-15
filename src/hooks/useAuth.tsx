@@ -32,9 +32,26 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const { toast } = useToast();
 
   useEffect(() => {
+    let timeoutId: NodeJS.Timeout;
+
+    // Timeout para evitar loading infinito
+    const setLoadingTimeout = () => {
+      timeoutId = setTimeout(() => {
+        console.log('Loading timeout reached, setting loading to false');
+        setLoading(false);
+      }, 10000); // 10 segundos
+    };
+
+    const clearLoadingTimeout = () => {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+    };
+
     // Buscar sessão inicial
     const getInitialSession = async () => {
       try {
+        setLoadingTimeout();
         const { data: { session: initialSession } } = await supabase.auth.getSession();
         
         if (initialSession?.user) {
@@ -43,6 +60,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       } catch (error) {
         console.error('Erro ao buscar sessão inicial:', error);
       } finally {
+        clearLoadingTimeout();
         setLoading(false);
       }
     };
@@ -52,6 +70,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     // Escutar mudanças de autenticação
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log('Auth state changed:', event, session?.user?.email);
+      
+      clearLoadingTimeout();
       
       if (session?.user) {
         await handleAuthUser(session.user, session);
@@ -65,6 +85,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     return () => {
       subscription.unsubscribe();
+      clearLoadingTimeout();
     };
   }, []);
 
@@ -111,14 +132,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       setLoading(true);
       
-      // Primeiro tentar autenticação com Supabase Auth
-      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+      // Timeout para login
+      const loginTimeout = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('Timeout no login')), 15000);
+      });
+
+      const loginPromise = supabase.auth.signInWithPassword({
         email,
         password: senha
       });
 
+      const { data: authData, error: authError } = await Promise.race([
+        loginPromise,
+        loginTimeout
+      ]) as any;
+
       if (authError) {
-        // Se falhou no Supabase Auth, tentar sistema customizado para usuários antigos
         console.log('Tentando login customizado para usuário existente...');
         
         const { data: userData, error: userError } = await supabase
@@ -159,6 +188,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
               return { success: false, error: 'Erro ao migrar usuário. Tente novamente.' };
             }
 
+            // Atualizar a senha na tabela usuarios para indicar migração
+            await supabase
+              .from('usuarios')
+              .update({ senha: 'supabase_auth' })
+              .eq('id', userData.id);
+
             toast({
               title: "Login realizado com sucesso!",
               description: `Bem-vindo, ${userData.nome}! Sua conta foi migrada para o novo sistema.`,
@@ -183,8 +218,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
 
       return { success: false, error: 'Erro desconhecido' };
-    } catch (error) {
+    } catch (error: any) {
       console.error('Erro no login:', error);
+      if (error.message === 'Timeout no login') {
+        return { success: false, error: 'Login demorou muito. Tente novamente.' };
+      }
       return { success: false, error: 'Erro interno do sistema' };
     } finally {
       setLoading(false);

@@ -28,70 +28,84 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <AuthProvider>
-          <SidebarProvider>
-            <div className="min-h-screen w-full">
-              <Routes>
-                <Route path="/auth" element={<Auth />} />
-                <Route path="/" element={
-                  <ProtectedRoute>
+          <div className="min-h-screen w-full">
+            <Routes>
+              <Route path="/auth" element={<Auth />} />
+              <Route path="/" element={
+                <ProtectedRoute>
+                  <SidebarProvider>
                     <MobileLayout>
                       <Index />
                     </MobileLayout>
-                  </ProtectedRoute>
-                } />
-                <Route path="/agendamento" element={
-                  <ProtectedRoute>
+                  </SidebarProvider>
+                </ProtectedRoute>
+              } />
+              <Route path="/agendamento" element={
+                <ProtectedRoute>
+                  <SidebarProvider>
                     <MobileLayout>
                       <SupabaseScheduling />
                     </MobileLayout>
-                  </ProtectedRoute>
-                } />
-                <Route path="/loja" element={
-                  <ProtectedRoute>
+                  </SidebarProvider>
+                </ProtectedRoute>
+              } />
+              <Route path="/loja" element={
+                <ProtectedRoute>
+                  <SidebarProvider>
                     <MobileLayout>
                       <SupabaseStore />
                     </MobileLayout>
-                  </ProtectedRoute>
-                } />
-                <Route path="/loja-demo" element={
-                  <ProtectedRoute>
+                  </SidebarProvider>
+                </ProtectedRoute>
+              } />
+              <Route path="/loja-demo" element={
+                <ProtectedRoute>
+                  <SidebarProvider>
                     <MobileLayout>
                       <Store />
                     </MobileLayout>
-                  </ProtectedRoute>
-                } />
-                <Route path="/carrinho" element={
-                  <ProtectedRoute>
+                  </SidebarProvider>
+                </ProtectedRoute>
+              } />
+              <Route path="/carrinho" element={
+                <ProtectedRoute>
+                  <SidebarProvider>
                     <MobileLayout>
                       <SupabaseCart />
                     </MobileLayout>
-                  </ProtectedRoute>
-                } />
-                <Route path="/carrinho-demo" element={
-                  <ProtectedRoute>
+                  </SidebarProvider>
+                </ProtectedRoute>
+              } />
+              <Route path="/carrinho-demo" element={
+                <ProtectedRoute>
+                  <SidebarProvider>
                     <MobileLayout>
                       <Cart />
                     </MobileLayout>
-                  </ProtectedRoute>
-                } />
-                <Route path="/admin" element={
-                  <ProtectedRoute requireAdmin={true}>
+                  </SidebarProvider>
+                </ProtectedRoute>
+              } />
+              <Route path="/admin" element={
+                <ProtectedRoute requireAdmin={true}>
+                  <SidebarProvider>
                     <MobileLayout>
                       <Admin />
                     </MobileLayout>
-                  </ProtectedRoute>
-                } />
-                <Route path="/perfil" element={
-                  <ProtectedRoute>
+                  </SidebarProvider>
+                </ProtectedRoute>
+              } />
+              <Route path="/perfil" element={
+                <ProtectedRoute>
+                  <SidebarProvider>
                     <MobileLayout>
                       <Profile />
                     </MobileLayout>
-                  </ProtectedRoute>
-                  } />
-                <Route path="*" element={<NotFound />} />
-              </Routes>
-            </div>
-          </SidebarProvider>
+                  </SidebarProvider>
+                </ProtectedRoute>
+                } />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </div>
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
