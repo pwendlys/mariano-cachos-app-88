@@ -27,9 +27,10 @@ import {
   ResponsiveContainer,
 } from 'recharts';
 import { useSupabaseCashFlow } from '@/hooks/useSupabaseCashFlow';
+import type { DateRange } from 'react-day-picker';
 
 const Dashboard = () => {
-  const [dateRange, setDateRange] = useState<{from?: Date; to?: Date}>({
+  const [dateRange, setDateRange] = useState<DateRange | undefined>({
     from: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
     to: new Date()
   });
