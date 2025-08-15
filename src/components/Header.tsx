@@ -22,9 +22,13 @@ const Header = () => {
         <div className="flex justify-between items-center h-16">
           <Link to="/" className="flex items-center space-x-3">
             <div className="w-10 h-10 bg-gradient-to-br from-salon-gold to-salon-copper rounded-lg flex items-center justify-center shadow-lg">
-              <span className="text-salon-dark font-bold text-lg">S</span>
+              <img 
+                src="/lovable-uploads/6c513fb2-7005-451a-bfba-cb471f2086a3.png" 
+                alt="Marcos Mariano Logo" 
+                className="w-8 h-8 object-contain"
+              />
             </div>
-            <h1 className="text-xl font-bold text-salon-gold">Salão Premium</h1>
+            <h1 className="text-xl font-bold text-salon-gold">Marcos Mariano</h1>
           </Link>
 
           <div className="flex items-center space-x-4">
