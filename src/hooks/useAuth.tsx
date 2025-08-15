@@ -89,7 +89,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         id: userData.id,
         nome: userData.nome,
         email: userData.email,
-        tipo: userData.tipo as 'cliente' | 'admin',
+        tipo: userData.tipo as 'cliente' | 'admin' | 'convidado',
         whatsapp: userData.whatsapp,
         avatar_url: userData.avatar_url
       });
