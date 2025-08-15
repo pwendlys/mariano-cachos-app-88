@@ -13,7 +13,7 @@ export interface BannerSettings {
 
 const defaultBannerSettings: BannerSettings = {
   id: 'main-banner',
-  logo: '/lovable-uploads/6c513fb2-7005-451a-bfba-cb471f2086a3.png',
+  logo: '/lovable-uploads/9554bba6-92bb-44cc-ba87-b689b0542615.png',
   title: 'Marcos Mariano',
   subtitle: 'Expert em Crespos e Cacheados',
   description: 'Sua beleza natural merece ser celebrada. Aqui, cada cacho tem sua história e personalidade única.',

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -139,11 +138,11 @@ const Auth = () => {
       {/* Content */}
       <Card className="w-full max-w-md relative z-10 bg-transparent border-salon-gold/70 shadow-2xl">
         <CardHeader className="text-center">
-          <div className="w-20 h-20 rounded-full border border-salon-gold flex items-center justify-center mx-auto mb-4 bg-black/80">
+          <div className="w-20 h-20 rounded-full ring-2 ring-salon-gold flex items-center justify-center mx-auto mb-4 bg-black/80 overflow-hidden">
             <img 
-              src="/lovable-uploads/6c513fb2-7005-451a-bfba-cb471f2086a3.png" 
+              src="/lovable-uploads/9554bba6-92bb-44cc-ba87-b689b0542615.png" 
               alt="Marcos Mariano Logo" 
-              className="w-16 h-16 object-contain rounded-full"
+              className="w-full h-full object-cover"
             />
           </div>
           <CardTitle className="text-2xl font-playfair text-gradient-gold drop-shadow-2xl" style={{ textShadow: '2px 2px 4px rgba(0,0,0,0.8)' }}>

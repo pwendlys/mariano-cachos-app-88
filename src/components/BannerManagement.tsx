@@ -211,11 +211,13 @@ const BannerManagement = () => {
             <div className="space-y-3">
               {logoPreview ? (
                 <div className="relative inline-block">
-                  <img 
-                    src={logoPreview} 
-                    alt="Preview do Logo" 
-                    className="w-24 h-24 object-contain rounded-lg bg-white/10 p-2"
-                  />
+                  <div className="w-24 h-24 rounded-full ring-2 ring-salon-gold flex items-center justify-center overflow-hidden">
+                    <img 
+                      src={logoPreview} 
+                      alt="Preview do Logo" 
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
                   <Button
                     type="button"
                     variant="destructive"
@@ -361,22 +363,20 @@ const BannerManagement = () => {
               )}
               <div className="absolute inset-0 gradient-gold opacity-10"></div>
               <div className="relative z-10">
-                <div className="w-24 h-24 mx-auto mb-4 rounded-full gradient-gold p-1">
-                  <div className="w-full h-full rounded-full bg-salon-dark flex items-center justify-center">
-                    {logoPreview ? (
-                      <img 
-                        src={logoPreview} 
-                        alt="Logo" 
-                        className="w-16 h-16 object-contain rounded-full"
-                      />
-                    ) : (
-                      <img 
-                        src="/lovable-uploads/6c513fb2-7005-451a-bfba-cb471f2086a3.png" 
-                        alt="Marcos Mariano Logo" 
-                        className="w-16 h-16 object-contain rounded-full"
-                      />
-                    )}
-                  </div>
+                <div className="w-24 h-24 mx-auto mb-4 rounded-full ring-2 ring-salon-gold overflow-hidden">
+                  {logoPreview ? (
+                    <img 
+                      src={logoPreview} 
+                      alt="Logo" 
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <img 
+                      src="/lovable-uploads/9554bba6-92bb-44cc-ba87-b689b0542615.png" 
+                      alt="Marcos Mariano Logo" 
+                      className="w-full h-full object-cover"
+                    />
+                  )}
                 </div>
                 <h1 className="text-2xl font-bold text-gradient-gold mb-2 font-playfair">
                   {formData.title}
