@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import AppSidebar from '@/components/admin/AppSidebar';
@@ -8,7 +7,7 @@ import ServiceManagement from '@/components/ServiceManagement';
 import ProductManagement from '@/components/ProductManagement';
 import CashFlowManagement from '@/components/CashFlowManagement';
 import ClientList from '@/components/ClientList';
-import DebtCollectionManagement from '@/components/DebtCollectionManagement';
+import DebtCollectionsDashboard from '@/components/DebtCollectionsDashboard';
 import CommissionManagement from '@/components/CommissionManagement';
 import BannerManagement from '@/components/BannerManagement';
 import GalleryManagement from '@/components/GalleryManagement';
@@ -109,7 +108,7 @@ const Admin = () => {
       case 'clientes':
         return <ClientList />;
       case 'cobrancas':
-        return <DebtCollectionManagement />;
+        return <DebtCollectionsDashboard />;
       case 'fluxo-caixa':
         return <CashFlowManagement />;
       case 'banner':
