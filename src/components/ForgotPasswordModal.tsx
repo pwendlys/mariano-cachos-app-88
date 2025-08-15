@@ -35,7 +35,21 @@ const ForgotPasswordModal: React.FC<ForgotPasswordModalProps> = ({ isOpen, onClo
     setLoading(true);
 
     try {
-      // Usar o método oficial do Supabase para recuperação de senha
+      // Verificar se o email existe na tabela usuarios
+      const { data: userData, error: userError } = await supabase
+        .from('usuarios')
+        .select('id, email, nome')
+        .eq('email', email)
+        .eq('ativo', true)
+        .single();
+
+      if (userError || !userData) {
+        setError('E-mail não encontrado ou usuário inativo');
+        setLoading(false);
+        return;
+      }
+
+      // Enviar email de recuperação usando Supabase Auth
       const redirectUrl = `${window.location.origin}/auth?action=reset-password`;
       
       const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
@@ -44,11 +58,7 @@ const ForgotPasswordModal: React.FC<ForgotPasswordModalProps> = ({ isOpen, onClo
 
       if (resetError) {
         console.error('Erro ao enviar email:', resetError);
-        if (resetError.message.includes('not found')) {
-          setError('E-mail não encontrado no sistema');
-        } else {
-          setError('Erro ao enviar email de recuperação: ' + resetError.message);
-        }
+        setError('Erro ao enviar email de recuperação');
       } else {
         setSuccess(true);
       }
@@ -90,9 +100,6 @@ const ForgotPasswordModal: React.FC<ForgotPasswordModalProps> = ({ isOpen, onClo
               </div>
               <p className="text-white text-sm" style={{ textShadow: '1px 1px 2px rgba(0,0,0,0.8)' }}>
                 Um email com instruções foi enviado para <strong>{email}</strong>
-              </p>
-              <p className="text-white text-xs mt-2 opacity-80" style={{ textShadow: '1px 1px 2px rgba(0,0,0,0.8)' }}>
-                Verifique também sua pasta de spam
               </p>
             </div>
             <Button 
