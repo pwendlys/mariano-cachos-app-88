@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import AppSidebar from '@/components/admin/AppSidebar';
@@ -27,7 +28,7 @@ const Admin = () => {
   // Use the cash flow hook to get appointments data
   const { appointments, loading, updateAppointmentCollectionStatus } = useSupabaseCashFlow();
 
-  // Definir abas permitidas por tipo de usuário
+  // Definir abas permitidas por tipo de usuário (usando tipo já normalizado)
   const getAllowedTabs = () => {
     if (user?.tipo === 'admin') {
       return [
@@ -41,6 +42,8 @@ const Admin = () => {
   };
 
   const allowedTabs = getAllowedTabs();
+
+  console.log('User tipo:', user?.tipo, 'Allowed tabs:', allowedTabs, 'Current tab:', tabFromUrl);
 
   useEffect(() => {
     // Se a aba atual não é permitida para o usuário, redirecionar

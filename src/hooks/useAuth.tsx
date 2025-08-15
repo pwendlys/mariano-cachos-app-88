@@ -1,4 +1,3 @@
-
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -85,11 +84,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       // Set our custom session
       setSession(fakeSession);
+      
+      // Normalize the user type to lowercase to ensure consistent comparisons
+      const normalizedTipo = userData.tipo.toLowerCase().trim();
+      const validTipos = ['cliente', 'admin', 'convidado'];
+      const userTipo = validTipos.includes(normalizedTipo) ? normalizedTipo as 'cliente' | 'admin' | 'convidado' : 'cliente';
+      
       setUser({
         id: userData.id,
         nome: userData.nome,
         email: userData.email,
-        tipo: userData.tipo as 'cliente' | 'admin' | 'convidado',
+        tipo: userTipo,
         whatsapp: userData.whatsapp,
         avatar_url: userData.avatar_url
       });

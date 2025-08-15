@@ -107,13 +107,15 @@ const AppSidebar: React.FC<AppSidebarProps> = ({ activeTab, onTabChange }) => {
       }
     ];
 
-    // Filtrar itens baseado no tipo de usuário
+    // Filtrar itens baseado no tipo de usuário (usando tipo já normalizado)
     return allItems.filter(item => 
       user?.tipo && item.allowedRoles.includes(user.tipo)
     );
   };
 
   const menuItems = getMenuItems();
+
+  console.log('User tipo:', user?.tipo, 'Menu items:', menuItems.length);
 
   return (
     <Sidebar variant="inset">
