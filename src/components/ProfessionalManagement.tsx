@@ -53,7 +53,12 @@ const ProfessionalManagement = () => {
     }
 
     try {
-      await addProfessional(formData);
+      // Filter out empty specialties before saving
+      const cleanFormData = {
+        ...formData,
+        especialidades: formData.especialidades.filter(spec => spec && spec.trim() !== '')
+      };
+      await addProfessional(cleanFormData);
       setIsAddDialogOpen(false);
       setFormData({
         nome: '',
@@ -70,11 +75,13 @@ const ProfessionalManagement = () => {
 
   const handleEditClick = (professional: any) => {
     setEditingProfessional(professional);
+    // Filter out empty specialties when setting edit form data
+    const cleanSpecialties = (professional.especialidades || []).filter((spec: string) => spec && spec.trim() !== '');
     setEditFormData({
       nome: professional.nome,
       email: professional.email,
       telefone: professional.telefone,
-      especialidades: professional.especialidades || [],
+      especialidades: cleanSpecialties,
       percentual_comissao_padrao: professional.percentual_comissao_padrao,
       ativo: professional.ativo
     });
@@ -92,7 +99,12 @@ const ProfessionalManagement = () => {
     }
 
     try {
-      await updateProfessional(editingProfessional.id, editFormData);
+      // Filter out empty specialties before updating
+      const cleanEditFormData = {
+        ...editFormData,
+        especialidades: editFormData.especialidades.filter(spec => spec && spec.trim() !== '')
+      };
+      await updateProfessional(editingProfessional.id, cleanEditFormData);
       setIsEditDialogOpen(false);
       setEditingProfessional(null);
     } catch (error) {
@@ -116,7 +128,7 @@ const ProfessionalManagement = () => {
   };
 
   const addSpecialty = (specialty: string) => {
-    if (specialty && !formData.especialidades.includes(specialty)) {
+    if (specialty && specialty.trim() !== '' && !formData.especialidades.includes(specialty)) {
       setFormData({
         ...formData,
         especialidades: [...formData.especialidades, specialty]
@@ -132,7 +144,7 @@ const ProfessionalManagement = () => {
   };
 
   const addEditSpecialty = (specialty: string) => {
-    if (specialty && !editFormData.especialidades.includes(specialty)) {
+    if (specialty && specialty.trim() !== '' && !editFormData.especialidades.includes(specialty)) {
       setEditFormData({
         ...editFormData,
         especialidades: [...editFormData.especialidades, specialty]
@@ -291,11 +303,13 @@ const ProfessionalManagement = () => {
                 <div className="mb-4">
                   <p className="text-sm text-salon-copper mb-2">Especialidades:</p>
                   <div className="flex flex-wrap gap-1">
-                    {professional.especialidades.map((specialty, index) => (
-                      <Badge key={index} variant="secondary" className="text-xs bg-salon-gold/20 text-salon-gold">
-                        {specialty}
-                      </Badge>
-                    ))}
+                    {professional.especialidades
+                      .filter((specialty: string) => specialty && specialty.trim() !== '') // Filter out empty specialties
+                      .map((specialty: string, index: number) => (
+                        <Badge key={index} variant="secondary" className="text-xs bg-salon-gold/20 text-salon-gold">
+                          {specialty}
+                        </Badge>
+                      ))}
                   </div>
                 </div>
               )}
@@ -463,11 +477,13 @@ const ProfessionalManagement = () => {
                   <div>
                     <p className="text-sm text-salon-copper mb-2">Especialidades</p>
                     <div className="flex flex-wrap gap-1">
-                      {selectedProfessional.especialidades.map((specialty: string, index: number) => (
-                        <Badge key={index} variant="secondary" className="text-xs bg-salon-gold/20 text-salon-gold">
-                          {specialty}
-                        </Badge>
-                      ))}
+                      {selectedProfessional.especialidades
+                        .filter((specialty: string) => specialty && specialty.trim() !== '') // Filter out empty specialties
+                        .map((specialty: string, index: number) => (
+                          <Badge key={index} variant="secondary" className="text-xs bg-salon-gold/20 text-salon-gold">
+                            {specialty}
+                          </Badge>
+                        ))}
                     </div>
                   </div>
                 )}
