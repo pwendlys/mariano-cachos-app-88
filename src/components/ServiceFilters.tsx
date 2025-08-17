@@ -40,6 +40,9 @@ const ServiceFilters: React.FC<ServiceFiltersProps> = ({
     onCategoryChange(value === "all" ? "" : value);
   };
 
+  // Filter out any empty string categories and ensure we have valid values
+  const validCategories = categories.filter(category => category && category.trim() !== '');
+
   return (
     <Card className="glass-card border-salon-gold/20 mb-4">
       <CardContent className="p-4 space-y-4">
@@ -64,7 +67,7 @@ const ServiceFilters: React.FC<ServiceFiltersProps> = ({
               </SelectTrigger>
               <SelectContent className="bg-salon-dark border-salon-gold/30">
                 <SelectItem value="all">Todas as categorias</SelectItem>
-                {categories.map((category) => (
+                {validCategories.map((category) => (
                   <SelectItem key={category} value={category}>
                     {categoryLabels[category] || category}
                   </SelectItem>
