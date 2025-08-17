@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import AppSidebar from '@/components/admin/AppSidebar';
 import { SidebarProvider } from '@/components/ui/sidebar';
-import AppointmentsTab from '@/components/AppointmentsTab';
+import AppointmentManagement from '@/components/AppointmentManagement';
 import ServiceManagement from '@/components/ServiceManagement';
 import ProductManagement from '@/components/ProductManagement';
 import CashFlowManagement from '@/components/CashFlowManagement';
@@ -18,7 +18,6 @@ import GalleryManagement from '@/components/GalleryManagement';
 import Dashboard from '@/components/admin/Dashboard';
 import { useAuth } from '@/hooks/useAuth';
 import { useQuery } from '@tanstack/react-query';
-import { useSupabaseSales } from '@/hooks/useSupabaseSales';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 const Admin = () => {
@@ -26,8 +25,6 @@ const Admin = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const initialTab = searchParams.get('tab') || 'dashboard';
   const [activeTab, setActiveTab] = useState(initialTab);
-
-  const { sales } = useSupabaseSales();
 
   useEffect(() => {
     setActiveTab(initialTab);
@@ -71,7 +68,7 @@ const Admin = () => {
       case 'dashboard':
         return <Dashboard />;
       case 'agendamentos':
-        return <AppointmentsTab />;
+        return <AppointmentManagement />;
       case 'servicos':
         return <ServiceManagement />;
       case 'produtos':
