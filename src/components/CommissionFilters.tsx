@@ -22,7 +22,9 @@ const CommissionFilters = ({ filters, onFiltersChange, onClearFilters }: Commiss
   const { professionals } = useSupabaseProfessionals();
 
   const handleFilterChange = (key: string, value: string) => {
-    onFiltersChange({ ...filters, [key]: value || undefined });
+    // Convert "all" values back to undefined for the parent component
+    const filterValue = value === "all" ? undefined : value;
+    onFiltersChange({ ...filters, [key]: filterValue });
   };
 
   const hasActiveFilters = Object.values(filters).some(value => value);
@@ -52,14 +54,14 @@ const CommissionFilters = ({ filters, onFiltersChange, onClearFilters }: Commiss
             Profissional
           </label>
           <Select 
-            value={filters.profissional_id || ''} 
+            value={filters.profissional_id || 'all'} 
             onValueChange={(value) => handleFilterChange('profissional_id', value)}
           >
             <SelectTrigger className="glass-card border-salon-gold/30 bg-transparent text-white">
               <SelectValue placeholder="Todos" />
             </SelectTrigger>
             <SelectContent className="glass-card border-salon-gold/30">
-              <SelectItem value="">Todos os profissionais</SelectItem>
+              <SelectItem value="all">Todos os profissionais</SelectItem>
               {professionals.map((professional) => (
                 <SelectItem key={professional.id} value={professional.id}>
                   {professional.nome}
@@ -75,14 +77,14 @@ const CommissionFilters = ({ filters, onFiltersChange, onClearFilters }: Commiss
             Tipo de Origem
           </label>
           <Select 
-            value={filters.tipo_origem || ''} 
+            value={filters.tipo_origem || 'all'} 
             onValueChange={(value) => handleFilterChange('tipo_origem', value)}
           >
             <SelectTrigger className="glass-card border-salon-gold/30 bg-transparent text-white">
               <SelectValue placeholder="Todos" />
             </SelectTrigger>
             <SelectContent className="glass-card border-salon-gold/30">
-              <SelectItem value="">Todos os tipos</SelectItem>
+              <SelectItem value="all">Todos os tipos</SelectItem>
               <SelectItem value="agendamento">Agendamento</SelectItem>
               <SelectItem value="venda">Venda</SelectItem>
               <SelectItem value="manual">Manual</SelectItem>
@@ -96,14 +98,14 @@ const CommissionFilters = ({ filters, onFiltersChange, onClearFilters }: Commiss
             Status
           </label>
           <Select 
-            value={filters.status || ''} 
+            value={filters.status || 'all'} 
             onValueChange={(value) => handleFilterChange('status', value)}
           >
             <SelectTrigger className="glass-card border-salon-gold/30 bg-transparent text-white">
               <SelectValue placeholder="Todos" />
             </SelectTrigger>
             <SelectContent className="glass-card border-salon-gold/30">
-              <SelectItem value="">Todos os status</SelectItem>
+              <SelectItem value="all">Todos os status</SelectItem>
               <SelectItem value="calculada">Calculada</SelectItem>
               <SelectItem value="paga">Paga</SelectItem>
               <SelectItem value="cancelada">Cancelada</SelectItem>
