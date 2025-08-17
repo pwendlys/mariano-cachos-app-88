@@ -19,11 +19,21 @@ const ProfessionalManagement = () => {
   const { toast } = useToast();
   
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
-  const [editingProfessional, setEditingProfessional] = useState<string | null>(null);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [editingProfessional, setEditingProfessional] = useState<any>(null);
   const [selectedProfessional, setSelectedProfessional] = useState<any>(null);
   const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false);
   
   const [formData, setFormData] = useState({
+    nome: '',
+    email: '',
+    telefone: '',
+    especialidades: [] as string[],
+    percentual_comissao_padrao: 0,
+    ativo: true
+  });
+
+  const [editFormData, setEditFormData] = useState({
     nome: '',
     email: '',
     telefone: '',
@@ -58,9 +68,32 @@ const ProfessionalManagement = () => {
     }
   };
 
-  const handleUpdateProfessional = async (id: string, updates: any) => {
+  const handleEditClick = (professional: any) => {
+    setEditingProfessional(professional);
+    setEditFormData({
+      nome: professional.nome,
+      email: professional.email,
+      telefone: professional.telefone,
+      especialidades: professional.especialidades || [],
+      percentual_comissao_padrao: professional.percentual_comissao_padrao,
+      ativo: professional.ativo
+    });
+    setIsEditDialogOpen(true);
+  };
+
+  const handleUpdateProfessional = async () => {
+    if (!editFormData.nome || !editFormData.email || !editFormData.telefone) {
+      toast({
+        title: "Campos obrigatórios",
+        description: "Por favor, preencha todos os campos obrigatórios.",
+        variant: "destructive"
+      });
+      return;
+    }
+
     try {
-      await updateProfessional(id, updates);
+      await updateProfessional(editingProfessional.id, editFormData);
+      setIsEditDialogOpen(false);
       setEditingProfessional(null);
     } catch (error) {
       // Error handled in hook
@@ -95,6 +128,22 @@ const ProfessionalManagement = () => {
     setFormData({
       ...formData,
       especialidades: formData.especialidades.filter(s => s !== specialty)
+    });
+  };
+
+  const addEditSpecialty = (specialty: string) => {
+    if (specialty && !editFormData.especialidades.includes(specialty)) {
+      setEditFormData({
+        ...editFormData,
+        especialidades: [...editFormData.especialidades, specialty]
+      });
+    }
+  };
+
+  const removeEditSpecialty = (specialty: string) => {
+    setEditFormData({
+      ...editFormData,
+      especialidades: editFormData.especialidades.filter(s => s !== specialty)
     });
   };
 
@@ -262,6 +311,14 @@ const ProfessionalManagement = () => {
                   Detalhes
                 </Button>
                 <Button
+                  onClick={() => handleEditClick(professional)}
+                  variant="outline"
+                  size="sm"
+                  className="border-salon-gold/30 text-salon-gold hover:bg-salon-gold/10"
+                >
+                  <Edit2 size={16} />
+                </Button>
+                <Button
                   onClick={() => handleDeleteProfessional(professional.id)}
                   variant="destructive"
                   size="sm"
@@ -274,6 +331,90 @@ const ProfessionalManagement = () => {
           </Card>
         ))}
       </div>
+
+      {/* Edit Dialog */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="glass-card border-salon-gold/30 text-white max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-salon-gold">Editar Profissional</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="edit-name" className="text-sm font-medium mb-2 block">Nome *</Label>
+              <Input
+                id="edit-name"
+                value={editFormData.nome}
+                onChange={(e) => setEditFormData({...editFormData, nome: e.target.value})}
+                placeholder="Nome do profissional"
+                className="glass-card border-salon-gold/30 bg-transparent text-white"
+              />
+            </div>
+            
+            <div>
+              <Label htmlFor="edit-email" className="text-sm font-medium mb-2 block">Email *</Label>
+              <Input
+                id="edit-email"
+                type="email"
+                value={editFormData.email}
+                onChange={(e) => setEditFormData({...editFormData, email: e.target.value})}
+                placeholder="email@exemplo.com"
+                className="glass-card border-salon-gold/30 bg-transparent text-white"
+              />
+            </div>
+            
+            <div>
+              <Label htmlFor="edit-phone" className="text-sm font-medium mb-2 block">Telefone *</Label>
+              <Input
+                id="edit-phone"
+                value={editFormData.telefone}
+                onChange={(e) => setEditFormData({...editFormData, telefone: e.target.value})}
+                placeholder="(11) 99999-9999"
+                className="glass-card border-salon-gold/30 bg-transparent text-white"
+              />
+            </div>
+            
+            <div>
+              <Label htmlFor="edit-commission" className="text-sm font-medium mb-2 block">Comissão Padrão (%)</Label>
+              <Input
+                id="edit-commission"
+                type="number"
+                step="0.01"
+                min="0"
+                max="100"
+                value={editFormData.percentual_comissao_padrao}
+                onChange={(e) => setEditFormData({...editFormData, percentual_comissao_padrao: parseFloat(e.target.value) || 0})}
+                placeholder="0.00"
+                className="glass-card border-salon-gold/30 bg-transparent text-white"
+              />
+            </div>
+            
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="edit-active"
+                checked={editFormData.ativo}
+                onCheckedChange={(checked) => setEditFormData({...editFormData, ativo: checked})}
+              />
+              <Label htmlFor="edit-active" className="text-sm font-medium">Ativo</Label>
+            </div>
+            
+            <div className="flex space-x-3">
+              <Button 
+                onClick={handleUpdateProfessional}
+                className="flex-1 bg-salon-gold hover:bg-salon-copper text-salon-dark font-medium"
+              >
+                Salvar Alterações
+              </Button>
+              <Button 
+                variant="outline"
+                onClick={() => setIsEditDialogOpen(false)}
+                className="border-salon-gold/30 text-salon-gold hover:bg-salon-gold/10"
+              >
+                Cancelar
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Details Dialog */}
       <Dialog open={isDetailsDialogOpen} onOpenChange={setIsDetailsDialogOpen}>
@@ -334,7 +475,10 @@ const ProfessionalManagement = () => {
               
               <div className="flex gap-2">
                 <Button
-                  onClick={() => setEditingProfessional(selectedProfessional.id)}
+                  onClick={() => {
+                    setIsDetailsDialogOpen(false);
+                    handleEditClick(selectedProfessional);
+                  }}
                   className="flex-1 bg-salon-gold hover:bg-salon-copper text-salon-dark font-medium"
                 >
                   <Edit2 size={16} className="mr-2" />

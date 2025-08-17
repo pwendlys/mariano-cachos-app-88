@@ -108,7 +108,7 @@ const AppSidebar: React.FC<AppSidebarProps> = ({ activeTab, onTabChange }) => {
       },
       {
         id: 'configuracoes',
-        title: 'Configurações',
+        title: 'Profissionais',
         icon: Settings,
         allowedRoles: ['admin'] // Apenas admin
       }

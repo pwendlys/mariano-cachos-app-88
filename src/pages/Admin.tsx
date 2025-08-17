@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import AppSidebar from '@/components/admin/AppSidebar';
-import Dashboard from '@/components/admin/Dashboard';
+import { SidebarProvider } from '@/components/ui/sidebar';
 import AppointmentsTab from '@/components/AppointmentsTab';
 import ServiceManagement from '@/components/ServiceManagement';
 import ProductManagement from '@/components/ProductManagement';
@@ -12,27 +12,34 @@ import CustomerProfileManagement from '@/components/CustomerProfileManagement';
 import DebtCollectionsDashboard from '@/components/DebtCollectionsDashboard';
 import DebtCollectionManagement from '@/components/DebtCollectionManagement';
 import CommissionManagement from '@/components/CommissionManagement';
+import ProfessionalsTabManager from '@/components/ProfessionalsTabManager';
 import BannerManagement from '@/components/BannerManagement';
 import GalleryManagement from '@/components/GalleryManagement';
-import ProfessionalsTabManager from '@/components/ProfessionalsTabManager';
-import { SidebarProvider, SidebarInset, SidebarTrigger } from '@/components/ui/sidebar';
-import { Separator } from '@/components/ui/separator';
-import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from '@/components/ui/breadcrumb';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import Dashboard from '@/components/admin/Dashboard';
 import { useAuth } from '@/hooks/useAuth';
-import { useSupabaseCashFlow } from '@/hooks/useSupabaseCashFlow';
+import { useQuery } from '@tanstack/react-query';
+import { useSupabaseSales } from '@/hooks/useSupabaseSales';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 const Admin = () => {
-  const [searchParams, setSearchParams] = useSearchParams();
   const { user } = useAuth();
-  const tabFromUrl = searchParams.get('tab') || 'dashboard';
-  const [activeTab, setActiveTab] = useState(tabFromUrl);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const initialTab = searchParams.get('tab') || 'dashboard';
+  const [activeTab, setActiveTab] = useState(initialTab);
 
-  // Use the cash flow hook to get appointments data
-  const { appointments, loading, updateAppointmentCollectionStatus } = useSupabaseCashFlow();
+  const { sales } = useSupabaseSales();
 
-  // Definir abas permitidas por tipo de usuário (usando tipo já normalizado)
-  const getAllowedTabs = () => {
+  useEffect(() => {
+    setActiveTab(initialTab);
+  }, [initialTab]);
+
+  const handleTabChange = (tab: string) => {
+    setActiveTab(tab);
+    setSearchParams({ tab });
+  };
+
+  // Verificar se o usuário tem acesso aos tabs baseado no tipo
+  const getAvailableTabs = () => {
     if (user?.tipo === 'admin') {
       return [
         'dashboard', 'agendamentos', 'servicos', 'produtos', 'vendas', 
@@ -41,36 +48,76 @@ const Admin = () => {
     } else if (user?.tipo === 'convidado') {
       return ['agendamentos', 'servicos', 'produtos', 'cobrancas', 'banner', 'galeria'];
     }
-    return [];
+    return ['agendamentos'];
   };
 
-  const allowedTabs = getAllowedTabs();
-
-  console.log('User tipo:', user?.tipo, 'Allowed tabs:', allowedTabs, 'Current tab:', tabFromUrl);
-
+  const availableTabs = getAvailableTabs();
+  
+  // Verificar se o tab atual é permitido, senão redirecionar para o primeiro disponível
   useEffect(() => {
-    // Se a aba atual não é permitida para o usuário, redirecionar
-    if (!allowedTabs.includes(tabFromUrl)) {
-      const defaultTab = user?.tipo === 'convidado' ? 'agendamentos' : 'dashboard';
-      setActiveTab(defaultTab);
-      setSearchParams({ tab: defaultTab });
-    } else {
-      setActiveTab(tabFromUrl);
+    if (!availableTabs.includes(activeTab)) {
+      const firstAvailableTab = availableTabs[0] || 'agendamentos';
+      setActiveTab(firstAvailableTab);
+      setSearchParams({ tab: firstAvailableTab });
     }
-  }, [tabFromUrl, user?.tipo, allowedTabs, setSearchParams]);
+  }, [availableTabs, activeTab, setSearchParams]);
 
-  const handleTabChange = (tab: string) => {
-    // Verificar se o usuário tem permissão para acessar esta aba
-    if (!allowedTabs.includes(tab)) {
-      return; // Não permitir mudança
+  if (!user) {
+    return <div>Carregando...</div>;
+  }
+
+  const renderTabContent = () => {
+    switch (activeTab) {
+      case 'dashboard':
+        return <Dashboard />;
+      case 'agendamentos':
+        return <AppointmentsTab />;
+      case 'servicos':
+        return <ServiceManagement />;
+      case 'produtos':
+        return <ProductManagement />;
+      case 'vendas':
+        return (
+          <Tabs defaultValue="vendas" className="w-full">
+            <TabsList className="grid w-full grid-cols-2 glass-card border-salon-gold/20">
+              <TabsTrigger value="vendas">Vendas</TabsTrigger>
+              <TabsTrigger value="comissoes">Comissões</TabsTrigger>
+            </TabsList>
+            <TabsContent value="vendas" className="space-y-6 mt-6">
+              <div className="text-center">
+                <h2 className="text-2xl font-bold text-gradient-gold mb-2 font-playfair">Vendas</h2>
+                <p className="text-muted-foreground">Gerencie as vendas do salão</p>
+              </div>
+              <div className="text-center p-8">
+                <p className="text-muted-foreground">Funcionalidade de vendas em desenvolvimento</p>
+              </div>
+            </TabsContent>
+            <TabsContent value="comissoes" className="space-y-6 mt-6">
+              <CommissionManagement />
+            </TabsContent>
+          </Tabs>
+        );
+      case 'atendimentos':
+        return <CustomerProfileManagement />;
+      case 'cobrancas':
+        return <DebtCollectionsDashboard />;
+      case 'fluxo-caixa':
+        return <CashFlowManagement />;
+      case 'clientes':
+        return <ClientList />;
+      case 'banner':
+        return <BannerManagement />;
+      case 'galeria':
+        return <GalleryManagement />;
+      case 'configuracoes':
+        return <ProfessionalsTabManager />;
+      default:
+        return <div>Tab não encontrada</div>;
     }
-    
-    setActiveTab(tab);
-    setSearchParams({ tab });
   };
 
-  const getTabTitle = (tab: string) => {
-    const titles: { [key: string]: string } = {
+  const getTabDisplayName = (tab: string) => {
+    const displayNames: Record<string, string> = {
       dashboard: 'Dashboard',
       agendamentos: 'Agendamentos',
       servicos: 'Serviços',
@@ -82,100 +129,39 @@ const Admin = () => {
       'fluxo-caixa': 'Fluxo de Caixa',
       banner: 'Banner',
       galeria: 'Galeria',
-      configuracoes: 'Configurações'
+      configuracoes: 'Profissionais'
     };
-    return titles[tab] || 'Admin';
-  };
-
-  const renderTabContent = () => {
-    // Verificar novamente se o usuário tem permissão
-    if (!allowedTabs.includes(activeTab)) {
-      return <div className="p-8 text-center text-salon-copper">Acesso negado a esta seção.</div>;
-    }
-
-    switch (activeTab) {
-      case 'dashboard':
-        return <Dashboard />;
-      case 'agendamentos':
-        return (
-          <AppointmentsTab 
-            appointments={appointments}
-            onUpdateCollectionStatus={updateAppointmentCollectionStatus}
-            loading={loading}
-          />
-        );
-      case 'servicos':
-        return <ServiceManagement />;
-      case 'produtos':
-        return <ProductManagement />;
-      case 'vendas':
-        return <CashFlowManagement />;
-      case 'clientes':
-        return (
-          <Tabs defaultValue="clientes" className="w-full">
-            <TabsList className="grid w-full grid-cols-2 mb-6">
-              <TabsTrigger value="clientes" className="text-salon-gold data-[state=active]:bg-salon-gold data-[state=active]:text-salon-dark">
-                Lista de Clientes
-              </TabsTrigger>
-              <TabsTrigger value="usuarios-devedores" className="text-salon-gold data-[state=active]:bg-salon-gold data-[state=active]:text-salon-dark">
-                Usuários & Devedores
-              </TabsTrigger>
-            </TabsList>
-            <TabsContent value="clientes">
-              <ClientList />
-            </TabsContent>
-            <TabsContent value="usuarios-devedores">
-              <DebtCollectionManagement />
-            </TabsContent>
-          </Tabs>
-        );
-      case 'atendimentos':
-        return <CustomerProfileManagement />;
-      case 'cobrancas':
-        return <DebtCollectionsDashboard />;
-      case 'fluxo-caixa':
-        return <CashFlowManagement />;
-      case 'banner':
-        return <BannerManagement />;
-      case 'galeria':
-        return <GalleryManagement />;
-      case 'configuracoes':
-        return <ProfessionalsTabManager />;
-      default:
-        return <Dashboard />;
-    }
+    return displayNames[tab] || tab;
   };
 
   return (
     <SidebarProvider>
-      <div className="flex h-screen w-full">
+      <div className="min-h-screen flex w-full bg-gradient-to-br from-salon-dark via-gray-900 to-black">
         <AppSidebar activeTab={activeTab} onTabChange={handleTabChange} />
-        <SidebarInset className="flex-1">
-          <header className="flex h-16 shrink-0 items-center gap-2 border-b border-salon-gold/20 px-4">
-            <SidebarTrigger className="-ml-1 text-salon-gold hover:bg-salon-gold/10" />
-            <Separator orientation="vertical" className="mr-2 h-4 bg-salon-gold/20" />
-            <Breadcrumb>
-              <BreadcrumbList>
-                <BreadcrumbItem className="hidden md:block">
-                  <BreadcrumbLink href="/admin" className="text-salon-copper hover:text-salon-gold">
-                    Admin
-                  </BreadcrumbLink>
-                </BreadcrumbItem>
-                <BreadcrumbSeparator className="hidden md:block text-salon-copper" />
-                <BreadcrumbItem>
-                  <BreadcrumbPage className="text-salon-gold">
-                    {getTabTitle(activeTab)}
-                  </BreadcrumbPage>
-                </BreadcrumbItem>
-              </BreadcrumbList>
-            </Breadcrumb>
-          </header>
-          <div className="flex-1 overflow-auto bg-gradient-to-br from-salon-dark via-salon-dark/95 to-salon-copper/20">
-            <div className="p-6">
-              {renderTabContent()}
+        
+        <main className="flex-1 p-6 overflow-auto">
+          <div className="max-w-7xl mx-auto">
+            <div className="mb-6">
+              <nav className="flex" aria-label="Breadcrumb">
+                <ol className="inline-flex items-center space-x-1 md:space-x-3">
+                  <li className="inline-flex items-center">
+                    <span className="text-sm font-medium text-salon-copper">Admin</span>
+                  </li>
+                  <li>
+                    <div className="flex items-center">
+                      <span className="text-salon-copper">/</span>
+                      <span className="ml-1 text-sm font-medium text-salon-gold md:ml-2">
+                        {getTabDisplayName(activeTab)}
+                      </span>
+                    </div>
+                  </li>
+                </ol>
+              </nav>
             </div>
+            
+            {renderTabContent()}
           </div>
-        </SidebarInset>
+        </main>
       </div>
     </SidebarProvider>
   );
