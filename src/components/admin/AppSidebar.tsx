@@ -24,7 +24,8 @@ import {
   Settings,
   Image,
   Camera,
-  BarChart3
+  BarChart3,
+  UserCheck
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -73,6 +74,12 @@ const AppSidebar: React.FC<AppSidebarProps> = ({ activeTab, onTabChange }) => {
         id: 'clientes',
         title: 'Clientes',
         icon: Users,
+        allowedRoles: ['admin'] // Apenas admin
+      },
+      {
+        id: 'atendimentos',
+        title: 'Atendimentos',
+        icon: UserCheck,
         allowedRoles: ['admin'] // Apenas admin
       },
       {

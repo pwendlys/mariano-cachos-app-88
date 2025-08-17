@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import AppSidebar from '@/components/admin/AppSidebar';
@@ -7,6 +8,7 @@ import ServiceManagement from '@/components/ServiceManagement';
 import ProductManagement from '@/components/ProductManagement';
 import CashFlowManagement from '@/components/CashFlowManagement';
 import ClientList from '@/components/ClientList';
+import CustomerProfileManagement from '@/components/CustomerProfileManagement';
 import DebtCollectionsDashboard from '@/components/DebtCollectionsDashboard';
 import DebtCollectionManagement from '@/components/DebtCollectionManagement';
 import CommissionManagement from '@/components/CommissionManagement';
@@ -34,7 +36,7 @@ const Admin = () => {
     if (user?.tipo === 'admin') {
       return [
         'dashboard', 'agendamentos', 'servicos', 'produtos', 'vendas', 
-        'clientes', 'cobrancas', 'fluxo-caixa', 'banner', 'galeria', 'configuracoes'
+        'clientes', 'atendimentos', 'cobrancas', 'fluxo-caixa', 'banner', 'galeria', 'configuracoes'
       ];
     } else if (user?.tipo === 'convidado') {
       return ['agendamentos', 'servicos', 'produtos', 'cobrancas', 'banner', 'galeria'];
@@ -75,6 +77,7 @@ const Admin = () => {
       produtos: 'Produtos',
       vendas: 'Vendas',
       clientes: 'Clientes',
+      atendimentos: 'Atendimentos',
       cobrancas: 'Cobranças',
       'fluxo-caixa': 'Fluxo de Caixa',
       banner: 'Banner',
@@ -126,6 +129,8 @@ const Admin = () => {
             </TabsContent>
           </Tabs>
         );
+      case 'atendimentos':
+        return <CustomerProfileManagement />;
       case 'cobrancas':
         return <DebtCollectionsDashboard />;
       case 'fluxo-caixa':
