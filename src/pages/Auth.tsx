@@ -47,6 +47,17 @@ const Auth = () => {
           }}
         />
         
+        {/* Logo no canto superior direito */}
+        <div className="fixed top-4 right-4 z-20">
+          <div className="w-14 h-14 rounded-full ring-2 ring-salon-gold bg-black/80 overflow-hidden shadow-lg">
+            <img 
+              src="/lovable-uploads/2c7426a6-ccbe-478a-95f7-439af5d69582.png" 
+              alt="Marcos Mariano Logo" 
+              className="w-full h-full object-cover"
+            />
+          </div>
+        </div>
+        
         <ResetPasswordForm onSuccess={() => navigate('/auth')} />
       </div>
     );
@@ -134,6 +145,17 @@ const Auth = () => {
           backgroundImage: `url('/lovable-uploads/e2bbbb39-11f3-4c1b-9152-ac5ac489a2e3.png')`
         }}
       />
+      
+      {/* Logo no canto superior direito */}
+      <div className="fixed top-4 right-4 z-20">
+        <div className="w-14 h-14 rounded-full ring-2 ring-salon-gold bg-black/80 overflow-hidden shadow-lg">
+          <img 
+            src="/lovable-uploads/2c7426a6-ccbe-478a-95f7-439af5d69582.png" 
+            alt="Marcos Mariano Logo" 
+            className="w-full h-full object-cover"
+          />
+        </div>
+      </div>
       
       {/* Content */}
       <Card className="w-full max-w-md relative z-10 bg-transparent border-salon-gold/70 shadow-2xl">
