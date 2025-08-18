@@ -9,13 +9,19 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Checkbox } from '@/components/ui/checkbox';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
 import { useSupabaseProfessionals } from '@/hooks/useSupabaseProfessionals';
 import { useSupabaseCommissions } from '@/hooks/useSupabaseCommissions';
+import { useSupabaseServices } from '@/hooks/useSupabaseServices';
+import { useSupabaseProfessionalServices } from '@/hooks/useSupabaseProfessionalServices';
 
 const ProfessionalManagement = () => {
   const { professionals, loading, addProfessional, updateProfessional, deleteProfessional } = useSupabaseProfessionals();
   const { commissions, getTotalCommissionsByProfessional } = useSupabaseCommissions();
+  const { services } = useSupabaseServices();
+  const { getServicesForProfessional, linkService, unlinkService, isServiceLinked } = useSupabaseProfessionalServices();
   const { toast } = useToast();
   
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
@@ -159,6 +165,19 @@ const ProfessionalManagement = () => {
     });
   };
 
+  const handleServiceToggle = async (professionalId: string, serviceId: string, isChecked: boolean) => {
+    if (isChecked) {
+      await linkService(professionalId, serviceId);
+    } else {
+      await unlinkService(professionalId, serviceId);
+    }
+  };
+
+  const getLinkedServicesForProfessional = (professionalId: string) => {
+    const linkedServiceIds = getServicesForProfessional(professionalId);
+    return services.filter(service => linkedServiceIds.includes(service.id));
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center p-8">
@@ -298,21 +317,49 @@ const ProfessionalManagement = () => {
                   </span>
                 </div>
               </div>
-              
-              {professional.especialidades && professional.especialidades.length > 0 && (
-                <div className="mb-4">
-                  <p className="text-sm text-salon-copper mb-2">Especialidades:</p>
-                  <div className="flex flex-wrap gap-1">
-                    {professional.especialidades
-                      .filter((specialty: string) => specialty && specialty.trim() !== '') // Filter out empty specialties
-                      .map((specialty: string, index: number) => (
-                        <Badge key={index} variant="secondary" className="text-xs bg-salon-gold/20 text-salon-gold">
-                          {specialty}
+
+              {/* Serviços Section */}
+              <div className="mb-4">
+                <p className="text-sm text-salon-copper mb-2">Serviços:</p>
+                <div className="space-y-2">
+                  {getLinkedServicesForProfessional(professional.id).length > 0 ? (
+                    <div className="flex flex-wrap gap-1">
+                      {getLinkedServicesForProfessional(professional.id).map((service) => (
+                        <Badge key={service.id} variant="secondary" className="text-xs bg-salon-gold/20 text-salon-gold">
+                          {service.nome}
                         </Badge>
                       ))}
-                  </div>
+                    </div>
+                  ) : (
+                    <p className="text-xs text-salon-copper/70">Nenhum serviço vinculado</p>
+                  )}
+                  
+                  {services.length > 0 && (
+                    <div className="mt-2">
+                      <ScrollArea className="h-20">
+                        <div className="space-y-1">
+                          {services.filter(service => service.ativo).map((service) => (
+                            <div key={service.id} className="flex items-center space-x-2">
+                              <Checkbox
+                                id={`service-${professional.id}-${service.id}`}
+                                checked={isServiceLinked(professional.id, service.id)}
+                                onCheckedChange={(checked) => handleServiceToggle(professional.id, service.id, checked as boolean)}
+                                className="h-3 w-3"
+                              />
+                              <label 
+                                htmlFor={`service-${professional.id}-${service.id}`}
+                                className="text-xs text-white cursor-pointer"
+                              >
+                                {service.nome}
+                              </label>
+                            </div>
+                          ))}
+                        </div>
+                      </ScrollArea>
+                    </div>
+                  )}
                 </div>
-              )}
+              </div>
               
               <div className="flex gap-2">
                 <Button
@@ -473,20 +520,20 @@ const ProfessionalManagement = () => {
                   </Badge>
                 </div>
                 
-                {selectedProfessional.especialidades && selectedProfessional.especialidades.length > 0 && (
-                  <div>
-                    <p className="text-sm text-salon-copper mb-2">Especialidades</p>
+                <div>
+                  <p className="text-sm text-salon-copper mb-2">Serviços Vinculados</p>
+                  {getLinkedServicesForProfessional(selectedProfessional.id).length > 0 ? (
                     <div className="flex flex-wrap gap-1">
-                      {selectedProfessional.especialidades
-                        .filter((specialty: string) => specialty && specialty.trim() !== '') // Filter out empty specialties
-                        .map((specialty: string, index: number) => (
-                          <Badge key={index} variant="secondary" className="text-xs bg-salon-gold/20 text-salon-gold">
-                            {specialty}
-                          </Badge>
-                        ))}
+                      {getLinkedServicesForProfessional(selectedProfessional.id).map((service) => (
+                        <Badge key={service.id} variant="secondary" className="text-xs bg-salon-gold/20 text-salon-gold">
+                          {service.nome}
+                        </Badge>
+                      ))}
                     </div>
-                  </div>
-                )}
+                  ) : (
+                    <p className="text-xs text-salon-copper/70">Nenhum serviço vinculado</p>
+                  )}
+                </div>
               </div>
               
               <div className="flex gap-2">

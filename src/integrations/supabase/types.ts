@@ -815,6 +815,45 @@ export type Database = {
         }
         Relationships: []
       }
+      profissional_servicos: {
+        Row: {
+          created_at: string
+          id: string
+          profissional_id: string
+          servico_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          profissional_id: string
+          servico_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          profissional_id?: string
+          servico_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "profissional_servicos_profissional_id_fkey"
+            columns: ["profissional_id"]
+            isOneToOne: false
+            referencedRelation: "profissionais"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "profissional_servicos_servico_id_fkey"
+            columns: ["servico_id"]
+            isOneToOne: false
+            referencedRelation: "servicos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       saldos_clientes: {
         Row: {
           cliente_id: string | null
