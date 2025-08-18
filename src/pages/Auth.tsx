@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -44,7 +43,7 @@ const Auth = () => {
         <div 
           className="absolute inset-0 bg-cover bg-center bg-no-repeat"
           style={{
-            backgroundImage: `url('/lovable-uploads/52c15ad1-d6a4-4a7f-92a0-aeae2f560008.png')`
+            backgroundImage: `url('/lovable-uploads/e2bbbb39-11f3-4c1b-9152-ac5ac489a2e3.png')`
           }}
         />
         
@@ -132,7 +131,7 @@ const Auth = () => {
       <div 
         className="absolute inset-0 bg-cover bg-center bg-no-repeat"
         style={{
-          backgroundImage: `url('/lovable-uploads/52c15ad1-d6a4-4a7f-92a0-aeae2f560008.png')`
+          backgroundImage: `url('/lovable-uploads/e2bbbb39-11f3-4c1b-9152-ac5ac489a2e3.png')`
         }}
       />
       
