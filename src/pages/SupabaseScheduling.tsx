@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Calendar, Clock, User, MessageSquare, Check, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -281,6 +280,8 @@ const SupabaseScheduling = () => {
                       service={service}
                       isSelected={selectedServices.includes(service.id)}
                       onToggle={handleServiceToggle}
+                      showDetails={true}
+                      hideImage={true}
                     />
                   ))
                 )}
