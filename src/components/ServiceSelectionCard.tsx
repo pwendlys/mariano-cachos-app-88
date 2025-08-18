@@ -108,7 +108,7 @@ const ServiceSelectionCard: React.FC<ServiceSelectionCardProps> = ({
               {service.categoria}
             </Badge>
 
-            {/* Detalhes field - displayed below the selected area */}
+            {/* Detalhes field - displayed below the badge */}
             {service.detalhes && (
               <div className="mt-3 pt-3 border-t border-salon-gold/20">
                 <p className="text-sm text-gray-300 leading-relaxed">
