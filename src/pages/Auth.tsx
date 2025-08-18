@@ -9,11 +9,9 @@ import { useAuth } from '@/hooks/useAuth';
 import { Eye, EyeOff, User, Mail, Phone, Lock } from 'lucide-react';
 import ForgotPasswordModal from '@/components/ForgotPasswordModal';
 import ResetPasswordForm from '@/components/ResetPasswordForm';
-
 const Auth = () => {
   const [searchParams] = useSearchParams();
   const action = searchParams.get('action');
-  
   const [isLogin, setIsLogin] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
@@ -25,10 +23,13 @@ const Auth = () => {
     confirmarSenha: ''
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
-  
-  const { user, login, register, loading } = useAuth();
+  const {
+    user,
+    login,
+    register,
+    loading
+  } = useAuth();
   const navigate = useNavigate();
-
   useEffect(() => {
     if (user) {
       navigate('/');
@@ -37,97 +38,87 @@ const Auth = () => {
 
   // Se é reset de senha, mostrar formulário específico
   if (action === 'reset-password') {
-    return (
-      <div className="min-h-screen flex items-center justify-center relative overflow-hidden p-4">
+    return <div className="min-h-screen flex items-center justify-center relative overflow-hidden p-4">
         {/* Background Image */}
-        <div 
-          className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-          style={{
-            backgroundImage: `url('/lovable-uploads/e2bbbb39-11f3-4c1b-9152-ac5ac489a2e3.png')`
-          }}
-        />
+        <div className="absolute inset-0 bg-cover bg-center bg-no-repeat" style={{
+        backgroundImage: `url('/lovable-uploads/e2bbbb39-11f3-4c1b-9152-ac5ac489a2e3.png')`
+      }} />
         
         {/* Logo no canto superior direito */}
         <div className="fixed top-4 right-4 z-20">
           <div className="w-14 h-14 rounded-full ring-2 ring-salon-gold bg-black/80 overflow-hidden shadow-lg">
-            <img 
-              src="/lovable-uploads/2c7426a6-ccbe-478a-95f7-439af5d69582.png" 
-              alt="Marcos Mariano Logo" 
-              className="w-full h-full object-cover"
-            />
+            <img src="/lovable-uploads/2c7426a6-ccbe-478a-95f7-439af5d69582.png" alt="Marcos Mariano Logo" className="w-full h-full object-cover" />
           </div>
         </div>
         
         <ResetPasswordForm onSuccess={() => navigate('/auth')} />
-      </div>
-    );
+      </div>;
   }
-
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
-
     if (!formData.email) {
       newErrors.email = 'E-mail é obrigatório';
     } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
       newErrors.email = 'E-mail inválido';
     }
-
     if (!formData.senha) {
       newErrors.senha = 'Senha é obrigatória';
     } else if (formData.senha.length < 6) {
       newErrors.senha = 'Senha deve ter pelo menos 6 caracteres';
     }
-
     if (!isLogin) {
       if (!formData.nome) {
         newErrors.nome = 'Nome é obrigatório';
       }
-
       if (!formData.whatsapp) {
         newErrors.whatsapp = 'WhatsApp é obrigatório';
       } else if (!/^\(\d{2}\)\s\d{4,5}-\d{4}$/.test(formData.whatsapp)) {
         newErrors.whatsapp = 'WhatsApp deve estar no formato (11) 99999-9999';
       }
-
       if (formData.senha !== formData.confirmarSenha) {
         newErrors.confirmarSenha = 'Senhas não coincidem';
       }
     }
-
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
     if (!validateForm()) return;
-
     let result;
-    
     if (isLogin) {
       result = await login(formData.email, formData.senha);
     } else {
       result = await register(formData.nome, formData.email, formData.whatsapp, formData.senha);
-      
       if (result.success) {
         setIsLogin(true);
-        setFormData({ nome: '', email: '', whatsapp: '', senha: '', confirmarSenha: '' });
+        setFormData({
+          nome: '',
+          email: '',
+          whatsapp: '',
+          senha: '',
+          confirmarSenha: ''
+        });
       }
     }
-
     if (!result.success && result.error) {
-      setErrors({ submit: result.error });
+      setErrors({
+        submit: result.error
+      });
     }
   };
-
   const handleInputChange = (field: string, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    setFormData(prev => ({
+      ...prev,
+      [field]: value
+    }));
     if (errors[field]) {
-      setErrors(prev => ({ ...prev, [field]: '' }));
+      setErrors(prev => ({
+        ...prev,
+        [field]: ''
+      }));
     }
   };
-
   const formatWhatsApp = (value: string) => {
     const numbers = value.replace(/\D/g, '');
     if (numbers.length <= 11) {
@@ -135,51 +126,44 @@ const Auth = () => {
     }
     return value;
   };
-
-  return (
-    <div className="min-h-screen flex items-center justify-center relative overflow-hidden p-4">
+  return <div className="min-h-screen flex items-center justify-center relative overflow-hidden p-4">
       {/* Background Image */}
-      <div 
-        className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-        style={{
-          backgroundImage: `url('/lovable-uploads/e2bbbb39-11f3-4c1b-9152-ac5ac489a2e3.png')`
-        }}
-      />
+      <div className="absolute inset-0 bg-cover bg-center bg-no-repeat" style={{
+      backgroundImage: `url('/lovable-uploads/e2bbbb39-11f3-4c1b-9152-ac5ac489a2e3.png')`
+    }} />
       
       {/* Logo no canto superior direito */}
       <div className="fixed top-4 right-4 z-20">
         <div className="w-14 h-14 rounded-full ring-2 ring-salon-gold bg-black/80 overflow-hidden shadow-lg">
-          <img 
-            src="/lovable-uploads/2c7426a6-ccbe-478a-95f7-439af5d69582.png" 
-            alt="Marcos Mariano Logo" 
-            className="w-full h-full object-cover"
-          />
+          <img src="/lovable-uploads/2c7426a6-ccbe-478a-95f7-439af5d69582.png" alt="Marcos Mariano Logo" className="w-full h-full object-cover" />
         </div>
       </div>
       
       {/* Content */}
       <Card className="w-full max-w-md relative z-10 bg-transparent border-salon-gold/70 shadow-2xl">
         <CardHeader className="text-center">
-          <div className="w-20 h-20 rounded-full ring-2 ring-salon-gold flex items-center justify-center mx-auto mb-4 bg-black/80 overflow-hidden">
-            <img 
-              src="/lovable-uploads/2c7426a6-ccbe-478a-95f7-439af5d69582.png" 
-              alt="Marcos Mariano Logo" 
-              className="w-full h-full object-cover"
-            />
-          </div>
-          <CardTitle className="text-2xl font-playfair text-gradient-gold drop-shadow-2xl" style={{ textShadow: '2px 2px 4px rgba(0,0,0,0.8)' }}>
+          
+          <CardTitle className="text-2xl font-playfair text-gradient-gold drop-shadow-2xl" style={{
+          textShadow: '2px 2px 4px rgba(0,0,0,0.8)'
+        }}>
             Marcos Mariano
           </CardTitle>
-          <CardDescription className="text-white drop-shadow-lg font-semibold" style={{ textShadow: '1px 1px 3px rgba(0,0,0,0.8)' }}>
+          <CardDescription className="text-white drop-shadow-lg font-semibold" style={{
+          textShadow: '1px 1px 3px rgba(0,0,0,0.8)'
+        }}>
             Hair Stylist - Sistema de Gestão
           </CardDescription>
         </CardHeader>
 
         <CardContent>
-          <Tabs value={isLogin ? 'login' : 'register'} onValueChange={(value) => setIsLogin(value === 'login')}>
+          <Tabs value={isLogin ? 'login' : 'register'} onValueChange={value => setIsLogin(value === 'login')}>
             <TabsList className="grid w-full grid-cols-2 mb-6 bg-transparent border border-salon-gold/50">
-              <TabsTrigger value="login" className="text-white font-semibold data-[state=active]:bg-salon-gold data-[state=active]:text-salon-dark" style={{ textShadow: '1px 1px 2px rgba(0,0,0,0.8)' }}>Entrar</TabsTrigger>
-              <TabsTrigger value="register" className="text-white font-semibold data-[state=active]:bg-salon-gold data-[state=active]:text-salon-dark" style={{ textShadow: '1px 1px 2px rgba(0,0,0,0.8)' }}>Cadastrar</TabsTrigger>
+              <TabsTrigger value="login" className="text-white font-semibold data-[state=active]:bg-salon-gold data-[state=active]:text-salon-dark" style={{
+              textShadow: '1px 1px 2px rgba(0,0,0,0.8)'
+            }}>Entrar</TabsTrigger>
+              <TabsTrigger value="register" className="text-white font-semibold data-[state=active]:bg-salon-gold data-[state=active]:text-salon-dark" style={{
+              textShadow: '1px 1px 2px rgba(0,0,0,0.8)'
+            }}>Cadastrar</TabsTrigger>
             </TabsList>
 
             <TabsContent value="login">
@@ -188,14 +172,7 @@ const Auth = () => {
                   <Label htmlFor="email">E-mail</Label>
                   <div className="relative">
                     <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      id="email"
-                      type="email"
-                      placeholder="seu@email.com"
-                      className="pl-10"
-                      value={formData.email}
-                      onChange={(e) => handleInputChange('email', e.target.value)}
-                    />
+                    <Input id="email" type="email" placeholder="seu@email.com" className="pl-10" value={formData.email} onChange={e => handleInputChange('email', e.target.value)} />
                   </div>
                   {errors.email && <p className="text-sm text-red-500">{errors.email}</p>}
                 </div>
@@ -204,19 +181,8 @@ const Auth = () => {
                   <Label htmlFor="senha">Senha</Label>
                   <div className="relative">
                     <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      id="senha"
-                      type={showPassword ? 'text' : 'password'}
-                      placeholder="Sua senha"
-                      className="pl-10 pr-10"
-                      value={formData.senha}
-                      onChange={(e) => handleInputChange('senha', e.target.value)}
-                    />
-                    <button
-                      type="button"
-                      className="absolute right-3 top-3 text-muted-foreground hover:text-foreground"
-                      onClick={() => setShowPassword(!showPassword)}
-                    >
+                    <Input id="senha" type={showPassword ? 'text' : 'password'} placeholder="Sua senha" className="pl-10 pr-10" value={formData.senha} onChange={e => handleInputChange('senha', e.target.value)} />
+                    <button type="button" className="absolute right-3 top-3 text-muted-foreground hover:text-foreground" onClick={() => setShowPassword(!showPassword)}>
                       {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                     </button>
                   </div>
@@ -225,11 +191,7 @@ const Auth = () => {
 
                 {/* Botão Esqueci minha senha */}
                 <div className="text-center">
-                  <button
-                    type="button"
-                    onClick={() => setShowForgotPassword(true)}
-                    className="text-sm text-salon-gold hover:text-salon-copper underline"
-                  >
+                  <button type="button" onClick={() => setShowForgotPassword(true)} className="text-sm text-salon-gold hover:text-salon-copper underline">
                     Esqueci minha senha
                   </button>
                 </div>
@@ -248,14 +210,7 @@ const Auth = () => {
                   <Label htmlFor="nome">Nome Completo</Label>
                   <div className="relative">
                     <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      id="nome"
-                      type="text"
-                      placeholder="Seu nome completo"
-                      className="pl-10"
-                      value={formData.nome}
-                      onChange={(e) => handleInputChange('nome', e.target.value)}
-                    />
+                    <Input id="nome" type="text" placeholder="Seu nome completo" className="pl-10" value={formData.nome} onChange={e => handleInputChange('nome', e.target.value)} />
                   </div>
                   {errors.nome && <p className="text-sm text-red-500">{errors.nome}</p>}
                 </div>
@@ -264,14 +219,7 @@ const Auth = () => {
                   <Label htmlFor="email-register">E-mail</Label>
                   <div className="relative">
                     <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      id="email-register"
-                      type="email"
-                      placeholder="seu@email.com"
-                      className="pl-10"
-                      value={formData.email}
-                      onChange={(e) => handleInputChange('email', e.target.value)}
-                    />
+                    <Input id="email-register" type="email" placeholder="seu@email.com" className="pl-10" value={formData.email} onChange={e => handleInputChange('email', e.target.value)} />
                   </div>
                   {errors.email && <p className="text-sm text-red-500">{errors.email}</p>}
                 </div>
@@ -280,14 +228,7 @@ const Auth = () => {
                   <Label htmlFor="whatsapp">WhatsApp</Label>
                   <div className="relative">
                     <Phone className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      id="whatsapp"
-                      type="text"
-                      placeholder="(11) 99999-9999"
-                      className="pl-10"
-                      value={formData.whatsapp}
-                      onChange={(e) => handleInputChange('whatsapp', formatWhatsApp(e.target.value))}
-                    />
+                    <Input id="whatsapp" type="text" placeholder="(11) 99999-9999" className="pl-10" value={formData.whatsapp} onChange={e => handleInputChange('whatsapp', formatWhatsApp(e.target.value))} />
                   </div>
                   {errors.whatsapp && <p className="text-sm text-red-500">{errors.whatsapp}</p>}
                 </div>
@@ -296,19 +237,8 @@ const Auth = () => {
                   <Label htmlFor="senha-register">Senha</Label>
                   <div className="relative">
                     <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      id="senha-register"
-                      type={showPassword ? 'text' : 'password'}
-                      placeholder="Mínimo 6 caracteres"
-                      className="pl-10 pr-10"
-                      value={formData.senha}
-                      onChange={(e) => handleInputChange('senha', e.target.value)}
-                    />
-                    <button
-                      type="button"
-                      className="absolute right-3 top-3 text-muted-foreground hover:text-foreground"
-                      onClick={() => setShowPassword(!showPassword)}
-                    >
+                    <Input id="senha-register" type={showPassword ? 'text' : 'password'} placeholder="Mínimo 6 caracteres" className="pl-10 pr-10" value={formData.senha} onChange={e => handleInputChange('senha', e.target.value)} />
+                    <button type="button" className="absolute right-3 top-3 text-muted-foreground hover:text-foreground" onClick={() => setShowPassword(!showPassword)}>
                       {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                     </button>
                   </div>
@@ -319,14 +249,7 @@ const Auth = () => {
                   <Label htmlFor="confirmarSenha">Confirmar Senha</Label>
                   <div className="relative">
                     <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      id="confirmarSenha"
-                      type="password"
-                      placeholder="Confirme sua senha"
-                      className="pl-10"
-                      value={formData.confirmarSenha}
-                      onChange={(e) => handleInputChange('confirmarSenha', e.target.value)}
-                    />
+                    <Input id="confirmarSenha" type="password" placeholder="Confirme sua senha" className="pl-10" value={formData.confirmarSenha} onChange={e => handleInputChange('confirmarSenha', e.target.value)} />
                   </div>
                   {errors.confirmarSenha && <p className="text-sm text-red-500">{errors.confirmarSenha}</p>}
                 </div>
@@ -343,12 +266,7 @@ const Auth = () => {
       </Card>
 
       {/* Modal de recuperação de senha */}
-      <ForgotPasswordModal 
-        isOpen={showForgotPassword}
-        onClose={() => setShowForgotPassword(false)}
-      />
-    </div>
-  );
+      <ForgotPasswordModal isOpen={showForgotPassword} onClose={() => setShowForgotPassword(false)} />
+    </div>;
 };
-
 export default Auth;
