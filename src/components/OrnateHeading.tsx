@@ -7,9 +7,10 @@ interface OrnateHeadingProps {
   subtitle?: string;
   showLogo?: boolean;
   className?: string;
+  titleImageSrc?: string;
 }
 
-const OrnateHeading = ({ title, subtitle, showLogo = false, className = "" }: OrnateHeadingProps) => {
+const OrnateHeading = ({ title, subtitle, showLogo = false, className = "", titleImageSrc }: OrnateHeadingProps) => {
   const { bannerSettings } = useBannerSettings();
 
   return (
@@ -89,10 +90,21 @@ const OrnateHeading = ({ title, subtitle, showLogo = false, className = "" }: Or
         )}
       </div>
       
-      {/* Title */}
-      <h1 className="text-2xl md:text-3xl font-bold text-gradient-gold mb-2 font-playfair relative z-10">
-        {title}
-      </h1>
+      {/* Title - either image or text */}
+      {titleImageSrc ? (
+        <>
+          <img 
+            src={titleImageSrc} 
+            alt={title}
+            className="mx-auto block h-12 md:h-16 w-auto mb-2"
+          />
+          <h1 className="sr-only">{title}</h1>
+        </>
+      ) : (
+        <h1 className="text-2xl md:text-3xl font-bold text-gradient-gold mb-2 font-playfair relative z-10">
+          {title}
+        </h1>
+      )}
       
       {/* Subtitle */}
       {subtitle && (

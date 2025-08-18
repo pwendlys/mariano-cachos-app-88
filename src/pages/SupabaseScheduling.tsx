@@ -191,6 +191,7 @@ const SupabaseScheduling = () => {
           title="Agende Seu Horário" 
           subtitle="Carregando serviços..."
           showLogo={true}
+          titleImageSrc="/lovable-uploads/4cdb36eb-53da-4b68-ad4e-a555044fedba.png"
         />
       </div>
     );
@@ -202,6 +203,7 @@ const SupabaseScheduling = () => {
         title="Agende Seu Horário" 
         subtitle="Escolha múltiplos serviços para um cuidado completo"
         showLogo={true}
+        titleImageSrc="/lovable-uploads/4cdb36eb-53da-4b68-ad4e-a555044fedba.png"
       />
 
       {/* Progress Indicator */}
