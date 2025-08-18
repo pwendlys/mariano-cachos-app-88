@@ -10,6 +10,7 @@ export interface SupabaseService {
   duracao: number;
   ativo: boolean;
   imagem?: string | null;
+  detalhes?: string | null;
   created_at?: string;
 }
 

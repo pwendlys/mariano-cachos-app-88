@@ -11,6 +11,7 @@ interface Service {
   duracao: number;
   categoria: string;
   imagem?: string | null;
+  detalhes?: string | null;
 }
 
 interface ServiceSelectionCardProps {
@@ -102,10 +103,19 @@ const ServiceSelectionCard: React.FC<ServiceSelectionCardProps> = ({
             
             <Badge 
               variant="outline" 
-              className={`${getCategoryColor(service.categoria)} border-0 text-xs font-medium capitalize`}
+              className={`${getCategoryColor(service.categoria)} border-0 text-xs font-medium capitalize mb-3`}
             >
               {service.categoria}
             </Badge>
+
+            {/* Detalhes field - displayed below the selected area */}
+            {service.detalhes && (
+              <div className="mt-3 pt-3 border-t border-salon-gold/20">
+                <p className="text-sm text-gray-300 leading-relaxed">
+                  {service.detalhes}
+                </p>
+              </div>
+            )}
           </div>
         </div>
       </CardContent>

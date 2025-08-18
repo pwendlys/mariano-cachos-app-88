@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Plus, Edit, Trash2, Clock, DollarSign, Upload, X, Image } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -23,7 +22,8 @@ const ServiceManagement = () => {
     categoria: 'corte' as 'corte' | 'coloracao' | 'tratamento' | 'finalizacao' | 'outros',
     preco: '',
     duracao: '',
-    imagem: ''
+    imagem: '',
+    detalhes: ''
   });
 
   const categoryOptions = [
@@ -41,7 +41,8 @@ const ServiceManagement = () => {
       categoria: service.categoria,
       preco: service.preco.toString(),
       duracao: service.duracao.toString(),
-      imagem: service.imagem || ''
+      imagem: service.imagem || '',
+      detalhes: service.detalhes || ''
     });
     setIsDialogOpen(true);
   };
@@ -53,7 +54,8 @@ const ServiceManagement = () => {
       categoria: 'corte',
       preco: '',
       duracao: '',
-      imagem: ''
+      imagem: '',
+      detalhes: ''
     });
     setIsDialogOpen(true);
   };
@@ -152,7 +154,8 @@ const ServiceManagement = () => {
       preco: parseFloat(formData.preco),
       duracao: parseInt(formData.duracao),
       ativo: true,
-      imagem: formData.imagem || null
+      imagem: formData.imagem || null,
+      detalhes: formData.detalhes || null
     };
 
     let success = false;
@@ -269,6 +272,17 @@ const ServiceManagement = () => {
                 </div>
               </div>
 
+              <div>
+                <label className="block text-sm font-medium mb-2">Detalhes</label>
+                <Textarea
+                  value={formData.detalhes}
+                  onChange={(e) => setFormData({...formData, detalhes: e.target.value})}
+                  placeholder="Descreva os detalhes do serviço que serão exibidos ao cliente durante o agendamento..."
+                  className="glass-card border-salon-gold/30 bg-transparent text-white"
+                  rows={3}
+                />
+              </div>
+
               {/* Image Upload Section */}
               <div>
                 <label className="block text-sm font-medium mb-2">Imagem do Serviço</label>
@@ -364,6 +378,12 @@ const ServiceManagement = () => {
                 <div className="flex-1">
                   <h3 className="font-semibold text-white text-lg">{service.nome}</h3>
                   <p className="text-sm text-salon-copper mt-1">{getCategoryLabel(service.categoria)}</p>
+                  
+                  {service.detalhes && (
+                    <p className="text-sm text-gray-300 mt-2 leading-relaxed">
+                      {service.detalhes}
+                    </p>
+                  )}
                   
                   <div className="flex items-center space-x-4 mt-3">
                     <div className="flex items-center space-x-1 text-salon-gold">

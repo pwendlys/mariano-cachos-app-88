@@ -906,6 +906,7 @@ export type Database = {
           ativo: boolean | null
           categoria: string
           created_at: string
+          detalhes: string | null
           duracao: number
           id: string
           imagem: string | null
@@ -916,6 +917,7 @@ export type Database = {
           ativo?: boolean | null
           categoria: string
           created_at?: string
+          detalhes?: string | null
           duracao: number
           id?: string
           imagem?: string | null
@@ -926,6 +928,7 @@ export type Database = {
           ativo?: boolean | null
           categoria?: string
           created_at?: string
+          detalhes?: string | null
           duracao?: number
           id?: string
           imagem?: string | null
