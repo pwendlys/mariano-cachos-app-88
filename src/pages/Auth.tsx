@@ -9,6 +9,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { Eye, EyeOff, User, Mail, Phone, Lock } from 'lucide-react';
 import ForgotPasswordModal from '@/components/ForgotPasswordModal';
 import ResetPasswordForm from '@/components/ResetPasswordForm';
+
 const Auth = () => {
   const [searchParams] = useSearchParams();
   const action = searchParams.get('action');
@@ -30,6 +31,7 @@ const Auth = () => {
     loading
   } = useAuth();
   const navigate = useNavigate();
+
   useEffect(() => {
     if (user) {
       navigate('/');
@@ -46,7 +48,7 @@ const Auth = () => {
         
         {/* Logo no canto superior direito */}
         <div className="fixed top-4 right-4 z-20">
-          <div className="w-14 h-14 rounded-full ring-2 ring-salon-gold bg-black/80 overflow-hidden shadow-lg">
+          <div className="w-14 h-14 rounded-full bg-black/80 overflow-hidden shadow-lg">
             <img src="/lovable-uploads/2c7426a6-ccbe-478a-95f7-439af5d69582.png" alt="Marcos Mariano Logo" className="w-full h-full object-cover" />
           </div>
         </div>
@@ -54,6 +56,7 @@ const Auth = () => {
         <ResetPasswordForm onSuccess={() => navigate('/auth')} />
       </div>;
   }
+
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
     if (!formData.email) {
@@ -82,6 +85,7 @@ const Auth = () => {
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validateForm()) return;
@@ -107,6 +111,7 @@ const Auth = () => {
       });
     }
   };
+
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({
       ...prev,
@@ -119,6 +124,7 @@ const Auth = () => {
       }));
     }
   };
+
   const formatWhatsApp = (value: string) => {
     const numbers = value.replace(/\D/g, '');
     if (numbers.length <= 11) {
@@ -126,6 +132,7 @@ const Auth = () => {
     }
     return value;
   };
+
   return <div className="min-h-screen flex items-center justify-center relative overflow-hidden p-4">
       {/* Background Image */}
       <div className="absolute inset-0 bg-cover bg-center bg-no-repeat" style={{
@@ -134,7 +141,7 @@ const Auth = () => {
       
       {/* Logo no canto superior direito */}
       <div className="fixed top-4 right-4 z-20">
-        <div className="w-14 h-14 rounded-full ring-2 ring-salon-gold bg-black/80 overflow-hidden shadow-lg">
+        <div className="w-14 h-14 rounded-full bg-black/80 overflow-hidden shadow-lg">
           <img src="/lovable-uploads/2c7426a6-ccbe-478a-95f7-439af5d69582.png" alt="Marcos Mariano Logo" className="w-full h-full object-cover" />
         </div>
       </div>
@@ -269,4 +276,5 @@ const Auth = () => {
       <ForgotPasswordModal isOpen={showForgotPassword} onClose={() => setShowForgotPassword(false)} />
     </div>;
 };
+
 export default Auth;
