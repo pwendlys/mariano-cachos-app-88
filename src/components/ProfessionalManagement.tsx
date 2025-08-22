@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Plus, Edit2, Trash2, Save, X, User, Star, DollarSign, TrendingUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -11,11 +10,13 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useToast } from '@/hooks/use-toast';
 import { useSupabaseProfessionals } from '@/hooks/useSupabaseProfessionals';
 import { useSupabaseCommissions } from '@/hooks/useSupabaseCommissions';
 import { useSupabaseServices } from '@/hooks/useSupabaseServices';
 import { useSupabaseProfessionalServices } from '@/hooks/useSupabaseProfessionalServices';
+import ProfessionalAvatarUpload from '@/components/ProfessionalAvatarUpload';
 
 const ProfessionalManagement = () => {
   const { professionals, loading, addProfessional, updateProfessional, deleteProfessional } = useSupabaseProfessionals();
@@ -178,6 +179,17 @@ const ProfessionalManagement = () => {
     return services.filter(service => linkedServiceIds.includes(service.id));
   };
 
+  const handleAvatarUpdate = (professionalId: string, newAvatarUrl: string) => {
+    // Atualizar o profissional no estado local para refletir a mudança imediatamente
+    const updatedProfessional = { ...editingProfessional, avatar: newAvatarUrl };
+    setEditingProfessional(updatedProfessional);
+    
+    // Se estamos na visualização de detalhes, também atualizar lá
+    if (selectedProfessional && selectedProfessional.id === professionalId) {
+      setSelectedProfessional(updatedProfessional);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center p-8">
@@ -286,9 +298,12 @@ const ProfessionalManagement = () => {
             <CardContent className="p-6">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-salon-gold/20 flex items-center justify-center">
-                    <User size={20} className="text-salon-gold" />
-                  </div>
+                  <Avatar className="w-10 h-10 border border-salon-gold/30">
+                    <AvatarImage src={professional.avatar || ''} alt={professional.nome} />
+                    <AvatarFallback className="bg-salon-gold/20 text-salon-gold">
+                      {professional.nome?.charAt(0)?.toUpperCase() || <User size={20} />}
+                    </AvatarFallback>
+                  </Avatar>
                   <div>
                     <h3 className="font-medium text-white">{professional.nome}</h3>
                     <p className="text-sm text-salon-copper">{professional.email}</p>
@@ -395,11 +410,24 @@ const ProfessionalManagement = () => {
 
       {/* Edit Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="glass-card border-salon-gold/30 text-white max-w-md">
+        <DialogContent className="glass-card border-salon-gold/30 text-white max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-salon-gold">Editar Profissional</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
+            {/* Avatar Upload Section */}
+            {editingProfessional && (
+              <div className="border-b border-salon-gold/20 pb-4">
+                <Label className="text-sm font-medium mb-2 block">Foto de Perfil</Label>
+                <ProfessionalAvatarUpload
+                  currentAvatarUrl={editingProfessional.avatar}
+                  professionalId={editingProfessional.id}
+                  professionalName={editingProfessional.nome}
+                  onAvatarUpdate={(newAvatarUrl) => handleAvatarUpdate(editingProfessional.id, newAvatarUrl)}
+                />
+              </div>
+            )}
+
             <div>
               <Label htmlFor="edit-name" className="text-sm font-medium mb-2 block">Nome *</Label>
               <Input
@@ -486,9 +514,12 @@ const ProfessionalManagement = () => {
           {selectedProfessional && (
             <div className="space-y-4">
               <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-full bg-salon-gold/20 flex items-center justify-center">
-                  <User size={24} className="text-salon-gold" />
-                </div>
+                <Avatar className="w-12 h-12 border border-salon-gold/30">
+                  <AvatarImage src={selectedProfessional.avatar || ''} alt={selectedProfessional.nome} />
+                  <AvatarFallback className="bg-salon-gold/20 text-salon-gold text-xl">
+                    {selectedProfessional.nome?.charAt(0)?.toUpperCase() || <User size={24} />}
+                  </AvatarFallback>
+                </Avatar>
                 <div>
                   <h3 className="font-medium text-white">{selectedProfessional.nome}</h3>
                   <p className="text-salon-copper">{selectedProfessional.email}</p>
