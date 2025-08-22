@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -262,6 +261,46 @@ export const useCustomerProfiles = () => {
     }
   };
 
+  // Excluir histórico de atendimento
+  const deleteHistoricoAtendimento = async (id: string, clienteId: string) => {
+    try {
+      console.log('Excluindo histórico:', id);
+      
+      const { error } = await supabase
+        .from('historico_atendimentos')
+        .delete()
+        .eq('id', id);
+
+      if (error) {
+        console.error('Erro ao excluir histórico:', error);
+        throw error;
+      }
+      
+      console.log('Histórico excluído com sucesso');
+      
+      // Recarregar dados
+      await fetchHistoricoAtendimentos();
+      if (clienteId) {
+        await updateSaldoCliente(clienteId);
+      }
+      await fetchSaldosClientes();
+      
+      toast({
+        title: "Sucesso",
+        description: "Histórico de atendimento excluído com sucesso."
+      });
+      
+    } catch (error) {
+      console.error('Erro ao excluir histórico:', error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível excluir o histórico de atendimento.",
+        variant: "destructive"
+      });
+      throw error;
+    }
+  };
+
   // Atualizar saldo do cliente
   const updateSaldoCliente = async (clienteId: string) => {
     try {
@@ -395,6 +434,7 @@ export const useCustomerProfiles = () => {
     loading,
     createHistoricoAtendimento,
     updateHistoricoAtendimento,
+    deleteHistoricoAtendimento,
     updateSaldoCliente,
     linkAgendamentoToHistorico,
     fetchHistoricoAtendimentos,

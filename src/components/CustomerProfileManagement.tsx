@@ -5,11 +5,12 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Plus, User, DollarSign, History, AlertTriangle, CheckCircle, RefreshCw, X } from 'lucide-react';
+import { Plus, User, DollarSign, History, AlertTriangle, CheckCircle, RefreshCw, X, Trash2 } from 'lucide-react';
 import { useCustomerProfiles } from '@/hooks/useCustomerProfiles';
 import { useSupabaseScheduling } from '@/hooks/useSupabaseScheduling';
 import { useSupabaseProducts } from '@/hooks/useSupabaseProducts';
@@ -24,6 +25,7 @@ const CustomerProfileManagement = () => {
     loading, 
     createHistoricoAtendimento,
     updateHistoricoAtendimento,
+    deleteHistoricoAtendimento,
     linkAgendamentoToHistorico,
     syncCustomerData
   } = useCustomerProfiles();
@@ -259,6 +261,14 @@ const CustomerProfileManagement = () => {
 
   const handleUpdateStatus = async (id: string, status: string) => {
     await updateHistoricoAtendimento(id, { status: status as any });
+  };
+
+  const handleDeleteHistorico = async (historicoId: string, clienteId: string) => {
+    try {
+      await deleteHistoricoAtendimento(historicoId, clienteId);
+    } catch (error) {
+      console.error('Erro ao excluir histórico:', error);
+    }
   };
 
   const getStatusColor = (status: string) => {
@@ -672,6 +682,36 @@ const CustomerProfileManagement = () => {
                           <SelectItem value="cancelado">Cancelado</SelectItem>
                         </SelectContent>
                       </Select>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="border-red-500/30 text-red-400 hover:bg-red-500/10 hover:border-red-500/50"
+                          >
+                            <Trash2 size={16} />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent className="glass-card border-salon-gold/30 text-white">
+                          <AlertDialogHeader>
+                            <AlertDialogTitle className="text-salon-gold">Confirmar Exclusão</AlertDialogTitle>
+                            <AlertDialogDescription className="text-white">
+                              Tem certeza que deseja excluir este atendimento? Esta ação não pode ser desfeita e também removerá todos os lançamentos relacionados no fluxo de caixa.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel className="border-salon-gold/30 text-salon-gold hover:bg-salon-gold/10">
+                              Cancelar
+                            </AlertDialogCancel>
+                            <AlertDialogAction 
+                              onClick={() => handleDeleteHistorico(historico.id, historico.cliente_id)}
+                              className="bg-red-500 hover:bg-red-600 text-white"
+                            >
+                              Excluir
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
                     </div>
                   </div>
                 ))
