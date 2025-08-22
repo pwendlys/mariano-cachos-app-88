@@ -1,14 +1,13 @@
+
 import React, { useState } from 'react';
-import { Plus, Edit, Trash2, Clock, DollarSign, Upload, X, Image } from 'lucide-react';
+import { Plus, Edit, Trash2, Clock, DollarSign } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { useSupabaseServices, SupabaseService } from '@/hooks/useSupabaseServices';
-import { supabase } from '@/integrations/supabase/client';
 
 const ServiceManagement = () => {
   const { toast } = useToast();
@@ -16,23 +15,16 @@ const ServiceManagement = () => {
 
   const [editingService, setEditingService] = useState<SupabaseService | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [uploadingImage, setUploadingImage] = useState(false);
   const [formData, setFormData] = useState({
     nome: '',
-    categoria: 'corte' as 'corte' | 'coloracao' | 'tratamento' | 'finalizacao' | 'outros',
+    categoria: '',
     preco: '',
     duracao: '',
-    imagem: '',
     detalhes: ''
   });
 
-  const categoryOptions = [
-    { value: 'corte', label: 'Corte' },
-    { value: 'coloracao', label: 'Coloração' },
-    { value: 'tratamento', label: 'Tratamento' },
-    { value: 'finalizacao', label: 'Finalização' },
-    { value: 'outros', label: 'Outros' }
-  ];
+  // Get unique categories from existing services for auto-suggestions
+  const existingCategories = Array.from(new Set(services.map(service => service.categoria))).sort();
 
   const handleEdit = (service: SupabaseService) => {
     setEditingService(service);
@@ -41,7 +33,6 @@ const ServiceManagement = () => {
       categoria: service.categoria,
       preco: service.preco.toString(),
       duracao: service.duracao.toString(),
-      imagem: service.imagem || '',
       detalhes: service.detalhes || ''
     });
     setIsDialogOpen(true);
@@ -51,95 +42,16 @@ const ServiceManagement = () => {
     setEditingService(null);
     setFormData({
       nome: '',
-      categoria: 'corte',
+      categoria: '',
       preco: '',
       duracao: '',
-      imagem: '',
       detalhes: ''
     });
     setIsDialogOpen(true);
   };
 
-  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    // Validate file type
-    if (!file.type.startsWith('image/')) {
-      toast({
-        title: "Erro",
-        description: "Por favor, selecione apenas arquivos de imagem.",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    // Validate file size (max 5MB)
-    if (file.size > 5 * 1024 * 1024) {
-      toast({
-        title: "Erro",
-        description: "A imagem deve ter no máximo 5MB.",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    setUploadingImage(true);
-
-    try {
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
-      const filePath = `services/${fileName}`;
-
-      console.log('🖼️ [ServiceManagement] Uploading image:', filePath);
-
-      const { error: uploadError } = await supabase.storage
-        .from('service-images')
-        .upload(filePath, file);
-
-      if (uploadError) {
-        console.error('❌ [ServiceManagement] Error uploading image:', uploadError);
-        throw uploadError;
-      }
-
-      // Get public URL
-      const { data } = supabase.storage
-        .from('service-images')
-        .getPublicUrl(filePath);
-
-      console.log('✅ [ServiceManagement] Image uploaded successfully:', data.publicUrl);
-
-      setFormData(prev => ({
-        ...prev,
-        imagem: data.publicUrl
-      }));
-
-      toast({
-        title: "Imagem carregada!",
-        description: "A imagem foi carregada com sucesso.",
-      });
-
-    } catch (error: any) {
-      console.error('❌ [ServiceManagement] Error in handleImageUpload:', error);
-      toast({
-        title: "Erro ao carregar imagem",
-        description: error.message || "Não foi possível carregar a imagem.",
-        variant: "destructive"
-      });
-    } finally {
-      setUploadingImage(false);
-    }
-  };
-
-  const handleRemoveImage = () => {
-    setFormData(prev => ({
-      ...prev,
-      imagem: ''
-    }));
-  };
-
   const handleSave = async () => {
-    if (!formData.nome || !formData.preco || !formData.duracao) {
+    if (!formData.nome || !formData.categoria || !formData.preco || !formData.duracao) {
       toast({
         title: "Campos obrigatórios",
         description: "Por favor, preencha todos os campos obrigatórios.",
@@ -150,11 +62,11 @@ const ServiceManagement = () => {
 
     const serviceData = {
       nome: formData.nome,
-      categoria: formData.categoria,
+      categoria: formData.categoria.trim(),
       preco: parseFloat(formData.preco),
       duracao: parseInt(formData.duracao),
       ativo: true,
-      imagem: formData.imagem || null,
+      imagem: null,
       detalhes: formData.detalhes || null
     };
 
@@ -183,11 +95,6 @@ const ServiceManagement = () => {
       return mins > 0 ? `${hours}h ${mins}min` : `${hours}h`;
     }
     return `${mins}min`;
-  };
-
-  const getCategoryLabel = (categoria: string) => {
-    const option = categoryOptions.find(opt => opt.value === categoria);
-    return option ? option.label : categoria;
   };
 
   if (loading && services.length === 0) {
@@ -234,18 +141,35 @@ const ServiceManagement = () => {
               
               <div>
                 <label className="block text-sm font-medium mb-2">Categoria *</label>
-                <Select value={formData.categoria} onValueChange={(value: any) => setFormData({...formData, categoria: value})}>
-                  <SelectTrigger className="glass-card border-salon-gold/30 bg-transparent text-white h-12">
-                    <SelectValue placeholder="Selecione uma categoria" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {categoryOptions.map((option) => (
-                      <SelectItem key={option.value} value={option.value}>
-                        {option.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Input
+                  value={formData.categoria}
+                  onChange={(e) => setFormData({...formData, categoria: e.target.value})}
+                  placeholder="Digite ou selecione uma categoria"
+                  className="glass-card border-salon-gold/30 bg-transparent text-white h-12"
+                  list="categories-list"
+                />
+                <datalist id="categories-list">
+                  {existingCategories.map((category) => (
+                    <option key={category} value={category} />
+                  ))}
+                </datalist>
+                {existingCategories.length > 0 && (
+                  <div className="mt-2">
+                    <p className="text-xs text-gray-400 mb-1">Categorias existentes:</p>
+                    <div className="flex flex-wrap gap-1">
+                      {existingCategories.map((category) => (
+                        <button
+                          key={category}
+                          type="button"
+                          onClick={() => setFormData({...formData, categoria: category})}
+                          className="text-xs px-2 py-1 bg-salon-gold/20 text-salon-gold rounded hover:bg-salon-gold/30 transition-colors"
+                        >
+                          {category}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
               
               <div className="grid grid-cols-2 gap-4">
@@ -282,64 +206,11 @@ const ServiceManagement = () => {
                   rows={3}
                 />
               </div>
-
-              {/* Image Upload Section */}
-              <div>
-                <label className="block text-sm font-medium mb-2">Imagem do Serviço</label>
-                
-                {formData.imagem ? (
-                  <div className="relative">
-                    <img 
-                      src={formData.imagem} 
-                      alt="Preview" 
-                      className="w-full h-32 object-cover rounded-lg border border-salon-gold/30"
-                    />
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="icon"
-                      onClick={handleRemoveImage}
-                      className="absolute top-2 right-2 h-8 w-8 border-red-400/30 text-red-400 hover:bg-red-400/10"
-                    >
-                      <X size={16} />
-                    </Button>
-                  </div>
-                ) : (
-                  <div className="border-2 border-dashed border-salon-gold/30 rounded-lg p-4 text-center">
-                    <Input
-                      type="file"
-                      accept="image/*"
-                      onChange={handleImageUpload}
-                      disabled={uploadingImage}
-                      className="hidden"
-                      id="image-upload"
-                    />
-                    <label 
-                      htmlFor="image-upload" 
-                      className="cursor-pointer flex flex-col items-center gap-2"
-                    >
-                      {uploadingImage ? (
-                        <div className="text-salon-gold">Carregando...</div>
-                      ) : (
-                        <>
-                          <Image className="text-salon-gold/60" size={32} />
-                          <span className="text-sm text-salon-gold/80">
-                            Clique para selecionar uma imagem
-                          </span>
-                          <span className="text-xs text-muted-foreground">
-                            Máximo 5MB - JPG, PNG, GIF
-                          </span>
-                        </>
-                      )}
-                    </label>
-                  </div>
-                )}
-              </div>
               
               <div className="flex space-x-3 pt-4">
                 <Button 
                   onClick={handleSave}
-                  disabled={loading || uploadingImage}
+                  disabled={loading}
                   className="flex-1 bg-salon-gold hover:bg-salon-copper text-salon-dark font-medium h-12"
                 >
                   {editingService ? 'Atualizar' : 'Criar'} Serviço
@@ -362,22 +233,9 @@ const ServiceManagement = () => {
           <Card key={service.id} className="glass-card border-salon-gold/20">
             <CardContent className="p-4">
               <div className="flex items-start space-x-4">
-                {/* Service Image */}
-                {service.imagem ? (
-                  <img 
-                    src={service.imagem} 
-                    alt={service.nome}
-                    className="w-20 h-20 object-cover rounded-lg border border-salon-gold/30 flex-shrink-0"
-                  />
-                ) : (
-                  <div className="w-20 h-20 bg-salon-gold/10 rounded-lg border border-salon-gold/30 flex items-center justify-center flex-shrink-0">
-                    <Image className="text-salon-gold/40" size={24} />
-                  </div>
-                )}
-                
                 <div className="flex-1">
                   <h3 className="font-semibold text-white text-lg">{service.nome}</h3>
-                  <p className="text-sm text-salon-copper mt-1">{getCategoryLabel(service.categoria)}</p>
+                  <p className="text-sm text-salon-copper mt-1 capitalize">{service.categoria}</p>
                   
                   {service.detalhes && (
                     <p className="text-sm text-gray-300 mt-2 leading-relaxed">
