@@ -283,7 +283,6 @@ const SupabaseScheduling = () => {
                       isSelected={selectedServices.includes(service.id)}
                       onToggle={handleServiceToggle}
                       showDetails={true}
-                      hideImage={true}
                     />
                   ))
                 )}

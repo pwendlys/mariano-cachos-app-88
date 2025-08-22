@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -5,11 +6,10 @@ import { useToast } from '@/hooks/use-toast';
 export interface SupabaseService {
   id: string;
   nome: string;
-  categoria: 'corte' | 'coloracao' | 'tratamento' | 'finalizacao' | 'outros';
-  preco: number;
   duracao: number;
+  preco: number;
+  categoria: string; // Changed from union type to string to allow flexible categories
   ativo: boolean;
-  imagem?: string | null;
   detalhes?: string | null;
   created_at?: string;
 }
@@ -21,92 +21,48 @@ export const useSupabaseServices = () => {
 
   const fetchServices = async () => {
     try {
-      console.log('🔄 [useSupabaseServices] Fetching services from Supabase...');
+      setLoading(true);
       const { data, error } = await supabase
         .from('servicos')
         .select('*')
-        .order('nome');
+        .order('categoria', { ascending: true })
+        .order('nome', { ascending: true });
 
-      if (error) {
-        console.error('❌ [useSupabaseServices] Error fetching services:', error);
-        throw error;
-      }
-      
-      console.log('✅ [useSupabaseServices] Services fetched successfully:', data);
-      setServices((data || []) as SupabaseService[]);
+      if (error) throw error;
+      setServices(data || []);
     } catch (error: any) {
-      console.error('❌ [useSupabaseServices] Error in fetchServices:', error);
+      console.error('Erro ao buscar serviços:', error);
       toast({
-        title: "Erro ao carregar serviços",
-        description: error.message || "Não foi possível carregar a lista de serviços.",
+        title: "Erro",
+        description: "Não foi possível carregar os serviços",
         variant: "destructive",
       });
+    } finally {
+      setLoading(false);
     }
   };
 
-  const addService = async (serviceData: Omit<SupabaseService, 'id' | 'created_at'>): Promise<boolean> => {
-    setLoading(true);
+  const createService = async (serviceData: Omit<SupabaseService, 'id' | 'created_at'>): Promise<boolean> => {
     try {
-      console.log('➕ [useSupabaseServices] Creating service:', serviceData);
-      
+      setLoading(true);
       const { error } = await supabase
         .from('servicos')
         .insert([serviceData]);
 
-      if (error) {
-        console.error('❌ [useSupabaseServices] Error creating service:', error);
-        throw error;
-      }
+      if (error) throw error;
 
-      console.log('✅ [useSupabaseServices] Service created successfully');
-      
       toast({
-        title: "Serviço criado!",
-        description: "Novo serviço foi adicionado com sucesso.",
+        title: "Sucesso",
+        description: "Serviço criado com sucesso!",
       });
 
+      await fetchServices();
       return true;
     } catch (error: any) {
-      console.error('❌ [useSupabaseServices] Error in addService:', error);
+      console.error('Erro ao criar serviço:', error);
       toast({
-        title: "Erro ao criar serviço",
-        description: error.message || "Não foi possível criar o serviço.",
-        variant: "destructive"
-      });
-      return false;
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const updateService = async (serviceId: string, serviceData: Partial<SupabaseService>): Promise<boolean> => {
-    setLoading(true);
-    try {
-      console.log('✏️ [useSupabaseServices] Updating service:', serviceId, serviceData);
-      
-      const { error } = await supabase
-        .from('servicos')
-        .update(serviceData)
-        .eq('id', serviceId);
-
-      if (error) {
-        console.error('❌ [useSupabaseServices] Error updating service:', error);
-        throw error;
-      }
-
-      console.log('✅ [useSupabaseServices] Service updated successfully');
-      
-      toast({
-        title: "Serviço atualizado!",
-        description: "As informações do serviço foram atualizadas.",
-      });
-
-      return true;
-    } catch (error: any) {
-      console.error('❌ [useSupabaseServices] Error in updateService:', error);
-      toast({
-        title: "Erro ao atualizar serviço",
-        description: error.message || "Não foi possível atualizar o serviço.",
+        title: "Erro",
+        description: error.message || "Não foi possível criar o serviço",
         variant: "destructive",
       });
       return false;
@@ -115,35 +71,58 @@ export const useSupabaseServices = () => {
     }
   };
 
-  const deleteService = async (serviceId: string): Promise<boolean> => {
-    setLoading(true);
+  const updateService = async (id: string, serviceData: Partial<SupabaseService>): Promise<boolean> => {
     try {
-      console.log('🗑️ [useSupabaseServices] Deleting service (soft delete):', serviceId);
-      
-      // Soft delete - marca como inativo ao invés de excluir
+      setLoading(true);
       const { error } = await supabase
         .from('servicos')
-        .update({ ativo: false })
-        .eq('id', serviceId);
+        .update(serviceData)
+        .eq('id', id);
 
-      if (error) {
-        console.error('❌ [useSupabaseServices] Error deleting service:', error);
-        throw error;
-      }
+      if (error) throw error;
 
-      console.log('✅ [useSupabaseServices] Service deleted successfully');
-      
       toast({
-        title: "Serviço removido",
-        description: "O serviço foi desativado do sistema.",
+        title: "Sucesso",
+        description: "Serviço atualizado com sucesso!",
       });
 
+      await fetchServices();
       return true;
     } catch (error: any) {
-      console.error('❌ [useSupabaseServices] Error in deleteService:', error);
+      console.error('Erro ao atualizar serviço:', error);
       toast({
-        title: "Erro ao remover serviço",
-        description: error.message || "Não foi possível remover o serviço.",
+        title: "Erro",
+        description: error.message || "Não foi possível atualizar o serviço",
+        variant: "destructive",
+      });
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const deleteService = async (id: string): Promise<boolean> => {
+    try {
+      setLoading(true);
+      const { error } = await supabase
+        .from('servicos')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Sucesso",
+        description: "Serviço excluído com sucesso!",
+      });
+
+      await fetchServices();
+      return true;
+    } catch (error: any) {
+      console.error('Erro ao excluir serviço:', error);
+      toast({
+        title: "Erro",
+        description: error.message || "Não foi possível excluir o serviço",
         variant: "destructive",
       });
       return false;
@@ -153,44 +132,15 @@ export const useSupabaseServices = () => {
   };
 
   useEffect(() => {
-    console.log('🚀 [useSupabaseServices] Hook initialized, setting up real-time subscription...');
-    
-    // Buscar dados iniciais
     fetchServices();
-
-    // Configurar listener para mudanças em tempo real
-    const channel = supabase
-      .channel('admin-services-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'servicos'
-        },
-        (payload) => {
-          console.log('📡 [useSupabaseServices] Real-time change detected:', payload);
-          
-          // Refetch services quando houver mudanças para garantir sincronização
-          fetchServices();
-        }
-      )
-      .subscribe((status) => {
-        console.log('📡 [useSupabaseServices] Subscription status:', status);
-      });
-
-    return () => {
-      console.log('🧹 [useSupabaseServices] Cleaning up real-time subscription');
-      supabase.removeChannel(channel);
-    };
   }, []);
 
   return {
     services,
     loading,
-    addService,
+    fetchServices,
+    createService,
     updateService,
     deleteService,
-    fetchServices,
   };
 };

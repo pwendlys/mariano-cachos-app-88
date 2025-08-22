@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
 interface AppointmentValueEditorProps {
-  currentValue: number;
+  currentValue: number | null;
   onSave: (newValue: number) => Promise<boolean>;
   status: string;
 }
@@ -16,7 +16,7 @@ const AppointmentValueEditor: React.FC<AppointmentValueEditorProps> = ({
   status
 }) => {
   const [isEditing, setIsEditing] = useState(false);
-  const [editValue, setEditValue] = useState(currentValue.toString());
+  const [editValue, setEditValue] = useState((currentValue || 0).toString());
   const [saving, setSaving] = useState(false);
 
   const handleSave = async () => {
@@ -35,7 +35,7 @@ const AppointmentValueEditor: React.FC<AppointmentValueEditorProps> = ({
   };
 
   const handleCancel = () => {
-    setEditValue(currentValue.toString());
+    setEditValue((currentValue || 0).toString());
     setIsEditing(false);
   };
 
@@ -48,7 +48,7 @@ const AppointmentValueEditor: React.FC<AppointmentValueEditorProps> = ({
         <div className="flex items-center gap-1">
           <DollarSign size={16} className="text-salon-gold" />
           <span className="text-lg font-bold text-salon-gold">
-            R$ {currentValue.toFixed(2)}
+            R$ {(currentValue || 0).toFixed(2)}
           </span>
         </div>
         {canEdit && (
