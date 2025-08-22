@@ -413,6 +413,91 @@ export const useDebtCollection = () => {
     }
   };
 
+  // Nova função para deletar saldo do cliente
+  const deleteSaldoCliente = async (saldoId: string) => {
+    try {
+      const { error } = await supabase
+        .from('saldos_clientes')
+        .delete()
+        .eq('id', saldoId);
+
+      if (error) throw error;
+      
+      await fetchSaldosClientes();
+      toast({
+        title: "Sucesso",
+        description: "Saldo do cliente excluído com sucesso."
+      });
+    } catch (error) {
+      console.error('Erro ao excluir saldo do cliente:', error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível excluir o saldo do cliente.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  // Nova função para deletar devedor e dados relacionados
+  const deleteDevedorCascade = async (devedorId: string) => {
+    try {
+      // Buscar IDs das dívidas do devedor
+      const { data: dividasData, error: dividasError } = await supabase
+        .from('dividas')
+        .select('id')
+        .eq('devedor_id', devedorId);
+
+      if (dividasError) throw dividasError;
+
+      const dividaIds = dividasData?.map(d => d.id) || [];
+
+      // Deletar cobranças relacionadas às dívidas (se existirem)
+      if (dividaIds.length > 0) {
+        const { error: cobrancasError } = await supabase
+          .from('cobrancas')
+          .delete()
+          .in('divida_id', dividaIds);
+
+        if (cobrancasError) throw cobrancasError;
+      }
+
+      // Deletar dívidas do devedor
+      const { error: dividasDeleteError } = await supabase
+        .from('dividas')
+        .delete()
+        .eq('devedor_id', devedorId);
+
+      if (dividasDeleteError) throw dividasDeleteError;
+
+      // Deletar o devedor
+      const { error: devedorError } = await supabase
+        .from('devedores')
+        .delete()
+        .eq('id', devedorId);
+
+      if (devedorError) throw devedorError;
+
+      // Recarregar todas as listas
+      await Promise.all([
+        fetchDevedores(),
+        fetchDividas(),
+        fetchCobrancas()
+      ]);
+
+      toast({
+        title: "Sucesso",
+        description: "Registro excluído com sucesso, incluindo dívidas e cobranças relacionadas."
+      });
+    } catch (error) {
+      console.error('Erro ao excluir devedor:', error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível excluir o registro.",
+        variant: "destructive"
+      });
+    }
+  };
+
   // Calcular totais
   const getTotals = () => {
     // Totals from dividas table (specific debts)
@@ -472,6 +557,8 @@ export const useDebtCollection = () => {
     createCobranca,
     updateCollectionDate,
     sendWhatsAppCollection,
+    deleteSaldoCliente,
+    deleteDevedorCascade,
     fetchDevedores,
     fetchDividas,
     fetchCobrancas,

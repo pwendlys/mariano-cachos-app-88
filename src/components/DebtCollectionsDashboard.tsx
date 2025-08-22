@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useDebtCollection } from '@/hooks/useDebtCollection';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -8,12 +7,13 @@ import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { CalendarIcon, MessageCircle, Phone, Mail, DollarSign, Users, FileText, Calendar as CalendarDays, Plus, Send } from 'lucide-react';
+import { CalendarIcon, MessageCircle, Phone, Mail, DollarSign, Users, FileText, Calendar as CalendarDays, Plus, Send, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
@@ -31,6 +31,8 @@ const DebtCollectionsDashboard = () => {
     createCobranca,
     updateCollectionDate,
     sendWhatsAppCollection,
+    deleteSaldoCliente,
+    deleteDevedorCascade,
     getTotals
   } = useDebtCollection();
 
@@ -186,7 +188,7 @@ const DebtCollectionsDashboard = () => {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total de Devedores</CardTitle>
+            <CardTitle className="text-sm font-medium">Saldo em Aberto</CardTitle>
             <FileText className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -202,7 +204,7 @@ const DebtCollectionsDashboard = () => {
         <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="saldos">Saldos Clientes</TabsTrigger>
           <TabsTrigger value="dividas">Dívidas</TabsTrigger>
-          <TabsTrigger value="devedores">Devedores</TabsTrigger>
+          <TabsTrigger value="devedores">Saldo em Aberto</TabsTrigger>
           <TabsTrigger value="cobrancas">Cobranças</TabsTrigger>
           <TabsTrigger value="agenda">Agenda Cobrança</TabsTrigger>
         </TabsList>
@@ -272,6 +274,29 @@ const DebtCollectionsDashboard = () => {
                               />
                             </PopoverContent>
                           </Popover>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button size="sm" variant="destructive">
+                                <Trash2 className="h-4 w-4 mr-1" />
+                                Excluir
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Tem certeza que deseja excluir o saldo do cliente "{saldo.cliente?.nome}"? 
+                                  Esta ação não pode ser desfeita.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                <AlertDialogAction onClick={() => deleteSaldoCliente(saldo.id)}>
+                                  Excluir
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
                         </div>
                       </TableCell>
                     </TableRow>
@@ -432,19 +457,19 @@ const DebtCollectionsDashboard = () => {
         {/* Debtors Tab */}
         <TabsContent value="devedores" className="space-y-4">
           <div className="flex justify-between items-center">
-            <h3 className="text-lg font-medium">Devedores Cadastrados</h3>
+            <h3 className="text-lg font-medium">Saldo em Aberto</h3>
             <Dialog open={newDevedorOpen} onOpenChange={setNewDevedorOpen}>
               <DialogTrigger asChild>
                 <Button>
                   <Plus className="h-4 w-4 mr-2" />
-                  Novo Devedor
+                  Novo Saldo em Aberto
                 </Button>
               </DialogTrigger>
               <DialogContent className="sm:max-w-[425px]">
                 <DialogHeader>
-                  <DialogTitle>Cadastrar Novo Devedor</DialogTitle>
+                  <DialogTitle>Cadastrar Novo Saldo em Aberto</DialogTitle>
                   <DialogDescription>
-                    Adicione um novo devedor ao sistema
+                    Adicione um novo saldo em aberto ao sistema
                   </DialogDescription>
                 </DialogHeader>
                 <form onSubmit={handleCreateDevedor} className="space-y-4">
@@ -529,10 +554,35 @@ const DebtCollectionsDashboard = () => {
                       <TableCell>{devedor.documento || '-'}</TableCell>
                       <TableCell>{formatDate(devedor.created_at)}</TableCell>
                       <TableCell>
-                        <Button size="sm" variant="outline">
-                          <Phone className="h-4 w-4 mr-1" />
-                          Contatar
-                        </Button>
+                        <div className="flex gap-2">
+                          <Button size="sm" variant="outline">
+                            <Phone className="h-4 w-4 mr-1" />
+                            Contatar
+                          </Button>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button size="sm" variant="destructive">
+                                <Trash2 className="h-4 w-4 mr-1" />
+                                Excluir
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Tem certeza que deseja excluir "{devedor.nome}"? 
+                                  Esta ação também excluirá todas as dívidas e cobranças relacionadas e não pode ser desfeita.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                <AlertDialogAction onClick={() => deleteDevedorCascade(devedor.id)}>
+                                  Excluir
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
