@@ -20,7 +20,8 @@ const AppointmentManagement = () => {
     handleStatusChange,
     handleProfessionalAssignment,
     handleDateTimeUpdate,
-    handleValueUpdate
+    handleValueUpdate,
+    handleDeleteAppointment
   } = useAppointments();
 
   const { professionals } = useSupabaseProfessionals();
@@ -261,6 +262,7 @@ const AppointmentManagement = () => {
               onDateTimeUpdate={handleDateTimeUpdate}
               onProfessionalAssignment={handleProfessionalAssignment}
               onValueUpdate={handleValueUpdate}
+              onDelete={handleDeleteAppointment}
             />
           ))
         )}

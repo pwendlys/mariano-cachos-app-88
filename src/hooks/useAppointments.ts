@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -160,6 +161,13 @@ export const useAppointments = () => {
     return success;
   };
 
+  const handleDeleteAppointment = async (appointmentId: string) => {
+    const success = await appointmentActions.deleteAppointment(appointmentId);
+    if (success) {
+      fetchAppointments(selectedDate);
+    }
+  };
+
   useEffect(() => {
     fetchAppointments();
   }, []);
@@ -175,6 +183,7 @@ export const useAppointments = () => {
     handleStatusChange,
     handleProfessionalAssignment,
     handleDateTimeUpdate,
-    handleValueUpdate
+    handleValueUpdate,
+    handleDeleteAppointment
   };
 };

@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
@@ -185,10 +184,42 @@ export const useAppointmentActions = () => {
     }
   };
 
+  const deleteAppointment = async (appointmentId: string) => {
+    try {
+      console.log(`Deleting appointment ${appointmentId}`);
+      
+      const { error } = await supabase
+        .from('agendamentos')
+        .delete()
+        .eq('id', appointmentId);
+
+      if (error) {
+        console.error('Delete appointment error:', error);
+        throw error;
+      }
+
+      toast({
+        title: "Agendamento excluído",
+        description: "O agendamento foi removido com sucesso",
+      });
+      
+      return true;
+    } catch (error) {
+      console.error('Erro ao excluir agendamento:', error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível excluir o agendamento",
+        variant: "destructive",
+      });
+      return false;
+    }
+  };
+
   return {
     handleStatusChange,
     handleProfessionalAssignment,
     handleDateTimeUpdate,
-    handleValueUpdate
+    handleValueUpdate,
+    deleteAppointment
   };
 };

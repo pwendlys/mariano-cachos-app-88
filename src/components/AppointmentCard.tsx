@@ -1,10 +1,21 @@
 import React, { useState } from 'react';
-import { Clock, User, Calendar, Edit2, Save, X, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
+import { Clock, User, Calendar, Edit2, Save, X, CheckCircle, XCircle, AlertCircle, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import AppointmentValueEditor from './AppointmentValueEditor';
@@ -55,6 +66,7 @@ interface AppointmentCardProps {
   onDateTimeUpdate: (appointmentId: string, newDate: string, newTime: string) => void;
   onProfessionalAssignment: (appointmentId: string, professionalId: string) => void;
   onValueUpdate: (appointmentId: string, newValue: number) => Promise<boolean>;
+  onDelete: (appointmentId: string) => void;
 }
 
 const AppointmentCard: React.FC<AppointmentCardProps> = ({
@@ -63,7 +75,8 @@ const AppointmentCard: React.FC<AppointmentCardProps> = ({
   onStatusChange,
   onDateTimeUpdate,
   onProfessionalAssignment,
-  onValueUpdate
+  onValueUpdate,
+  onDelete
 }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editDate, setEditDate] = useState(appointment.data);
@@ -102,6 +115,10 @@ const AppointmentCard: React.FC<AppointmentCardProps> = ({
   const handleValueSave = async (newValue: number) => {
     console.log(`Value update for appointment ${appointment.id}: ${newValue}`);
     return await onValueUpdate(appointment.id, newValue);
+  };
+
+  const handleDelete = () => {
+    onDelete(appointment.id);
   };
 
   const activeProfessionals = professionals.filter(prof => prof.ativo);
@@ -287,6 +304,38 @@ const AppointmentCard: React.FC<AppointmentCardProps> = ({
                     <SelectItem value="rejeitado">Rejeitado</SelectItem>
                   </SelectContent>
                 </Select>
+
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="border-red-500/30 text-red-400 hover:bg-red-500/10"
+                    >
+                      <Trash2 size={16} className="mr-2" />
+                      Excluir
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent className="bg-salon-dark border-salon-gold/30">
+                    <AlertDialogHeader>
+                      <AlertDialogTitle className="text-white">Confirmar exclusão</AlertDialogTitle>
+                      <AlertDialogDescription className="text-salon-copper">
+                        Tem certeza que deseja excluir este agendamento? Esta ação não pode ser desfeita.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel className="border-salon-gold/30 text-salon-gold hover:bg-salon-gold/10">
+                        Cancelar
+                      </AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={handleDelete}
+                        className="bg-red-600 hover:bg-red-700 text-white"
+                      >
+                        Excluir
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
               </>
             ) : (
               <div className="flex gap-2">
