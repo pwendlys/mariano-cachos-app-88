@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { Calendar } from 'lucide-react';
 import { format, addDays } from 'date-fns';
@@ -49,6 +50,41 @@ const SupabaseScheduling = () => {
     );
   };
 
+  const createOrGetClient = async (clientData: { nome: string; email: string; telefone: string }) => {
+    try {
+      // First, try to find existing client by email or phone
+      const { data: existingClient } = await supabase
+        .from('clientes')
+        .select('id')
+        .or(`email.eq.${clientData.email},telefone.eq.${clientData.telefone}`)
+        .maybeSingle();
+
+      if (existingClient) {
+        return existingClient.id;
+      }
+
+      // Create new client
+      const { data, error } = await supabase
+        .from('clientes')
+        .insert([{
+          nome: clientData.nome,
+          email: clientData.email,
+          telefone: clientData.telefone,
+        }])
+        .select('id')
+        .single();
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      return data?.id;
+    } catch (error: any) {
+      console.error('Erro ao criar/obter cliente:', error);
+      throw error;
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -81,31 +117,43 @@ const SupabaseScheduling = () => {
 
     setIsSubmitting(true);
     try {
+      // Create or get client
+      const clientId = await createOrGetClient({
+        nome: name,
+        email: contact.includes('@') ? contact : `${contact}@placeholder.com`,
+        telefone: contact.includes('@') ? '' : contact,
+      });
+
+      if (!clientId) {
+        throw new Error('Não foi possível criar o cliente');
+      }
+
+      // Create appointments for each selected service
+      const appointmentsToCreate = selectedServices.map(serviceId => ({
+        cliente_id: clientId,
+        servico_id: serviceId,
+        data: date.from!.toISOString().split('T')[0], // Format as YYYY-MM-DD
+        horario: '09:00:00', // Default time, could be made configurable
+        observacoes: notes,
+        status: 'pendente',
+      }));
+
       const { data, error } = await supabase
         .from('agendamentos')
-        .insert([
-          {
-            data_inicio: date.from.toISOString(),
-            data_fim: date.to.toISOString(),
-            servicos: selectedServices,
-            nome_cliente: name,
-            contato_cliente: contact,
-            observacoes: notes,
-          },
-        ]);
+        .insert(appointmentsToCreate);
 
       if (error) {
-        console.error('Erro ao salvar agendamento:', error);
+        console.error('Erro ao salvar agendamentos:', error);
         throw new Error(error.message);
       }
 
-      console.log('Agendamento salvo com sucesso:', data);
+      console.log('Agendamentos salvos com sucesso:', data);
       toast({
-        title: 'Agendamento realizado!',
-        description: 'Seu agendamento foi salvo com sucesso.',
+        title: 'Agendamentos realizados!',
+        description: `${selectedServices.length} agendamento(s) foi(ram) salvo(s) com sucesso.`,
       });
 
-      // Limpar os campos após o sucesso
+      // Clear form after success
       setDate({
         from: new Date(),
         to: addDays(new Date(), 0),
@@ -115,10 +163,10 @@ const SupabaseScheduling = () => {
       setContact('');
       setNotes('');
     } catch (error: any) {
-      console.error('Erro ao salvar agendamento:', error);
+      console.error('Erro ao salvar agendamentos:', error);
       toast({
         title: 'Erro ao agendar',
-        description: error.message || 'Ocorreu um erro ao salvar o agendamento.',
+        description: error.message || 'Ocorreu um erro ao salvar os agendamentos.',
         variant: 'destructive',
       });
     } finally {
@@ -213,7 +261,7 @@ const SupabaseScheduling = () => {
               <Label className="text-sm font-medium block mb-2 text-white">Contato</Label>
               <Input
                 type="tel"
-                placeholder="(00) 00000-0000"
+                placeholder="(00) 00000-0000 ou email@exemplo.com"
                 value={contact}
                 onChange={(e) => setContact(e.target.value)}
                 className="glass-card border-salon-gold/30 bg-transparent text-white h-12"
@@ -248,3 +296,4 @@ const SupabaseScheduling = () => {
 };
 
 export default SupabaseScheduling;
+
