@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Plus, Edit, Trash2, Clock, DollarSign } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -66,7 +65,6 @@ const ServiceManagement = () => {
       preco: parseFloat(formData.preco),
       duracao: parseInt(formData.duracao),
       ativo: true,
-      imagem: null,
       detalhes: formData.detalhes || null
     };
 
