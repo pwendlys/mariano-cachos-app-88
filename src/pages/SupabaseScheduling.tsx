@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { Calendar } from 'lucide-react';
 import { format, addDays } from 'date-fns';
@@ -15,14 +16,13 @@ import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from "@/components/ui/scroll-area"
 
 import { useToast } from '@/hooks/use-toast';
-import { useSupabase } from '@/providers/SupabaseProvider';
+import { supabase } from '@/integrations/supabase/client';
 import { useSupabaseServices, SupabaseService } from '@/hooks/useSupabaseServices';
-import { ServiceSelectionCard } from '@/components/ServiceSelectionCard';
+import ServiceSelectionCard from '@/components/ServiceSelectionCard';
 
 interface Service extends SupabaseService {}
 
 const SupabaseScheduling = () => {
-  const { supabase } = useSupabase();
   const { toast } = useToast();
   const { services } = useSupabaseServices();
 
