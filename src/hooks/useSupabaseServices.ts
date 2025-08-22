@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -6,7 +5,7 @@ import { useToast } from '@/hooks/use-toast';
 export interface SupabaseService {
   id: string;
   nome: string;
-  categoria: string; // Changed from union type to string to allow any category
+  categoria: 'corte' | 'coloracao' | 'tratamento' | 'finalizacao' | 'outros';
   preco: number;
   duracao: number;
   ativo: boolean;
