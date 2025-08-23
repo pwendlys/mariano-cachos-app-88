@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -132,8 +133,24 @@ export const useSupabaseProducts = (productType?: 'ecommerce' | 'interno' | 'all
         .from('produtos')
         .insert([{ ...productData, ativo: true }]);
 
-      if (error) throw error;
+      if (error) {
+        // Tratar erro de duplicidade especificamente
+        if (error.code === '23505' && error.message.includes('idx_unique_produtos_nome_marca_ativo_ci')) {
+          toast({
+            title: "Produto já existe",
+            description: `Já existe um produto ativo com o nome "${product.name}" da marca "${product.brand}". Edite o produto existente ou use um nome/marca diferente.`,
+            variant: "destructive",
+          });
+          return;
+        }
+        throw error;
+      }
+      
       await fetchProducts();
+      toast({
+        title: "Produto adicionado!",
+        description: "O produto foi adicionado com sucesso.",
+      });
     } catch (error) {
       console.error('Erro ao adicionar produto:', error);
       toast({
@@ -152,8 +169,24 @@ export const useSupabaseProducts = (productType?: 'ecommerce' | 'interno' | 'all
         .update(productData)
         .eq('id', productId);
 
-      if (error) throw error;
+      if (error) {
+        // Tratar erro de duplicidade especificamente na atualização
+        if (error.code === '23505' && error.message.includes('idx_unique_produtos_nome_marca_ativo_ci')) {
+          toast({
+            title: "Nome/marca já em uso",
+            description: `Já existe outro produto ativo com o nome "${updatedProduct.name}" da marca "${updatedProduct.brand}". Use um nome/marca diferente.`,
+            variant: "destructive",
+          });
+          return;
+        }
+        throw error;
+      }
+      
       await fetchProducts();
+      toast({
+        title: "Produto atualizado!",
+        description: "O produto foi atualizado com sucesso.",
+      });
     } catch (error) {
       console.error('Erro ao atualizar produto:', error);
       toast({
@@ -173,6 +206,10 @@ export const useSupabaseProducts = (productType?: 'ecommerce' | 'interno' | 'all
 
       if (error) throw error;
       await fetchProducts();
+      toast({
+        title: "Produto removido!",
+        description: "O produto foi removido com sucesso.",
+      });
     } catch (error) {
       console.error('Erro ao deletar produto:', error);
       toast({
