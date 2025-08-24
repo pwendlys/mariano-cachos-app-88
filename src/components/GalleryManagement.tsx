@@ -10,7 +10,7 @@ import { useGalleryPhotos, type GalleryPhoto } from '@/hooks/useGalleryPhotos';
 import { uploadToBannerBucket } from '@/lib/supabaseStorage';
 import { Plus, Edit, Trash2, GripVertical, Image } from 'lucide-react';
 import { toast } from 'sonner';
-import AuthWrapper from '@/components/AuthWrapper';
+import RoleProtectedRoute from '@/components/RoleProtectedRoute';
 
 const GalleryManagement = () => {
   const { photos, loading, addPhoto, updatePhoto, deletePhoto, reorderPhotos } = useGalleryPhotos();
@@ -117,7 +117,7 @@ const GalleryManagement = () => {
   };
 
   return (
-    <AuthWrapper requireAdmin={true}>
+    <RoleProtectedRoute allowedRoles={['admin', 'convidado']}>
       <div className="space-y-6">
         <div className="flex justify-between items-center">
           <h2 className="text-2xl font-bold text-gradient-gold">Galeria de Atendimentos</h2>
@@ -363,7 +363,7 @@ const GalleryManagement = () => {
           </DialogContent>
         </Dialog>
       </div>
-    </AuthWrapper>
+    </RoleProtectedRoute>
   );
 };
 

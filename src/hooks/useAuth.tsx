@@ -1,3 +1,4 @@
+
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -31,8 +32,51 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const { toast } = useToast();
 
   useEffect(() => {
-    // Since we're using a custom auth system, just set loading to false
-    setLoading(false);
+    // Set up auth state listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, supabaseSession) => {
+        console.log('Auth state change:', event, supabaseSession?.user?.email);
+        setSession(supabaseSession);
+        
+        if (supabaseSession?.user) {
+          // Try to get user data from our usuarios table
+          const { data: userData, error } = await supabase
+            .from('usuarios')
+            .select('*')
+            .eq('email', supabaseSession.user.email)
+            .eq('ativo', true)
+            .single();
+          
+          if (userData && !error) {
+            const normalizedTipo = userData.tipo.toLowerCase().trim();
+            const validTipos = ['cliente', 'admin', 'convidado'];
+            const userTipo = validTipos.includes(normalizedTipo) ? normalizedTipo as 'cliente' | 'admin' | 'convidado' : 'cliente';
+            
+            setUser({
+              id: userData.id,
+              nome: userData.nome,
+              email: userData.email,
+              tipo: userTipo,
+              whatsapp: userData.whatsapp,
+              avatar_url: userData.avatar_url
+            });
+          }
+        } else {
+          setUser(null);
+        }
+        
+        setLoading(false);
+      }
+    );
+
+    // Check for existing session
+    supabase.auth.getSession().then(({ data: { session: existingSession } }) => {
+      if (!existingSession) {
+        setLoading(false);
+      }
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
   const login = async (email: string, senha: string) => {
@@ -56,49 +100,45 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         return { success: false, error: 'Senha incorreta' };
       }
 
-      // Create a fake session for our custom auth
-      const fakeUser = {
-        id: userData.id,
-        email: userData.email,
-        aud: 'authenticated',
-        role: 'authenticated',
-        created_at: userData.created_at,
-        updated_at: userData.updated_at,
-        app_metadata: {},
-        user_metadata: {
-          nome: userData.nome,
-          tipo: userData.tipo,
-          whatsapp: userData.whatsapp,
-          avatar_url: userData.avatar_url
-        }
-      } as User;
-
-      const fakeSession = {
-        access_token: 'fake-token',
-        refresh_token: 'fake-refresh',
-        expires_in: 3600,
-        expires_at: Date.now() + 3600000,
-        token_type: 'bearer',
-        user: fakeUser
-      } as Session;
-
-      // Set our custom session
-      setSession(fakeSession);
-      
-      // Normalize the user type to lowercase to ensure consistent comparisons
-      const normalizedTipo = userData.tipo.toLowerCase().trim();
-      const validTipos = ['cliente', 'admin', 'convidado'];
-      const userTipo = validTipos.includes(normalizedTipo) ? normalizedTipo as 'cliente' | 'admin' | 'convidado' : 'cliente';
-      
-      setUser({
-        id: userData.id,
-        nome: userData.nome,
-        email: userData.email,
-        tipo: userTipo,
-        whatsapp: userData.whatsapp,
-        avatar_url: userData.avatar_url
+      // Try to sign in with Supabase auth first
+      let authResult = await supabase.auth.signInWithPassword({
+        email: email,
+        password: senha
       });
 
+      // If user doesn't exist in Supabase auth, create them
+      if (authResult.error && (
+        authResult.error.message.includes('Invalid login credentials') ||
+        authResult.error.message.includes('User not found')
+      )) {
+        console.log('User not found in Supabase auth, creating account...');
+        
+        const signUpResult = await supabase.auth.signUp({
+          email: email,
+          password: senha,
+          options: {
+            emailRedirectTo: `${window.location.origin}/`
+          }
+        });
+
+        if (signUpResult.error) {
+          console.error('Error creating Supabase user:', signUpResult.error);
+          return { success: false, error: 'Erro ao criar conta no sistema de autenticação' };
+        }
+
+        // Try to sign in again after creating the account
+        authResult = await supabase.auth.signInWithPassword({
+          email: email,
+          password: senha
+        });
+      }
+
+      if (authResult.error) {
+        console.error('Final auth error:', authResult.error);
+        return { success: false, error: 'Erro na autenticação' };
+      }
+
+      // The auth state change listener will handle setting the user
       toast({
         title: "Login realizado com sucesso!",
         description: `Bem-vindo, ${userData.nome}!`,
@@ -159,6 +199,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const logout = async () => {
+    await supabase.auth.signOut();
     setUser(null);
     setSession(null);
     toast({
