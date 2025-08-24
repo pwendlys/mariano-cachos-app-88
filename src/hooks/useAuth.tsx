@@ -79,11 +79,35 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return () => subscription.unsubscribe();
   }, []);
 
+  const getErrorMessage = (error: any) => {
+    if (!error?.message) return 'Erro desconhecido';
+    
+    const message = error.message.toLowerCase();
+    
+    if (message.includes('invalid login credentials') || message.includes('invalid_credentials')) {
+      return 'E-mail ou senha incorretos';
+    }
+    if (message.includes('email not confirmed') || message.includes('email_not_confirmed')) {
+      return 'E-mail não confirmado. Verifique sua caixa de entrada';
+    }
+    if (message.includes('email_address_invalid')) {
+      return 'Endereço de e-mail inválido';
+    }
+    if (message.includes('signup_disabled')) {
+      return 'Cadastro desabilitado';
+    }
+    if (message.includes('too_many_requests')) {
+      return 'Muitas tentativas. Tente novamente em alguns minutos';
+    }
+    
+    return error.message;
+  };
+
   const login = async (email: string, senha: string) => {
     try {
       setLoading(true);
       
-      // Check if user exists in usuarios table
+      // Check if user exists in usuarios table first
       const { data: userData, error: userError } = await supabase
         .from('usuarios')
         .select('*')
@@ -100,42 +124,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         return { success: false, error: 'Senha incorreta' };
       }
 
-      // Try to sign in with Supabase auth first
-      let authResult = await supabase.auth.signInWithPassword({
+      // Try to sign in with Supabase auth
+      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
         email: email,
         password: senha
       });
 
-      // If user doesn't exist in Supabase auth, create them
-      if (authResult.error && (
-        authResult.error.message.includes('Invalid login credentials') ||
-        authResult.error.message.includes('User not found')
-      )) {
-        console.log('User not found in Supabase auth, creating account...');
-        
-        const signUpResult = await supabase.auth.signUp({
-          email: email,
-          password: senha,
-          options: {
-            emailRedirectTo: `${window.location.origin}/`
-          }
-        });
-
-        if (signUpResult.error) {
-          console.error('Error creating Supabase user:', signUpResult.error);
-          return { success: false, error: 'Erro ao criar conta no sistema de autenticação' };
-        }
-
-        // Try to sign in again after creating the account
-        authResult = await supabase.auth.signInWithPassword({
-          email: email,
-          password: senha
-        });
-      }
-
-      if (authResult.error) {
-        console.error('Final auth error:', authResult.error);
-        return { success: false, error: 'Erro na autenticação' };
+      if (authError) {
+        console.error('Supabase auth error:', authError);
+        return { success: false, error: getErrorMessage(authError) };
       }
 
       // The auth state change listener will handle setting the user
@@ -168,6 +165,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         return { success: false, error: 'E-mail já está em uso' };
       }
 
+      // Create user in Supabase Auth first
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email,
+        password: senha,
+        options: {
+          emailRedirectTo: `${window.location.origin}/`
+        }
+      });
+
+      if (authError) {
+        console.error('Erro ao criar usuário no Supabase Auth:', authError);
+        return { success: false, error: getErrorMessage(authError) };
+      }
+
       // Insert user into usuarios table
       const { error: insertError } = await supabase
         .from('usuarios')
@@ -186,7 +197,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       toast({
         title: "Cadastro realizado com sucesso!",
-        description: "Você pode fazer login agora com suas credenciais.",
+        description: "Verifique seu e-mail para confirmar a conta antes de fazer login.",
       });
 
       return { success: true };

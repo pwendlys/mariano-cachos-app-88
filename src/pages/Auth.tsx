@@ -6,7 +6,9 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/hooks/useAuth';
-import { Eye, EyeOff, User, Mail, Phone, Lock } from 'lucide-react';
+import { Eye, EyeOff, User, Mail, Phone, Lock, RefreshCw } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 import ForgotPasswordModal from '@/components/ForgotPasswordModal';
 import ResetPasswordForm from '@/components/ResetPasswordForm';
 
@@ -16,6 +18,8 @@ const Auth = () => {
   const [isLogin, setIsLogin] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [resendingConfirmation, setResendingConfirmation] = useState(false);
+  const { toast } = useToast();
   const [formData, setFormData] = useState({
     nome: '',
     email: '',
@@ -84,6 +88,50 @@ const Auth = () => {
     }
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
+  };
+
+  const handleResendConfirmation = async () => {
+    if (!formData.email) {
+      toast({
+        title: "Erro",
+        description: "Digite seu e-mail para reenviar a confirmação",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      setResendingConfirmation(true);
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email: formData.email,
+        options: {
+          emailRedirectTo: `${window.location.origin}/`
+        }
+      });
+
+      if (error) {
+        toast({
+          title: "Erro ao reenviar confirmação",
+          description: error.message,
+          variant: "destructive"
+        });
+      } else {
+        toast({
+          title: "E-mail reenviado!",
+          description: "Verifique sua caixa de entrada para confirmar a conta",
+        });
+      }
+    } catch (error) {
+      console.error('Erro ao reenviar confirmação:', error);
+      toast({
+        title: "Erro",
+        description: "Erro interno do sistema",
+        variant: "destructive"
+      });
+    } finally {
+      setResendingConfirmation(false);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -203,7 +251,30 @@ const Auth = () => {
                   </button>
                 </div>
 
-                {errors.submit && <p className="text-sm text-red-500 text-center">{errors.submit}</p>}
+                {errors.submit && (
+                  <div className="text-sm text-red-500 text-center space-y-2">
+                    <p>{errors.submit}</p>
+                    {errors.submit.includes('E-mail não confirmado') && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={handleResendConfirmation}
+                        disabled={resendingConfirmation}
+                        className="w-full border-salon-gold/30 text-salon-gold hover:bg-salon-gold/10"
+                      >
+                        {resendingConfirmation ? (
+                          <>
+                            <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                            Reenviando...
+                          </>
+                        ) : (
+                          'Reenviar confirmação por e-mail'
+                        )}
+                      </Button>
+                    )}
+                  </div>
+                )}
 
                 <Button type="submit" className="w-full" disabled={loading}>
                   {loading ? 'Entrando...' : 'Entrar'}
