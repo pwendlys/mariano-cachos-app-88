@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Calendar, Clock, User, MessageSquare, Check, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -13,10 +14,12 @@ import AppointmentSummaryCard from '@/components/AppointmentSummaryCard';
 import OrnateHeading from '@/components/OrnateHeading';
 import ServiceFilters from '@/components/ServiceFilters';
 import EncaixeConfirmationModal from '@/components/EncaixeConfirmationModal';
+import { useToast } from '@/hooks/use-toast';
 
 const SupabaseScheduling = () => {
   const { services, createMultipleAppointments, isSlotAvailable, getSlotStatus, loading } = useSupabaseScheduling();
   const { user } = useAuth();
+  const { toast } = useToast();
   
   const [currentStep, setCurrentStep] = useState(1);
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
@@ -26,7 +29,7 @@ const SupabaseScheduling = () => {
   const [clientEmail, setClientEmail] = useState('');
   const [clientPhone, setClientPhone] = useState('');
   const [observations, setObservations] = useState('');
-  const [showPixPopup, setShowPixPopup] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   
   // Service filtering states
   const [searchTerm, setSearchTerm] = useState('');
@@ -35,9 +38,6 @@ const SupabaseScheduling = () => {
   // Encaixe states
   const [showEncaixeModal, setShowEncaixeModal] = useState(false);
   const [encaixeTime, setEncaixeTime] = useState('');
-
-  // Fixed deposit amount of 50 reais
-  const DEPOSIT_AMOUNT = 50.00;
 
   // Pre-fill user data if logged in
   useEffect(() => {
@@ -142,46 +142,55 @@ const SupabaseScheduling = () => {
     }
   };
 
-  const handleProceedToPayment = () => {
-    setShowPixPopup(true);
-  };
-
-  const handlePaymentConfirm = async (pixKey: string, qrCodeData?: string, transactionId?: string): Promise<boolean> => {
+  const handleSubmitRequest = async () => {
     if (!selectedServices.length || !selectedDate || !selectedTime || !clientName || !clientEmail || !clientPhone) {
-      return false;
+      toast({
+        title: "Erro",
+        description: "Por favor, preencha todos os campos obrigatórios.",
+        variant: "destructive",
+      });
+      return;
     }
 
-    const success = await createMultipleAppointments({
-      serviceIds: selectedServices,
-      data: selectedDate,
-      horario: selectedTime,
-      clientName,
-      clientEmail,
-      clientPhone,
-      observacoes: observations,
-      chave_pix: pixKey,
-      chave_pix_abacate: pixKey,
-      qr_code_data: qrCodeData,
-      transaction_id: transactionId,
-      comprovante_pix: undefined
-    });
+    setSubmitting(true);
+    
+    try {
+      const success = await createMultipleAppointments({
+        serviceIds: selectedServices,
+        data: selectedDate,
+        horario: selectedTime,
+        clientName,
+        clientEmail,
+        clientPhone,
+        observacoes: observations,
+        chave_pix: undefined,
+        chave_pix_abacate: undefined,
+        qr_code_data: undefined,
+        transaction_id: undefined,
+        comprovante_pix: undefined
+      });
 
-    if (success) {
-      // Reset form
-      setCurrentStep(1);
-      setSelectedServices([]);
-      setSelectedDate('');
-      setSelectedTime('');
-      if (!user) {
-        setClientName('');
-        setClientEmail('');
-        setClientPhone('');
+      if (success) {
+        // Reset form
+        setCurrentStep(1);
+        setSelectedServices([]);
+        setSelectedDate('');
+        setSelectedTime('');
+        if (!user) {
+          setClientName('');
+          setClientEmail('');
+          setClientPhone('');
+        }
+        setObservations('');
+        
+        toast({
+          title: "Solicitação enviada! ✨",
+          description: "Sua solicitação de agendamento foi enviada. Aguarde a confirmação do administrador.",
+        });
       }
-      setObservations('');
-      setShowPixPopup(false);
+    } finally {
+      setSubmitting(false);
     }
-
-    return success;
   };
 
   if (loading && services.length === 0) {
@@ -410,7 +419,7 @@ const SupabaseScheduling = () => {
             </CardContent>
           </Card>
 
-          {/* Booking Summary */}
+          {/* Booking Summary - No deposit amount since payment is handled later */}
           <AppointmentSummaryCard
             services={services}
             selectedServiceIds={selectedServices}
@@ -420,7 +429,7 @@ const SupabaseScheduling = () => {
             clientEmail={clientEmail}
             clientPhone={clientPhone}
             observations={observations}
-            depositAmount={DEPOSIT_AMOUNT}
+            depositAmount={0} // No deposit shown since payment is handled later
           />
         </div>
       )}
@@ -432,7 +441,7 @@ const SupabaseScheduling = () => {
             variant="outline"
             onClick={handlePreviousStep}
             className="flex-1 border-salon-gold/30 text-salon-gold hover:bg-salon-gold/10 h-14"
-            disabled={loading}
+            disabled={loading || submitting}
           >
             Voltar
           </Button>
@@ -445,7 +454,7 @@ const SupabaseScheduling = () => {
               (currentStep === 1 && selectedServices.length === 0) ||
               (currentStep === 2 && !selectedDate) ||
               (currentStep === 3 && !selectedTime) ||
-              loading
+              loading || submitting
             }
             className={`${currentStep === 1 ? 'w-full' : 'flex-1'} bg-salon-gold hover:bg-salon-copper text-salon-dark font-medium h-14`}
           >
@@ -455,29 +464,17 @@ const SupabaseScheduling = () => {
         
         {currentStep === 4 && (
           <Button
-            onClick={handleProceedToPayment}
+            onClick={handleSubmitRequest}
             disabled={
               (!user && (!clientName || !clientEmail || !clientPhone)) ||
-              loading
+              loading || submitting
             }
             className="flex-1 bg-salon-gold hover:bg-salon-copper text-salon-dark font-medium h-14"
           >
-            Prosseguir para Pagamento
+            {submitting ? 'Enviando...' : 'Concluir Solicitação'}
           </Button>
         )}
       </div>
-
-      {/* PIX Payment Popup */}
-      <PIXPaymentPopup
-        isOpen={showPixPopup}
-        onClose={() => setShowPixPopup(false)}
-        amount={DEPOSIT_AMOUNT}
-        serviceName={`${selectedServices.length} serviço${selectedServices.length > 1 ? 's' : ''} selecionado${selectedServices.length > 1 ? 's' : ''}`}
-        customerName={clientName}
-        customerEmail={clientEmail}
-        customerPhone={clientPhone}
-        onPaymentConfirm={handlePaymentConfirm}
-      />
 
       {/* Encaixe Confirmation Modal */}
       <EncaixeConfirmationModal

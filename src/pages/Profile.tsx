@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { User, Calendar, ShoppingBag, Star, Package, Settings, LogOut, ShoppingCart } from 'lucide-react';
+import { User, Calendar, ShoppingBag, Star, Package, Settings, LogOut, ShoppingCart, MessageCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -31,6 +31,34 @@ const Profile = () => {
       title: "Foto atualizada!",
       description: "Sua foto de perfil foi atualizada com sucesso."
     });
+  };
+
+  const generateWhatsAppMessage = (appointment: any) => {
+    const serviceName = appointment.servico.nome;
+    const appointmentDate = formatDate(appointment.data);
+    const appointmentTime = appointment.horario;
+    const clientName = user?.nome || 'Cliente';
+    
+    const message = `Olá! 👋
+
+Estou enviando o comprovante de pagamento do sinal para meu agendamento:
+
+👤 Cliente: ${clientName}
+✂️ Serviço: ${serviceName}
+📅 Data: ${appointmentDate}
+🕐 Horário: ${appointmentTime}
+
+Aguardo a confirmação do recebimento.
+
+Obrigado(a)! 😊`;
+
+    return encodeURIComponent(message);
+  };
+
+  const handleWhatsAppContact = (appointment: any) => {
+    const message = generateWhatsAppMessage(appointment);
+    const whatsappUrl = `https://wa.me/553291247487?text=${message}`;
+    window.open(whatsappUrl, '_blank');
   };
 
   return (
@@ -182,6 +210,23 @@ const Profile = () => {
                           <p className="text-xs text-muted-foreground mt-2">
                             <strong>Obs:</strong> {appointment.observacoes}
                           </p>
+                        )}
+                        
+                        {/* WhatsApp payment notice and button */}
+                        {appointment.status === 'confirmado' && appointment.status_pagamento !== 'pago' && (
+                          <div className="mt-4 p-3 bg-salon-gold/10 rounded-lg border border-salon-gold/30">
+                            <p className="text-sm text-salon-gold mb-3 font-medium">
+                              💳 Aguardando envio do comprovante do sinal pelo WhatsApp
+                            </p>
+                            <Button
+                              onClick={() => handleWhatsAppContact(appointment)}
+                              size="sm"
+                              className="bg-green-600 hover:bg-green-700 text-white font-medium"
+                            >
+                              <MessageCircle size={16} className="mr-2" />
+                              Enviar comprovante via WhatsApp
+                            </Button>
+                          </div>
                         )}
                       </div>
                       <div className="flex flex-col gap-2 ml-4">
