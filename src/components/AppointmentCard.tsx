@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Clock, User, Calendar, Edit2, Save, X, CheckCircle, XCircle, AlertCircle, Trash2, CreditCard } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -136,12 +137,11 @@ const AppointmentCard: React.FC<AppointmentCardProps> = ({
 
       console.log('Requesting payment for appointment:', appointment.id);
 
-      // Update appointment to request payment
+      // Update appointment to request payment - usando 'pendente' para status_cobranca
       const { error } = await supabase
         .from('agendamentos')
         .update({
           status_pagamento: 'pendente',
-          status_cobranca: 'solicitado',
           observacoes: newObservations
         })
         .eq('id', appointment.id);
@@ -190,8 +190,8 @@ const AppointmentCard: React.FC<AppointmentCardProps> = ({
       }
 
       toast({
-        title: "Sinal solicitado!",
-        description: "O cliente foi notificado sobre a solicitação do sinal e pode enviar o comprovante via WhatsApp.",
+        title: "Sinal solicitado com sucesso! ✅",
+        description: "O cliente foi notificado e pode enviar o comprovante via WhatsApp. A solicitação aparecerá no painel do cliente.",
       });
 
       // Refresh the page data (the parent component should handle this via real-time updates)
@@ -199,7 +199,7 @@ const AppointmentCard: React.FC<AppointmentCardProps> = ({
     } catch (error: any) {
       console.error('Error requesting payment:', error);
       toast({
-        title: "Erro",
+        title: "Erro ao solicitar sinal",
         description: "Não foi possível solicitar o sinal. Tente novamente.",
         variant: "destructive",
       });
@@ -400,7 +400,7 @@ const AppointmentCard: React.FC<AppointmentCardProps> = ({
                     disabled={requestingPayment}
                     variant="outline"
                     size="sm"
-                    className="border-salon-gold/30 text-salon-gold hover:bg-salon-gold/10"
+                    className="border-salon-gold/30 text-salon-gold hover:bg-salon-gold/10 disabled:opacity-50"
                   >
                     <CreditCard size={16} className="mr-2" />
                     {requestingPayment ? 'Solicitando...' : 'Cobrar Sinal'}
