@@ -111,16 +111,22 @@ const NewUserModal: React.FC<NewUserModalProps> = ({ isOpen, onClose, onSuccess 
     setLoading(true);
     
     try {
+      console.log('Iniciando criação de usuário:', {
+        nome: formData.nome,
+        email: formData.email,
+        tipo: formData.tipo
+      });
+
       // Verificar se o email já existe na tabela usuarios
       const { data: existingUser, error: checkError } = await supabase
         .from('usuarios')
         .select('id')
         .eq('email', formData.email.toLowerCase().trim())
-        .single();
+        .maybeSingle();
 
-      if (checkError && checkError.code !== 'PGRST116') {
+      if (checkError) {
         console.error('Erro ao verificar usuário existente:', checkError);
-        throw checkError;
+        throw new Error(`Erro na verificação: ${checkError.message}`);
       }
 
       if (existingUser) {
@@ -132,34 +138,42 @@ const NewUserModal: React.FC<NewUserModalProps> = ({ isOpen, onClose, onSuccess 
         return;
       }
 
+      // Preparar dados do usuário com validações
+      const userData = {
+        nome: formData.nome.trim(),
+        email: formData.email.toLowerCase().trim(),
+        whatsapp: formData.telefone.trim() || null,
+        senha: formData.senha,
+        tipo: formData.tipo,
+        ativo: true
+      };
+
+      console.log('Dados do usuário a serem inseridos:', userData);
+
       // Criar usuário na tabela usuarios
       const { data: newUser, error: userError } = await supabase
         .from('usuarios')
-        .insert({
-          nome: formData.nome.trim(),
-          email: formData.email.toLowerCase().trim(),
-          whatsapp: formData.telefone.trim() || null,
-          senha: formData.senha,
-          tipo: formData.tipo,
-          ativo: true
-        })
+        .insert(userData)
         .select()
         .single();
 
       if (userError) {
         console.error('Erro ao criar usuário:', userError);
-        throw userError;
+        throw new Error(`Erro ao criar usuário: ${userError.message}`);
       }
+
+      console.log('Usuário criado com sucesso:', newUser);
 
       // Verificar se já existe cliente com o mesmo email
       const { data: existingClient, error: clientCheckError } = await supabase
         .from('clientes')
         .select('id, telefone')
         .eq('email', formData.email.toLowerCase().trim())
-        .single();
+        .maybeSingle();
 
-      if (clientCheckError && clientCheckError.code !== 'PGRST116') {
+      if (clientCheckError) {
         console.error('Erro ao verificar cliente existente:', clientCheckError);
+        // Não vamos parar o processo por causa disso, apenas logar
       }
 
       if (existingClient) {
@@ -174,19 +188,28 @@ const NewUserModal: React.FC<NewUserModalProps> = ({ isOpen, onClose, onSuccess 
 
         if (updateError) {
           console.error('Erro ao atualizar cliente:', updateError);
+        } else {
+          console.log('Cliente atualizado com sucesso');
         }
       } else {
         // Criar novo cliente
+        const clientData = {
+          nome: formData.nome.trim(),
+          email: formData.email.toLowerCase().trim(),
+          telefone: formData.telefone.trim() || ''
+        };
+
+        console.log('Criando novo cliente:', clientData);
+
         const { error: clientError } = await supabase
           .from('clientes')
-          .insert({
-            nome: formData.nome.trim(),
-            email: formData.email.toLowerCase().trim(),
-            telefone: formData.telefone.trim() || ''
-          });
+          .insert(clientData);
 
         if (clientError) {
           console.error('Erro ao criar cliente:', clientError);
+          // Não vamos parar o processo por causa disso, apenas logar
+        } else {
+          console.log('Cliente criado com sucesso');
         }
       }
 
@@ -200,10 +223,11 @@ const NewUserModal: React.FC<NewUserModalProps> = ({ isOpen, onClose, onSuccess 
       onClose();
 
     } catch (error) {
-      console.error('Erro ao criar usuário:', error);
+      console.error('Erro geral ao criar usuário:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
       toast({
         title: "Erro ao criar usuário",
-        description: "Ocorreu um erro interno. Tente novamente.",
+        description: errorMessage,
         variant: "destructive"
       });
     } finally {
