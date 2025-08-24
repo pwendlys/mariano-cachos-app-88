@@ -68,19 +68,19 @@ const AppSidebar: React.FC<AppSidebarProps> = ({ activeTab, onTabChange }) => {
         id: 'vendas',
         title: 'Vendas',
         icon: DollarSign,
-        allowedRoles: ['admin'] // Apenas admin
+        allowedRoles: ['admin', 'convidado'] // Permitir convidado
       },
       {
         id: 'clientes',
         title: 'Clientes',
         icon: Users,
-        allowedRoles: ['admin'] // Apenas admin
+        allowedRoles: ['admin', 'convidado'] // Permitir convidado
       },
       {
         id: 'atendimentos',
         title: 'Atendimentos',
         icon: UserCheck,
-        allowedRoles: ['admin'] // Apenas admin
+        allowedRoles: ['admin', 'convidado'] // Permitir convidado
       },
       {
         id: 'cobrancas',

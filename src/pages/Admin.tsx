@@ -43,7 +43,7 @@ const Admin = () => {
         'clientes', 'atendimentos', 'cobrancas', 'fluxo-caixa', 'banner', 'galeria', 'configuracoes'
       ];
     } else if (user?.tipo === 'convidado') {
-      return ['agendamentos', 'servicos', 'produtos', 'cobrancas', 'banner', 'galeria'];
+      return ['agendamentos', 'servicos', 'produtos', 'vendas', 'clientes', 'atendimentos', 'cobrancas', 'banner', 'galeria'];
     }
     return ['agendamentos'];
   };

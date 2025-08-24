@@ -4,12 +4,13 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Search, User, DollarSign, Calendar, Plus } from 'lucide-react';
+import { Search, User, DollarSign, Calendar, Plus, UserPlus } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import ClientDetailsModal from './ClientDetailsModal';
 import ClientAvatar from './ClientAvatar';
+import NewUserModal from './NewUserModal';
 
 interface Cliente {
   id: string;
@@ -43,6 +44,7 @@ const ClientList: React.FC<ClientListProps> = ({ filterType = 'all', onClose }) 
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
   const [selectedClient, setSelectedClient] = useState<Cliente | null>(null);
+  const [showNewUserModal, setShowNewUserModal] = useState(false);
   const { toast } = useToast();
 
   const fetchClientes = async () => {
@@ -153,11 +155,20 @@ const ClientList: React.FC<ClientListProps> = ({ filterType = 'all', onClose }) 
         <h3 className="text-lg font-semibold text-salon-gold">
           {filterType === 'all' ? 'Todos os Clientes' : 'Clientes com Saldo Devedor'}
         </h3>
-        {onClose && (
-          <Button variant="outline" onClick={onClose} className="border-salon-gold/30 text-salon-gold">
-            Fechar
+        <div className="flex gap-2">
+          <Button
+            onClick={() => setShowNewUserModal(true)}
+            className="bg-salon-gold hover:bg-salon-copper text-salon-dark"
+          >
+            <UserPlus className="w-4 h-4 mr-2" />
+            Novo Cliente/Usuário
           </Button>
-        )}
+          {onClose && (
+            <Button variant="outline" onClick={onClose} className="border-salon-gold/30 text-salon-gold">
+              Fechar
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Barra de Pesquisa */}
@@ -257,6 +268,13 @@ const ClientList: React.FC<ClientListProps> = ({ filterType = 'all', onClose }) 
           })
         )}
       </div>
+
+      {/* Modal de Novo Usuário */}
+      <NewUserModal
+        isOpen={showNewUserModal}
+        onClose={() => setShowNewUserModal(false)}
+        onSuccess={fetchClientes}
+      />
     </div>
   );
 };
