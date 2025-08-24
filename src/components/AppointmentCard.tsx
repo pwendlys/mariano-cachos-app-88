@@ -1,6 +1,5 @@
-
 import React, { useState } from 'react';
-import { Clock, User, Calendar, Edit2, Save, X, CheckCircle, XCircle, AlertCircle, Trash2, CreditCard } from 'lucide-react';
+import { Clock, User, Calendar, Edit2, Save, X, CheckCircle, XCircle, AlertCircle, Trash2, CreditCard, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -85,6 +84,7 @@ const AppointmentCard: React.FC<AppointmentCardProps> = ({
   const [editDate, setEditDate] = useState(appointment.data);
   const [editTime, setEditTime] = useState(appointment.horario);
   const [requestingPayment, setRequestingPayment] = useState(false);
+  const [markingAsPaid, setMarkingAsPaid] = useState(false);
   const { toast } = useToast();
   
   const [selectedProfessional, setSelectedProfessional] = useState(() => {
@@ -208,6 +208,85 @@ const AppointmentCard: React.FC<AppointmentCardProps> = ({
     }
   };
 
+  const handleMarkAsPaid = async () => {
+    setMarkingAsPaid(true);
+    
+    try {
+      const currentDate = new Date().toLocaleDateString('pt-BR');
+      const newObservations = appointment.observacoes 
+        ? `${appointment.observacoes}\n\n[SINAL PAGO - R$ 50,00 em ${currentDate}]`
+        : `[SINAL PAGO - R$ 50,00 em ${currentDate}]`;
+
+      console.log('Marking payment as paid for appointment:', appointment.id);
+
+      // Update appointment to mark payment as paid
+      const { error } = await supabase
+        .from('agendamentos')
+        .update({
+          status_pagamento: 'pago',
+          observacoes: newObservations
+        })
+        .eq('id', appointment.id);
+
+      if (error) {
+        console.error('Error updating payment status:', error);
+        throw error;
+      }
+
+      // Try to create a notification for the user (optional)
+      try {
+        const { data: userData, error: userError } = await supabase
+          .from('usuarios')
+          .select('id')
+          .eq('email', appointment.cliente.email)
+          .single();
+
+        if (userError) {
+          console.log('User not found for notification:', userError.message);
+        } else if (userData?.id) {
+          const { error: notifError } = await supabase
+            .from('notificacoes')
+            .insert({
+              user_id: userData.id,
+              tipo: 'sinal_confirmado',
+              titulo: 'Sinal Confirmado! ✅',
+              mensagem: `Seu sinal de R$ 50,00 foi confirmado para o agendamento de ${appointment.servico.nome} em ${formatDate(appointment.data)} às ${formatTime(appointment.horario)}. Este valor será abatido do total do seu atendimento.`,
+              metadata: {
+                agendamento_id: appointment.id,
+                servico_nome: appointment.servico.nome,
+                data: appointment.data,
+                horario: appointment.horario,
+                valor_sinal: 50.00
+              }
+            });
+
+          if (notifError) {
+            console.log('Could not create notification:', notifError);
+          } else {
+            console.log('Notification created successfully');
+          }
+        }
+      } catch (notificationError) {
+        console.log('Could not create notification:', notificationError);
+      }
+
+      toast({
+        title: "Sinal confirmado! ✅",
+        description: "O pagamento do sinal foi confirmado. O cliente foi notificado e o valor será abatido no atendimento.",
+      });
+      
+    } catch (error: any) {
+      console.error('Error marking payment as paid:', error);
+      toast({
+        title: "Erro ao confirmar sinal",
+        description: "Não foi possível confirmar o pagamento do sinal. Tente novamente.",
+        variant: "destructive",
+      });
+    } finally {
+      setMarkingAsPaid(false);
+    }
+  };
+
   const activeProfessionals = professionals.filter(prof => prof.ativo);
 
   const getStatusColor = (status: string) => {
@@ -251,6 +330,8 @@ const AppointmentCard: React.FC<AppointmentCardProps> = ({
   const canEditDateTime = canEdit;
   const canRequestPayment = appointment.status === 'confirmado' && 
                             (appointment.status_pagamento === 'pendente' || !appointment.status_pagamento);
+  const canMarkAsPaid = appointment.status === 'confirmado' && 
+                        appointment.status_pagamento === 'pendente';
 
   return (
     <Card className="glass-card border-salon-gold/20 hover:border-salon-gold/40 transition-colors">
@@ -404,6 +485,19 @@ const AppointmentCard: React.FC<AppointmentCardProps> = ({
                   >
                     <CreditCard size={16} className="mr-2" />
                     {requestingPayment ? 'Solicitando...' : 'Cobrar Sinal'}
+                  </Button>
+                )}
+
+                {canMarkAsPaid && (
+                  <Button
+                    onClick={handleMarkAsPaid}
+                    disabled={markingAsPaid}
+                    variant="outline"
+                    size="sm"
+                    className="border-green-500/30 text-green-400 hover:bg-green-500/10 disabled:opacity-50"
+                  >
+                    <Check size={16} className="mr-2" />
+                    {markingAsPaid ? 'Confirmando...' : 'Sinal Pago'}
                   </Button>
                 )}
 

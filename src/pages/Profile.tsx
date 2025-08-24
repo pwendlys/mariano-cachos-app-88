@@ -212,11 +212,14 @@ Obrigado(a)! 😊`;
                           </p>
                         )}
                         
-                        {/* WhatsApp payment notice and button */}
-                        {appointment.status === 'confirmado' && appointment.status_pagamento !== 'pago' && (
+                        {/* Enhanced WhatsApp payment notice with R$ 50.00 amount */}
+                        {appointment.status === 'confirmado' && appointment.status_pagamento === 'pendente' && (
                           <div className="mt-4 p-3 bg-salon-gold/10 rounded-lg border border-salon-gold/30">
-                            <p className="text-sm text-salon-gold mb-3 font-medium">
-                              💳 Aguardando envio do comprovante do sinal pelo WhatsApp
+                            <p className="text-sm text-salon-gold mb-2 font-medium">
+                              💳 Sinal Solicitado - R$ 50,00
+                            </p>
+                            <p className="text-xs text-salon-copper mb-3">
+                              O valor do sinal é <strong>R$ 50,00</strong> e será abatido do valor total do seu atendimento após a confirmação do recebimento. Envie o comprovante pelo WhatsApp do salão.
                             </p>
                             <Button
                               onClick={() => handleWhatsAppContact(appointment)}
@@ -226,6 +229,18 @@ Obrigado(a)! 😊`;
                               <MessageCircle size={16} className="mr-2" />
                               Enviar comprovante via WhatsApp
                             </Button>
+                          </div>
+                        )}
+
+                        {/* Show when payment is confirmed */}
+                        {appointment.status === 'confirmado' && appointment.status_pagamento === 'pago' && (
+                          <div className="mt-4 p-3 bg-green-500/10 rounded-lg border border-green-500/30">
+                            <p className="text-sm text-green-400 font-medium">
+                              ✅ Sinal confirmado - R$ 50,00
+                            </p>
+                            <p className="text-xs text-green-300 mt-1">
+                              Seu sinal foi confirmado! Este valor será abatido no total do seu atendimento.
+                            </p>
                           </div>
                         )}
                       </div>
@@ -239,7 +254,7 @@ Obrigado(a)! 😊`;
                               ? 'bg-green-500/20 text-green-400' 
                               : 'bg-yellow-500/20 text-yellow-400'
                           }`}>
-                            {appointment.status_pagamento === 'pago' ? 'Pago' : 'Pag. Pendente'}
+                            {appointment.status_pagamento === 'pago' ? 'Sinal Pago' : 'Sinal Pendente'}
                           </span>
                         )}
                       </div>
