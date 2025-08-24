@@ -8,51 +8,41 @@ export const useAppointmentActions = () => {
     try {
       console.log(`Updating appointment ${appointmentId} to status: ${newStatus}`);
       
+      // First fetch the current appointment data to ensure we have all necessary information
+      const { data: currentAppointment, error: fetchError } = await supabase
+        .from('agendamentos')
+        .select('*, servicos(preco)')
+        .eq('id', appointmentId)
+        .single();
+
+      if (fetchError) {
+        console.error('Error fetching appointment:', fetchError);
+        throw fetchError;
+      }
+
+      // Prepare update data
+      let updateData: any = { 
+        status: newStatus, 
+        updated_at: new Date().toISOString() 
+      };
+
       // Para agendamentos sendo marcados como concluído, garantir que têm valor
       if (newStatus === 'concluido') {
-        // Primeiro buscar o agendamento atual para verificar se tem valor
-        const { data: currentAppointment, error: fetchError } = await supabase
-          .from('agendamentos')
-          .select('*, servicos(preco)')
-          .eq('id', appointmentId)
-          .single();
-
-        if (fetchError) {
-          console.error('Error fetching appointment:', fetchError);
-          throw fetchError;
-        }
-
         // Se não tem valor, usar o preço do serviço
-        let updateData: any = { 
-          status: newStatus, 
-          updated_at: new Date().toISOString() 
-        };
-
         if (!currentAppointment.valor && currentAppointment.servicos?.preco) {
           updateData.valor = currentAppointment.servicos.preco;
           console.log(`Setting appointment value to service price: ${currentAppointment.servicos.preco}`);
         }
+      }
 
-        const { error } = await supabase
-          .from('agendamentos')
-          .update(updateData)
-          .eq('id', appointmentId);
+      const { error } = await supabase
+        .from('agendamentos')
+        .update(updateData)
+        .eq('id', appointmentId);
 
-        if (error) {
-          console.error('Status update error:', error);
-          throw error;
-        }
-      } else {
-        // Para outros status, atualização normal
-        const { error } = await supabase
-          .from('agendamentos')
-          .update({ status: newStatus, updated_at: new Date().toISOString() })
-          .eq('id', appointmentId);
-
-        if (error) {
-          console.error('Status update error:', error);
-          throw error;
-        }
+      if (error) {
+        console.error('Status update error:', error);
+        throw error;
       }
 
       const statusLabels = {
@@ -68,11 +58,21 @@ export const useAppointmentActions = () => {
       });
       
       return true;
-    } catch (error) {
+    } catch (error: any) {
       console.error('Erro ao atualizar status:', error);
+      
+      // More specific error messages
+      let errorMessage = "Não foi possível atualizar o status do agendamento";
+      
+      if (error?.code === '23503') {
+        errorMessage = "Erro de referência no banco de dados. Tente novamente.";
+      } else if (error?.message) {
+        errorMessage = `Erro: ${error.message}`;
+      }
+      
       toast({
         title: "Erro",
-        description: "Não foi possível atualizar o status do agendamento",
+        description: errorMessage,
         variant: "destructive",
       });
       return false;

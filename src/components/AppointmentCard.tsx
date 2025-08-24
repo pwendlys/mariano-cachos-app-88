@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Clock, User, Calendar, Edit2, Save, X, CheckCircle, XCircle, AlertCircle, Trash2, CreditCard } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -135,6 +134,8 @@ const AppointmentCard: React.FC<AppointmentCardProps> = ({
         ? `${appointment.observacoes}\n\n[SINAL SOLICITADO em ${currentDate}]`
         : `[SINAL SOLICITADO em ${currentDate}]`;
 
+      console.log('Requesting payment for appointment:', appointment.id);
+
       // Update appointment to request payment
       const { error } = await supabase
         .from('agendamentos')
@@ -146,20 +147,23 @@ const AppointmentCard: React.FC<AppointmentCardProps> = ({
         .eq('id', appointment.id);
 
       if (error) {
+        console.error('Error updating appointment:', error);
         throw error;
       }
 
       // Try to create a notification for the user (optional - won't fail if user not found)
       try {
         // First, get user_id from usuarios table using client email
-        const { data: userData } = await supabase
+        const { data: userData, error: userError } = await supabase
           .from('usuarios')
           .select('id')
           .eq('email', appointment.cliente.email)
           .single();
 
-        if (userData?.id) {
-          await supabase
+        if (userError) {
+          console.log('User not found for notification:', userError.message);
+        } else if (userData?.id) {
+          const { error: notifError } = await supabase
             .from('notificacoes')
             .insert({
               user_id: userData.id,
@@ -173,6 +177,12 @@ const AppointmentCard: React.FC<AppointmentCardProps> = ({
                 horario: appointment.horario
               }
             });
+
+          if (notifError) {
+            console.log('Could not create notification:', notifError);
+          } else {
+            console.log('Notification created successfully');
+          }
         }
       } catch (notificationError) {
         // Notification error is not critical, just log it
@@ -239,7 +249,8 @@ const AppointmentCard: React.FC<AppointmentCardProps> = ({
 
   const canEdit = appointment.status !== 'concluido';
   const canEditDateTime = canEdit;
-  const canRequestPayment = appointment.status === 'confirmado' && appointment.status_pagamento !== 'pago';
+  const canRequestPayment = appointment.status === 'confirmado' && 
+                            (appointment.status_pagamento === 'pendente' || !appointment.status_pagamento);
 
   return (
     <Card className="glass-card border-salon-gold/20 hover:border-salon-gold/40 transition-colors">
