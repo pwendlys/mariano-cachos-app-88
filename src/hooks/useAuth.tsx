@@ -1,4 +1,3 @@
-
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -32,51 +31,76 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const { toast } = useToast();
 
   useEffect(() => {
-    // Set up auth state listener
+    let mounted = true;
+
+    // Set up auth state listener - keep it synchronous to prevent loops
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, supabaseSession) => {
+      (event, supabaseSession) => {
+        if (!mounted) return;
+
         console.log('Auth state change:', event, supabaseSession?.user?.email);
+        
+        // Always update session state immediately
         setSession(supabaseSession);
         
+        // Handle user data fetching asynchronously to prevent loops
         if (supabaseSession?.user) {
-          // Try to get user data from our usuarios table
-          const { data: userData, error } = await supabase
-            .from('usuarios')
-            .select('*')
-            .eq('email', supabaseSession.user.email)
-            .eq('ativo', true)
-            .single();
-          
-          if (userData && !error) {
-            const normalizedTipo = userData.tipo.toLowerCase().trim();
-            const validTipos = ['cliente', 'admin', 'convidado'];
-            const userTipo = validTipos.includes(normalizedTipo) ? normalizedTipo as 'cliente' | 'admin' | 'convidado' : 'cliente';
+          // Defer user data fetching to prevent blocking the auth state change
+          setTimeout(() => {
+            if (!mounted) return;
             
-            setUser({
-              id: userData.id,
-              nome: userData.nome,
-              email: userData.email,
-              tipo: userTipo,
-              whatsapp: userData.whatsapp,
-              avatar_url: userData.avatar_url
-            });
-          }
+            supabase
+              .from('usuarios')
+              .select('*')
+              .eq('email', supabaseSession.user.email)
+              .eq('ativo', true)
+              .single()
+              .then(({ data: userData, error }) => {
+                if (!mounted) return;
+                
+                if (userData && !error) {
+                  const normalizedTipo = userData.tipo.toLowerCase().trim();
+                  const validTipos = ['cliente', 'admin', 'convidado'];
+                  const userTipo = validTipos.includes(normalizedTipo) ? normalizedTipo as 'cliente' | 'admin' | 'convidado' : 'cliente';
+                  
+                  setUser({
+                    id: userData.id,
+                    nome: userData.nome,
+                    email: userData.email,
+                    tipo: userTipo,
+                    whatsapp: userData.whatsapp,
+                    avatar_url: userData.avatar_url
+                  });
+                } else {
+                  setUser(null);
+                }
+                setLoading(false);
+              })
+              .catch(() => {
+                if (!mounted) return;
+                setUser(null);
+                setLoading(false);
+              });
+          }, 0);
         } else {
           setUser(null);
+          setLoading(false);
         }
-        
-        setLoading(false);
       }
     );
 
     // Check for existing session
     supabase.auth.getSession().then(({ data: { session: existingSession } }) => {
+      if (!mounted) return;
       if (!existingSession) {
         setLoading(false);
       }
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   const getErrorMessage = (error: any) => {
@@ -105,8 +129,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const login = async (email: string, senha: string) => {
     try {
-      setLoading(true);
-      
       // Check if user exists in usuarios table first
       const { data: userData, error: userError } = await supabase
         .from('usuarios')
@@ -145,8 +167,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     } catch (error) {
       console.error('Erro no login:', error);
       return { success: false, error: 'Erro interno do sistema' };
-    } finally {
-      setLoading(false);
     }
   };
 

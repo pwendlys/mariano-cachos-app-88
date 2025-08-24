@@ -19,6 +19,7 @@ const Auth = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [resendingConfirmation, setResendingConfirmation] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const { toast } = useToast();
   const [formData, setFormData] = useState({
     nome: '',
@@ -37,10 +38,15 @@ const Auth = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (user) {
-      navigate('/');
+    // Only redirect if user is fully loaded and authenticated
+    if (user && !loading) {
+      // Small delay to prevent redirect during auth state changes
+      const timer = setTimeout(() => {
+        navigate('/');
+      }, 100);
+      return () => clearTimeout(timer);
     }
-  }, [user, navigate]);
+  }, [user, loading, navigate]);
 
   // Se é reset de senha, mostrar formulário específico
   if (action === 'reset-password') {
@@ -136,27 +142,35 @@ const Auth = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!validateForm()) return;
+    if (!validateForm() || submitting) return;
+
+    setSubmitting(true);
     let result;
-    if (isLogin) {
-      result = await login(formData.email, formData.senha);
-    } else {
-      result = await register(formData.nome, formData.email, formData.whatsapp, formData.senha);
-      if (result.success) {
-        setIsLogin(true);
-        setFormData({
-          nome: '',
-          email: '',
-          whatsapp: '',
-          senha: '',
-          confirmarSenha: ''
+    
+    try {
+      if (isLogin) {
+        result = await login(formData.email, formData.senha);
+      } else {
+        result = await register(formData.nome, formData.email, formData.whatsapp, formData.senha);
+        if (result.success) {
+          setIsLogin(true);
+          setFormData({
+            nome: '',
+            email: '',
+            whatsapp: '',
+            senha: '',
+            confirmarSenha: ''
+          });
+        }
+      }
+      
+      if (!result.success && result.error) {
+        setErrors({
+          submit: result.error
         });
       }
-    }
-    if (!result.success && result.error) {
-      setErrors({
-        submit: result.error
-      });
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -276,8 +290,8 @@ const Auth = () => {
                   </div>
                 )}
 
-                <Button type="submit" className="w-full" disabled={loading}>
-                  {loading ? 'Entrando...' : 'Entrar'}
+                <Button type="submit" className="w-full" disabled={submitting || loading}>
+                  {submitting ? 'Entrando...' : 'Entrar'}
                 </Button>
               </form>
             </TabsContent>
@@ -334,8 +348,8 @@ const Auth = () => {
 
                 {errors.submit && <p className="text-sm text-red-500 text-center">{errors.submit}</p>}
 
-                <Button type="submit" className="w-full" disabled={loading}>
-                  {loading ? 'Cadastrando...' : 'Cadastrar'}
+                <Button type="submit" className="w-full" disabled={submitting || loading}>
+                  {submitting ? 'Cadastrando...' : 'Cadastrar'}
                 </Button>
               </form>
             </TabsContent>
