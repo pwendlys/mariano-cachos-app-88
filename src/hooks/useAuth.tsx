@@ -46,41 +46,42 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         // Handle user data fetching asynchronously to prevent loops
         if (supabaseSession?.user) {
           // Defer user data fetching to prevent blocking the auth state change
-          setTimeout(() => {
+          setTimeout(async () => {
             if (!mounted) return;
             
-            supabase
-              .from('usuarios')
-              .select('*')
-              .eq('email', supabaseSession.user.email)
-              .eq('ativo', true)
-              .single()
-              .then(({ data: userData, error }) => {
-                if (!mounted) return;
+            try {
+              const { data: userData, error } = await supabase
+                .from('usuarios')
+                .select('*')
+                .eq('email', supabaseSession.user.email)
+                .eq('ativo', true)
+                .single();
+              
+              if (!mounted) return;
+              
+              if (userData && !error) {
+                const normalizedTipo = userData.tipo.toLowerCase().trim();
+                const validTipos = ['cliente', 'admin', 'convidado'];
+                const userTipo = validTipos.includes(normalizedTipo) ? normalizedTipo as 'cliente' | 'admin' | 'convidado' : 'cliente';
                 
-                if (userData && !error) {
-                  const normalizedTipo = userData.tipo.toLowerCase().trim();
-                  const validTipos = ['cliente', 'admin', 'convidado'];
-                  const userTipo = validTipos.includes(normalizedTipo) ? normalizedTipo as 'cliente' | 'admin' | 'convidado' : 'cliente';
-                  
-                  setUser({
-                    id: userData.id,
-                    nome: userData.nome,
-                    email: userData.email,
-                    tipo: userTipo,
-                    whatsapp: userData.whatsapp,
-                    avatar_url: userData.avatar_url
-                  });
-                } else {
-                  setUser(null);
-                }
-                setLoading(false);
-              })
-              .catch(() => {
-                if (!mounted) return;
+                setUser({
+                  id: userData.id,
+                  nome: userData.nome,
+                  email: userData.email,
+                  tipo: userTipo,
+                  whatsapp: userData.whatsapp,
+                  avatar_url: userData.avatar_url
+                });
+              } else {
                 setUser(null);
-                setLoading(false);
-              });
+              }
+              setLoading(false);
+            } catch (error) {
+              if (!mounted) return;
+              console.error('Error fetching user data:', error);
+              setUser(null);
+              setLoading(false);
+            }
           }, 0);
         } else {
           setUser(null);
