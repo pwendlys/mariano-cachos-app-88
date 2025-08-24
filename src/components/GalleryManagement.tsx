@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,68 +11,23 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { Upload, Trash2, Edit, Eye, X, Plus, Image as ImageIcon } from 'lucide-react';
 import RoleProtectedRoute from '@/components/RoleProtectedRoute';
-
-interface GalleryImage {
-  id: string;
-  titulo: string;
-  descricao?: string;
-  url_imagem: string;
-  categoria: string;
-  ativo: boolean;
-  ordem: number;
-  created_at: string;
-}
+import { useGalleryPhotos, type GalleryPhoto } from '@/hooks/useGalleryPhotos';
 
 const GalleryManagement = () => {
-  const [images, setImages] = useState<GalleryImage[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { photos, loading, fetchPhotos, addPhoto, updatePhoto, deletePhoto } = useGalleryPhotos();
   const [uploading, setUploading] = useState(false);
-  const [editingImage, setEditingImage] = useState<GalleryImage | null>(null);
+  const [editingPhoto, setEditingPhoto] = useState<GalleryPhoto | null>(null);
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string>('');
   const { toast } = useToast();
 
   const [formData, setFormData] = useState({
-    titulo: '',
-    descricao: '',
-    categoria: 'cortes',
-    ativo: true,
-    ordem: 0
+    title: '',
+    description: '',
+    is_active: true,
+    display_order: 0
   });
-
-  const categories = [
-    { value: 'cortes', label: 'Cortes' },
-    { value: 'coloracao', label: 'Coloração' },
-    { value: 'tratamentos', label: 'Tratamentos' },
-    { value: 'penteados', label: 'Penteados' },
-    { value: 'outros', label: 'Outros' }
-  ];
-
-  useEffect(() => {
-    fetchImages();
-  }, []);
-
-  const fetchImages = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('galeria')
-        .select('*')
-        .order('ordem', { ascending: true });
-
-      if (error) throw error;
-      setImages(data || []);
-    } catch (error) {
-      console.error('Erro ao carregar imagens:', error);
-      toast({
-        title: "Erro",
-        description: "Erro ao carregar imagens da galeria",
-        variant: "destructive"
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -104,7 +60,7 @@ const GalleryManagement = () => {
     try {
       const fileExt = file.name.split('.').pop();
       const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
-      const filePath = `galeria/${fileName}`;
+      const filePath = `gallery/${fileName}`;
 
       const { error: uploadError } = await supabase.storage
         .from('gallery')
@@ -126,7 +82,7 @@ const GalleryManagement = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!selectedFile && !editingImage) {
+    if (!selectedFile && !editingPhoto) {
       toast({
         title: "Erro",
         description: "Selecione uma imagem",
@@ -138,7 +94,7 @@ const GalleryManagement = () => {
     setUploading(true);
 
     try {
-      let imageUrl = editingImage?.url_imagem || '';
+      let imageUrl = editingPhoto?.image_url || '';
 
       if (selectedFile) {
         const uploadedUrl = await uploadImage(selectedFile);
@@ -148,34 +104,22 @@ const GalleryManagement = () => {
         imageUrl = uploadedUrl;
       }
 
-      const imageData = {
-        titulo: formData.titulo,
-        descricao: formData.descricao,
-        url_imagem: imageUrl,
-        categoria: formData.categoria,
-        ativo: formData.ativo,
-        ordem: formData.ordem
+      const photoData = {
+        title: formData.title,
+        description: formData.description,
+        image_url: imageUrl,
+        is_active: formData.is_active,
+        display_order: formData.display_order
       };
 
-      if (editingImage) {
-        const { error } = await supabase
-          .from('galeria')
-          .update(imageData)
-          .eq('id', editingImage.id);
-
-        if (error) throw error;
-
+      if (editingPhoto) {
+        await updatePhoto(editingPhoto.id, photoData);
         toast({
           title: "Sucesso",
           description: "Imagem atualizada com sucesso!"
         });
       } else {
-        const { error } = await supabase
-          .from('galeria')
-          .insert([imageData]);
-
-        if (error) throw error;
-
+        await addPhoto(photoData);
         toast({
           title: "Sucesso",
           description: "Imagem adicionada com sucesso!"
@@ -183,7 +127,6 @@ const GalleryManagement = () => {
       }
 
       resetForm();
-      fetchImages();
     } catch (error) {
       console.error('Erro ao salvar imagem:', error);
       toast({
@@ -196,14 +139,13 @@ const GalleryManagement = () => {
     }
   };
 
-  const handleEdit = (image: GalleryImage) => {
-    setEditingImage(image);
+  const handleEdit = (photo: GalleryPhoto) => {
+    setEditingPhoto(photo);
     setFormData({
-      titulo: image.titulo,
-      descricao: image.descricao || '',
-      categoria: image.categoria,
-      ativo: image.ativo,
-      ordem: image.ordem
+      title: photo.title,
+      description: photo.description || '',
+      is_active: photo.is_active,
+      display_order: photo.display_order
     });
     setShowAddDialog(true);
   };
@@ -211,66 +153,35 @@ const GalleryManagement = () => {
   const handleDelete = async (id: string) => {
     if (!confirm('Tem certeza que deseja excluir esta imagem?')) return;
 
-    try {
-      const { error } = await supabase
-        .from('galeria')
-        .delete()
-        .eq('id', id);
-
-      if (error) throw error;
-
+    const success = await deletePhoto(id);
+    if (success) {
       toast({
         title: "Sucesso",
         description: "Imagem excluída com sucesso!"
-      });
-
-      fetchImages();
-    } catch (error) {
-      console.error('Erro ao excluir imagem:', error);
-      toast({
-        title: "Erro",
-        description: "Erro ao excluir imagem",
-        variant: "destructive"
       });
     }
   };
 
   const toggleStatus = async (id: string, currentStatus: boolean) => {
-    try {
-      const { error } = await supabase
-        .from('galeria')
-        .update({ ativo: !currentStatus })
-        .eq('id', id);
-
-      if (error) throw error;
-
+    const success = await updatePhoto(id, { is_active: !currentStatus });
+    if (success) {
       toast({
         title: "Sucesso",
         description: `Imagem ${!currentStatus ? 'ativada' : 'desativada'} com sucesso!`
-      });
-
-      fetchImages();
-    } catch (error) {
-      console.error('Erro ao alterar status:', error);
-      toast({
-        title: "Erro",
-        description: "Erro ao alterar status da imagem",
-        variant: "destructive"
       });
     }
   };
 
   const resetForm = () => {
     setFormData({
-      titulo: '',
-      descricao: '',
-      categoria: 'cortes',
-      ativo: true,
-      ordem: 0
+      title: '',
+      description: '',
+      is_active: true,
+      display_order: 0
     });
     setSelectedFile(null);
     setPreviewUrl('');
-    setEditingImage(null);
+    setEditingPhoto(null);
     setShowAddDialog(false);
   };
 
@@ -308,57 +219,39 @@ const GalleryManagement = () => {
             <DialogContent className="max-w-2xl">
               <DialogHeader>
                 <DialogTitle className="text-salon-gold">
-                  {editingImage ? 'Editar Imagem' : 'Adicionar Nova Imagem'}
+                  {editingPhoto ? 'Editar Imagem' : 'Adicionar Nova Imagem'}
                 </DialogTitle>
               </DialogHeader>
               
               <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="titulo">Título *</Label>
-                    <Input
-                      id="titulo"
-                      value={formData.titulo}
-                      onChange={(e) => setFormData(prev => ({ ...prev, titulo: e.target.value }))}
-                      required
-                    />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="categoria">Categoria</Label>
-                    <select
-                      id="categoria"
-                      value={formData.categoria}
-                      onChange={(e) => setFormData(prev => ({ ...prev, categoria: e.target.value }))}
-                      className="w-full p-2 border rounded-md bg-background"
-                    >
-                      {categories.map(cat => (
-                        <option key={cat.value} value={cat.value}>
-                          {cat.label}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
+                <div className="space-y-2">
+                  <Label htmlFor="title">Título *</Label>
+                  <Input
+                    id="title"
+                    value={formData.title}
+                    onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
+                    required
+                  />
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="descricao">Descrição</Label>
+                  <Label htmlFor="description">Descrição</Label>
                   <Textarea
-                    id="descricao"
-                    value={formData.descricao}
-                    onChange={(e) => setFormData(prev => ({ ...prev, descricao: e.target.value }))}
+                    id="description"
+                    value={formData.description}
+                    onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
                     rows={3}
                   />
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="ordem">Ordem de Exibição</Label>
+                    <Label htmlFor="display_order">Ordem de Exibição</Label>
                     <Input
-                      id="ordem"
+                      id="display_order"
                       type="number"
-                      value={formData.ordem}
-                      onChange={(e) => setFormData(prev => ({ ...prev, ordem: parseInt(e.target.value) || 0 }))}
+                      value={formData.display_order}
+                      onChange={(e) => setFormData(prev => ({ ...prev, display_order: parseInt(e.target.value) || 0 }))}
                     />
                   </div>
                   
@@ -367,26 +260,26 @@ const GalleryManagement = () => {
                     <div className="flex items-center space-x-2">
                       <input
                         type="checkbox"
-                        id="ativo"
-                        checked={formData.ativo}
-                        onChange={(e) => setFormData(prev => ({ ...prev, ativo: e.target.checked }))}
+                        id="is_active"
+                        checked={formData.is_active}
+                        onChange={(e) => setFormData(prev => ({ ...prev, is_active: e.target.checked }))}
                         className="rounded"
                       />
-                      <Label htmlFor="ativo">Ativo</Label>
+                      <Label htmlFor="is_active">Ativo</Label>
                     </div>
                   </div>
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="imagem">
-                    {editingImage ? 'Nova Imagem (opcional)' : 'Imagem *'}
+                    {editingPhoto ? 'Nova Imagem (opcional)' : 'Imagem *'}
                   </Label>
                   <Input
                     id="imagem"
                     type="file"
                     accept="image/*"
                     onChange={handleFileSelect}
-                    required={!editingImage}
+                    required={!editingPhoto}
                   />
                   {previewUrl && (
                     <div className="mt-2">
@@ -397,10 +290,10 @@ const GalleryManagement = () => {
                       />
                     </div>
                   )}
-                  {editingImage && !previewUrl && (
+                  {editingPhoto && !previewUrl && (
                     <div className="mt-2">
                       <img
-                        src={editingImage.url_imagem}
+                        src={editingPhoto.image_url}
                         alt="Atual"
                         className="w-32 h-32 object-cover rounded-md border"
                       />
@@ -422,7 +315,7 @@ const GalleryManagement = () => {
                     disabled={uploading}
                     className="bg-salon-gold hover:bg-salon-copper text-salon-dark"
                   >
-                    {uploading ? 'Salvando...' : editingImage ? 'Atualizar' : 'Adicionar'}
+                    {uploading ? 'Salvando...' : editingPhoto ? 'Atualizar' : 'Adicionar'}
                   </Button>
                 </div>
               </form>
@@ -431,18 +324,18 @@ const GalleryManagement = () => {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {images.map((image) => (
-            <Card key={image.id} className="glass-card border-salon-gold/20">
+          {photos.map((photo) => (
+            <Card key={photo.id} className="glass-card border-salon-gold/20">
               <CardHeader className="p-0">
                 <div className="relative">
                   <img
-                    src={image.url_imagem}
-                    alt={image.titulo}
+                    src={photo.image_url}
+                    alt={photo.title}
                     className="w-full h-48 object-cover rounded-t-lg"
                   />
                   <div className="absolute top-2 right-2 flex space-x-1">
-                    <Badge variant={image.ativo ? "default" : "secondary"}>
-                      {image.ativo ? 'Ativo' : 'Inativo'}
+                    <Badge variant={photo.is_active ? "default" : "secondary"}>
+                      {photo.is_active ? 'Ativo' : 'Inativo'}
                     </Badge>
                   </div>
                 </div>
@@ -450,15 +343,14 @@ const GalleryManagement = () => {
               
               <CardContent className="p-4">
                 <div className="space-y-2">
-                  <h3 className="font-semibold text-salon-gold">{image.titulo}</h3>
-                  {image.descricao && (
+                  <h3 className="font-semibold text-salon-gold">{photo.title}</h3>
+                  {photo.description && (
                     <p className="text-sm text-muted-foreground line-clamp-2">
-                      {image.descricao}
+                      {photo.description}
                     </p>
                   )}
                   <div className="flex justify-between items-center text-xs text-muted-foreground">
-                    <span className="capitalize">{image.categoria}</span>
-                    <span>Ordem: {image.ordem}</span>
+                    <span>Ordem: {photo.display_order}</span>
                   </div>
                 </div>
                 
@@ -467,7 +359,7 @@ const GalleryManagement = () => {
                     <Button
                       size="sm"
                       variant="outline"
-                      onClick={() => handleEdit(image)}
+                      onClick={() => handleEdit(photo)}
                       className="border-salon-gold/30 text-salon-gold hover:bg-salon-gold/10"
                     >
                       <Edit className="w-3 h-3" />
@@ -476,7 +368,7 @@ const GalleryManagement = () => {
                     <Button
                       size="sm"
                       variant="outline"
-                      onClick={() => toggleStatus(image.id, image.ativo)}
+                      onClick={() => toggleStatus(photo.id, photo.is_active)}
                       className="border-salon-gold/30 text-salon-gold hover:bg-salon-gold/10"
                     >
                       <Eye className="w-3 h-3" />
@@ -486,7 +378,7 @@ const GalleryManagement = () => {
                   <Button
                     size="sm"
                     variant="outline"
-                    onClick={() => handleDelete(image.id)}
+                    onClick={() => handleDelete(photo.id)}
                     className="border-red-500/30 text-red-500 hover:bg-red-500/10"
                   >
                     <Trash2 className="w-3 h-3" />
@@ -497,7 +389,7 @@ const GalleryManagement = () => {
           ))}
         </div>
 
-        {images.length === 0 && (
+        {photos.length === 0 && (
           <Card className="glass-card border-salon-gold/20">
             <CardContent className="flex flex-col items-center justify-center py-12">
               <ImageIcon className="w-12 h-12 text-muted-foreground mb-4" />
