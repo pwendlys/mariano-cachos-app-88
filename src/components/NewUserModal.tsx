@@ -154,7 +154,7 @@ const NewUserModal: React.FC<NewUserModalProps> = ({ isOpen, onClose, onSuccess 
       // Verificar se já existe cliente com o mesmo email
       const { data: existingClient, error: clientCheckError } = await supabase
         .from('clientes')
-        .select('id')
+        .select('id, telefone')
         .eq('email', formData.email.toLowerCase().trim())
         .single();
 
