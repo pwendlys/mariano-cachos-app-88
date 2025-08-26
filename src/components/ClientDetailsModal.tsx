@@ -8,13 +8,15 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Plus, Calendar, DollarSign, User, Phone, Mail, MapPin, Save, History } from 'lucide-react';
+import { Plus, Calendar, DollarSign, User, Phone, Mail, MapPin, Save, History, Trash2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { useSupabaseScheduling } from '@/hooks/useSupabaseScheduling';
 import { useSupabaseProducts } from '@/hooks/useSupabaseProducts';
+import { useAuth } from '@/hooks/useAuth';
 import type { Json } from '@/integrations/supabase/types';
 import ClientAvatar from './ClientAvatar';
 
@@ -56,9 +58,10 @@ interface HistoricoAtendimento {
 interface ClientDetailsModalProps {
   cliente: Cliente;
   onUpdate: () => void;
+  onDelete?: () => void;
 }
 
-const ClientDetailsModal: React.FC<ClientDetailsModalProps> = ({ cliente, onUpdate }) => {
+const ClientDetailsModal: React.FC<ClientDetailsModalProps> = ({ cliente, onUpdate, onDelete }) => {
   const [agendamentos, setAgendamentos] = useState<Agendamento[]>([]);
   const [historico, setHistorico] = useState<HistoricoAtendimento[]>([]);
   const [saldo, setSaldo] = useState<any>(null);
@@ -67,9 +70,11 @@ const ClientDetailsModal: React.FC<ClientDetailsModalProps> = ({ cliente, onUpda
   const [loading, setLoading] = useState(false);
   const [isAddingPayment, setIsAddingPayment] = useState(false);
   const [isAddingService, setIsAddingService] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   
   const { services } = useSupabaseScheduling();
   const { products } = useSupabaseProducts();
+  const { user } = useAuth();
   const { toast } = useToast();
 
   // Estados para novo pagamento
@@ -80,6 +85,9 @@ const ClientDetailsModal: React.FC<ClientDetailsModalProps> = ({ cliente, onUpda
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
   const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
   const [serviceObservation, setServiceObservation] = useState('');
+
+  // Verificar se é admin
+  const isAdmin = user?.tipo === 'admin';
 
   const fetchClientData = async () => {
     try {
@@ -325,6 +333,82 @@ const ClientDetailsModal: React.FC<ClientDetailsModalProps> = ({ cliente, onUpda
     }
   };
 
+  const handleDeleteCliente = async () => {
+    if (!isAdmin) {
+      toast({
+        title: "Erro",
+        description: "Apenas administradores podem excluir clientes.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      setIsDeleting(true);
+
+      // 1. Excluir entradas do fluxo de caixa relacionadas aos agendamentos do cliente
+      const { data: agendamentosIds } = await supabase
+        .from('agendamentos')
+        .select('id')
+        .eq('cliente_id', cliente.id);
+
+      if (agendamentosIds && agendamentosIds.length > 0) {
+        const agendamentoIds = agendamentosIds.map(a => a.id);
+        
+        await supabase
+          .from('fluxo_caixa')
+          .delete()
+          .in('origem_id', agendamentoIds);
+      }
+
+      // 2. Excluir agendamentos do cliente
+      await supabase
+        .from('agendamentos')
+        .delete()
+        .eq('cliente_id', cliente.id);
+
+      // 3. Excluir histórico de atendimentos (isso acionará o trigger que exclui entradas do fluxo de caixa)
+      await supabase
+        .from('historico_atendimentos')
+        .delete()
+        .eq('cliente_id', cliente.id);
+
+      // 4. Excluir saldo do cliente
+      await supabase
+        .from('saldos_clientes')
+        .delete()
+        .eq('cliente_id', cliente.id);
+
+      // 5. Excluir o cliente
+      const { error } = await supabase
+        .from('clientes')
+        .delete()
+        .eq('id', cliente.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Sucesso",
+        description: "Cliente excluído com sucesso!"
+      });
+
+      // Chamar callback de exclusão se fornecido
+      if (onDelete) {
+        onDelete();
+      }
+
+    } catch (error) {
+      console.error('Erro ao excluir cliente:', error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível excluir o cliente.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'pendente': return 'bg-yellow-500/20 text-yellow-400';
@@ -376,14 +460,61 @@ const ClientDetailsModal: React.FC<ClientDetailsModalProps> = ({ cliente, onUpda
                   <p className="text-sm text-muted-foreground font-normal">{cliente.nome}</p>
                 </div>
               </CardTitle>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setIsEditing(!isEditing)}
-                className="border-salon-gold/30 text-salon-gold"
-              >
-                {isEditing ? 'Cancelar' : 'Editar'}
-              </Button>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsEditing(!isEditing)}
+                  className="border-salon-gold/30 text-salon-gold"
+                >
+                  {isEditing ? 'Cancelar' : 'Editar'}
+                </Button>
+                {isAdmin && (
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="border-red-500/30 text-red-400 hover:bg-red-500/10"
+                        disabled={isDeleting}
+                      >
+                        <Trash2 className="mr-2" size={16} />
+                        Apagar
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent className="glass-card border-salon-gold/30 text-white">
+                      <AlertDialogHeader>
+                        <AlertDialogTitle className="text-salon-gold">Confirmar exclusão</AlertDialogTitle>
+                        <AlertDialogDescription className="text-white">
+                          Tem certeza que deseja excluir o cliente <strong>{cliente.nome}</strong>?
+                          <br /><br />
+                          Esta ação irá remover permanentemente:
+                          <ul className="list-disc list-inside mt-2 text-sm text-salon-copper">
+                            <li>Todos os agendamentos do cliente</li>
+                            <li>Histórico de atendimentos</li>
+                            <li>Dados financeiros</li>
+                            <li>Informações pessoais</li>
+                          </ul>
+                          <br />
+                          <strong>Esta ação não pode ser desfeita.</strong>
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel className="border-salon-gold/30 text-salon-gold">
+                          Cancelar
+                        </AlertDialogCancel>
+                        <AlertDialogAction
+                          onClick={handleDeleteCliente}
+                          className="bg-red-600 hover:bg-red-700 text-white"
+                          disabled={isDeleting}
+                        >
+                          {isDeleting ? 'Excluindo...' : 'Excluir Cliente'}
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                )}
+              </div>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
