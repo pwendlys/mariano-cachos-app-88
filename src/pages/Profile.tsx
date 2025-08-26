@@ -1,527 +1,191 @@
-import React, { useState } from 'react';
-import { User, Calendar, ShoppingBag, Star, Package, Settings, LogOut, ShoppingCart, MessageCircle } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+
+import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useToast } from '@/hooks/use-toast';
-import { useAuth } from '@/hooks/useAuth';
-import { useNavigate } from 'react-router-dom';
-import { useSupabaseProducts } from '@/hooks/useSupabaseProducts';
-import { useUserAppointments } from '@/hooks/useUserAppointments';
+import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
+import { CustomerProfileManagement } from '@/components/CustomerProfileManagement';
 import { useUserPurchases } from '@/hooks/useUserPurchases';
 import { useUserOrders } from '@/hooks/useUserOrders';
-import AvatarUpload from '@/components/AvatarUpload';
+import { Package, Clock, CheckCircle, XCircle, ShoppingBag } from 'lucide-react';
 
 const Profile = () => {
-  const { toast } = useToast();
-  const { user, logout, updateUserAvatar } = useAuth();
-  const navigate = useNavigate();
-  const { products, loading: productsLoading } = useSupabaseProducts();
-  const { appointments, loading: appointmentsLoading, getStatusLabel, getStatusColor, formatDate } = useUserAppointments();
-  const { purchases, loading: purchasesLoading, formatDate: formatPurchaseDate } = useUserPurchases();
-  const { orders, loading: ordersLoading, getStatusLabel, getStatusColor } = useUserOrders();
-  const [activeTab, setActiveTab] = useState('info');
+  const { purchases, loading: purchasesLoading, getStatusLabel, getStatusColor } = useUserPurchases();
+  const { 
+    orders, 
+    loading: ordersLoading, 
+    getStatusLabel: getOrderStatusLabel, 
+    getStatusColor: getOrderStatusColor 
+  } = useUserOrders();
 
-  const handleLogout = async () => {
-    await logout();
-    navigate('/auth');
-  };
-
-  const handleAvatarUpdate = (newAvatarUrl: string) => {
-    updateUserAvatar(newAvatarUrl);
-    toast({
-      title: "Foto atualizada!",
-      description: "Sua foto de perfil foi atualizada com sucesso."
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('pt-BR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
     });
   };
 
-  const generateWhatsAppMessage = (appointment: any) => {
-    const serviceName = appointment.servico.nome;
-    const appointmentDate = formatDate(appointment.data);
-    const appointmentTime = appointment.horario;
-    const clientName = user?.nome || 'Cliente';
-    
-    const message = `Olá! 👋
-
-Estou enviando o comprovante de pagamento do sinal para meu agendamento:
-
-👤 Cliente: ${clientName}
-✂️ Serviço: ${serviceName}
-📅 Data: ${appointmentDate}
-🕐 Horário: ${appointmentTime}
-
-Aguardo a confirmação do recebimento.
-
-Obrigado(a)! 😊`;
-
-    return encodeURIComponent(message);
-  };
-
-  const handleWhatsAppContact = (appointment: any) => {
-    const message = generateWhatsAppMessage(appointment);
-    const whatsappUrl = `https://wa.me/553291247487?text=${message}`;
-    window.open(whatsappUrl, '_blank');
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case 'aguardando_confirmacao':
+        return <Clock size={14} />;
+      case 'confirmado':
+        return <CheckCircle size={14} />;
+      case 'cancelado':
+        return <XCircle size={14} />;
+      default:
+        return <Package size={14} />;
+    }
   };
 
   return (
-    <div className="px-4 space-y-6 animate-fade-in">
-      <div className="text-center mb-6">
-        {user && (
-          <AvatarUpload
-            currentAvatarUrl={user.avatar_url}
-            userId={user.id}
-            userName={user.nome}
-            onAvatarUpdate={handleAvatarUpdate}
-          />
-        )}
-        <h1 className="text-2xl font-bold text-salon-gold mb-2 font-playfair mt-4">
-          {user?.nome || 'Usuário'}
-        </h1>
-        <p className="text-muted-foreground">
-          {user?.email || 'email@exemplo.com'}
-        </p>
-      </div>
-
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-4 glass-card mb-6">
-          <TabsTrigger value="info" className="data-[state=active]:bg-salon-gold/20 data-[state=active]:text-salon-gold">
-            <User className="w-4 h-4 mr-2" />
-            <span className="hidden sm:inline">Perfil</span>
-          </TabsTrigger>
-          <TabsTrigger value="appointments" className="data-[state=active]:bg-salon-gold/20 data-[state=active]:text-salon-gold">
-            <Calendar className="w-4 h-4 mr-2" />
-            <span className="hidden sm:inline">Agendamentos</span>
-          </TabsTrigger>
-          <TabsTrigger value="products" className="data-[state=active]:bg-salon-gold/20 data-[state=active]:text-salon-gold">
-            <Package className="w-4 h-4 mr-2" />
-            <span className="hidden sm:inline">Produtos a Venda</span>
-          </TabsTrigger>
-          <TabsTrigger value="purchases" className="data-[state=active]:bg-salon-gold/20 data-[state=active]:text-salon-gold">
-            <ShoppingBag className="w-4 h-4 mr-2" />
-            <span className="hidden sm:inline">Compras</span>
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="info">
-          <div className="space-y-4">
-            <Card className="glass-card border-salon-gold/20">
-              <CardHeader>
-                <CardTitle className="text-salon-gold flex items-center gap-2">
-                  <User size={20} />
-                  Informações Pessoais
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium mb-2 text-salon-copper">Nome</label>
-                  <p className="text-white">{user?.nome || 'Não informado'}</p>
+    <div className="min-h-screen bg-gradient-to-br from-salon-dark via-salon-dark/95 to-salon-dark">
+      <div className="container mx-auto px-4 py-8">
+        <div className="max-w-4xl mx-auto">
+          <CustomerProfileManagement />
+          
+          <Separator className="my-8 bg-salon-gold/20" />
+          
+          {/* Pedidos em Andamento */}
+          <Card className="glass-card border-salon-gold/20 mb-8">
+            <CardHeader>
+              <CardTitle className="text-salon-gold flex items-center gap-2">
+                <Package size={20} />
+                Pedidos em Andamento
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {ordersLoading ? (
+                <div className="flex justify-center py-4">
+                  <div className="animate-spin w-6 h-6 border-2 border-salon-gold border-t-transparent rounded-full" />
                 </div>
-                <div>
-                  <label className="block text-sm font-medium mb-2 text-salon-copper">E-mail</label>
-                  <p className="text-white">{user?.email || 'Não informado'}</p>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-2 text-salon-copper">WhatsApp</label>
-                  <p className="text-white">{user?.whatsapp || 'Não informado'}</p>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-2 text-salon-copper">Tipo de Conta</label>
-                  <p className="text-white capitalize">{user?.tipo || 'Cliente'}</p>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="glass-card border-salon-gold/20">
-              <CardHeader>
-                <CardTitle className="text-salon-gold flex items-center gap-2">
-                  <Star size={20} />
-                  Programa de Fidelidade
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-center py-8">
-                  <div className="w-16 h-16 rounded-full bg-salon-gold/20 mx-auto mb-4 flex items-center justify-center">
-                    <Star size={24} className="text-salon-gold" />
-                  </div>
-                  <h3 className="text-lg font-semibold text-salon-gold mb-2">Em Breve!</h3>
-                  <p className="text-muted-foreground">
-                    Estamos preparando um programa de fidelidade especial para você.
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-
-            <div className="flex space-x-3">
-              <Button
-                variant="outline"
-                className="flex-1 border-salon-gold/30 text-salon-gold hover:bg-salon-gold/10 h-12"
-              >
-                <Settings className="mr-2" size={16} />
-                Configurações
-              </Button>
-              <Button
-                onClick={handleLogout}
-                variant="outline"
-                className="flex-1 border-red-400/30 text-red-400 hover:bg-red-400/10 h-12"
-              >
-                <LogOut className="mr-2" size={16} />
-                Sair
-              </Button>
-            </div>
-          </div>
-        </TabsContent>
-
-        <TabsContent value="appointments">
-          <div className="space-y-4">
-            <h2 className="text-xl font-semibold text-salon-gold mb-4">Meus Agendamentos</h2>
-            
-            {appointmentsLoading ? (
-              <div className="text-center py-8">
-                <p className="text-muted-foreground">Carregando agendamentos...</p>
-              </div>
-            ) : appointments.length === 0 ? (
-              <div className="text-center py-8">
-                <Calendar size={48} className="text-muted-foreground mx-auto mb-4" />
-                <p className="text-muted-foreground">Você ainda não possui agendamentos.</p>
-                <Button 
-                  onClick={() => navigate('/agendamento')}
-                  className="mt-4 bg-salon-gold hover:bg-salon-copper text-salon-dark"
-                >
-                  Fazer Agendamento
-                </Button>
-              </div>
-            ) : (
-              appointments.map((appointment) => (
-                <Card key={appointment.id} className="glass-card border-salon-gold/20">
-                  <CardContent className="p-4">
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <h3 className="font-semibold text-white">{appointment.servico.nome}</h3>
-                        <p className="text-sm text-salon-copper capitalize">
-                          {appointment.servico.categoria} • {appointment.servico.duracao} min
-                        </p>
-                        <p className="text-sm text-muted-foreground mt-1">
-                          {formatDate(appointment.data)} às {appointment.horario}
-                        </p>
-                        {appointment.valor && (
-                          <p className="text-salon-gold font-medium mt-1">
-                            R$ {appointment.valor.toFixed(2)}
-                          </p>
-                        )}
-                        {appointment.observacoes && (
-                          <p className="text-xs text-muted-foreground mt-2">
-                            <strong>Obs:</strong> {appointment.observacoes}
-                          </p>
-                        )}
-                        
-                        {/* Enhanced WhatsApp payment notice with R$ 50.00 amount */}
-                        {appointment.status === 'confirmado' && appointment.status_pagamento === 'pendente' && (
-                          <div className="mt-4 p-3 bg-salon-gold/10 rounded-lg border border-salon-gold/30">
-                            <p className="text-sm text-salon-gold mb-2 font-medium">
-                              💳 Sinal Solicitado - R$ 50,00
-                            </p>
-                            <p className="text-xs text-salon-copper mb-3">
-                              O valor do sinal é <strong>R$ 50,00</strong> e será abatido do valor total do seu atendimento após a confirmação do recebimento. Envie o comprovante pelo WhatsApp do salão.
-                            </p>
-                            <Button
-                              onClick={() => handleWhatsAppContact(appointment)}
-                              size="sm"
-                              className="bg-green-600 hover:bg-green-700 text-white font-medium"
-                            >
-                              <MessageCircle size={16} className="mr-2" />
-                              Enviar comprovante via WhatsApp
-                            </Button>
-                          </div>
-                        )}
-
-                        {/* Show when payment is confirmed */}
-                        {appointment.status === 'confirmado' && appointment.status_pagamento === 'pago' && (
-                          <div className="mt-4 p-3 bg-green-500/10 rounded-lg border border-green-500/30">
-                            <p className="text-sm text-green-400 font-medium">
-                              ✅ Sinal confirmado - R$ 50,00
-                            </p>
-                            <p className="text-xs text-green-300 mt-1">
-                              Seu sinal foi confirmado! Este valor será abatido no total do seu atendimento.
-                            </p>
-                          </div>
-                        )}
-                      </div>
-                      <div className="flex flex-col gap-2 ml-4">
-                        <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(appointment.status)}`}>
-                          {getStatusLabel(appointment.status)}
-                        </span>
-                        {appointment.status_pagamento && (
-                          <span className={`px-2 py-1 rounded text-xs ${
-                            appointment.status_pagamento === 'pago' 
-                              ? 'bg-green-500/20 text-green-400' 
-                              : 'bg-yellow-500/20 text-yellow-400'
-                          }`}>
-                            {appointment.status_pagamento === 'pago' ? 'Sinal Pago' : 'Sinal Pendente'}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))
-            )}
-          </div>
-        </TabsContent>
-
-        <TabsContent value="products">
-          <div className="space-y-4">
-            <h2 className="text-xl font-semibold text-salon-gold mb-4">Produtos a Venda</h2>
-            
-            {productsLoading ? (
-              <div className="text-center py-8">
-                <p className="text-muted-foreground">Carregando produtos...</p>
-              </div>
-            ) : products.length === 0 ? (
-              <div className="text-center py-8">
-                <Package size={48} className="text-muted-foreground mx-auto mb-4" />
-                <p className="text-muted-foreground">Nenhum produto disponível no momento.</p>
-              </div>
-            ) : (
-              <div className="grid gap-4">
-                {products.map((product) => (
-                  <Card key={product.id} className="glass-card border-salon-gold/20">
-                    <CardContent className="p-4">
-                      <div className="flex items-start space-x-4">
-                        {product.image && (
-                          <div className="flex-shrink-0">
-                            <img 
-                              src={product.image} 
-                              alt={product.name}
-                              className="w-20 h-20 object-cover rounded-lg"
-                              onError={(e) => {
-                                e.currentTarget.style.display = 'none';
-                              }}
-                            />
-                          </div>
-                        )}
-                        
-                        <div className="flex-1">
-                          <h3 className="font-semibold text-white text-lg">{product.name}</h3>
-                          <p className="text-sm text-salon-copper">{product.brand}</p>
-                          <p className="text-sm text-muted-foreground mt-1">{product.description}</p>
-                          
-                          <div className="flex items-center space-x-4 mt-3">
-                            <span className="text-salon-gold font-bold text-lg">
-                              R$ {product.price.toFixed(2)}
-                            </span>
-                            <span className={`text-sm px-2 py-1 rounded ${
-                              product.stock > 0
-                                ? 'bg-green-500/20 text-green-400' 
-                                : 'bg-red-500/20 text-red-400'
-                            }`}>
-                              {product.stock > 0 ? `${product.stock} disponível` : 'Esgotado'}
-                            </span>
-                            <span className="text-xs text-muted-foreground capitalize">
-                              {product.category}
-                            </span>
-                          </div>
-                        </div>
-                        
-                        <div className="flex flex-col space-y-2">
-                          <Button
-                            size="sm"
-                            disabled={product.stock === 0}
-                            className="bg-salon-gold hover:bg-salon-copper text-salon-dark font-medium h-10"
-                            onClick={() => navigate('/loja')}
-                          >
-                            Ver na Loja
-                          </Button>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            )}
-          </div>
-        </TabsContent>
-
-        <TabsContent value="purchases">
-          <div className="space-y-6">
-            <h2 className="text-xl font-semibold text-salon-gold mb-4">Minhas Compras</h2>
-            
-            {/* Pedidos em Andamento Section */}
-            {ordersLoading ? (
-              <div className="text-center py-4">
-                <p className="text-muted-foreground">Carregando pedidos...</p>
-              </div>
-            ) : orders.length > 0 && (
-              <div className="space-y-4">
-                <h3 className="text-lg font-medium text-salon-copper">Pedidos em Andamento</h3>
-                {orders.map((order) => (
-                  <Card key={order.id} className="glass-card border-salon-gold/20">
-                    <CardContent className="p-4">
-                      <div className="flex items-start justify-between mb-4">
+              ) : orders.length === 0 ? (
+                <p className="text-muted-foreground text-center py-4">
+                  Você não possui pedidos em andamento.
+                </p>
+              ) : (
+                <div className="space-y-4">
+                  {orders.map((order) => (
+                    <div key={order.id} className="glass-card border-salon-gold/10 p-4 rounded-lg">
+                      <div className="flex justify-between items-start mb-3">
                         <div>
-                          <h4 className="font-semibold text-white">
-                            Pedido #{order.id?.substring(0, 8)}
+                          <h4 className="font-medium text-salon-gold">
+                            Pedido #{order.id?.slice(-8)}
                           </h4>
                           <p className="text-sm text-muted-foreground">
-                            Realizado em {new Date(order.created_at!).toLocaleDateString('pt-BR')}
+                            {formatDate(order.created_at || '')}
                           </p>
-                          <div className="flex items-center gap-2 mt-2">
-                            <span className="text-salon-gold font-bold text-lg">
-                              R$ {(order.total_confirmado || order.total_estimado).toFixed(2)}
-                            </span>
-                            {order.frete_valor && order.frete_valor > 0 && (
-                              <span className="text-xs text-muted-foreground">
-                                (inclui frete: R$ {order.frete_valor.toFixed(2)})
-                              </span>
-                            )}
-                          </div>
                         </div>
-                        <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(order.status)}`}>
-                          {getStatusLabel(order.status)}
-                        </span>
+                        <Badge 
+                          className={`${getOrderStatusColor(order.status)} flex items-center gap-1`}
+                        >
+                          {getStatusIcon(order.status)}
+                          {getOrderStatusLabel(order.status)}
+                        </Badge>
                       </div>
-
-                      <div className="space-y-3">
-                        <h5 className="text-sm font-medium text-salon-copper">Itens:</h5>
-                        {order.itens.map((item, index) => (
-                          <div key={index} className="flex items-center space-x-3 bg-salon-dark/30 rounded-lg p-3">
-                            <div className="w-12 h-12 bg-gradient-to-br from-salon-gold/20 to-salon-copper/20 rounded-lg overflow-hidden flex-shrink-0">
-                              {item.image ? (
-                                <img 
-                                  src={item.image} 
-                                  alt={item.name}
-                                  className="w-full h-full object-cover"
-                                />
-                              ) : (
-                                <div className="w-full h-full flex items-center justify-center">
-                                  <span className="text-lg">🧴</span>
-                                </div>
-                              )}
-                            </div>
-                            
-                            <div className="flex-1">
-                              <h6 className="font-medium text-white text-sm">{item.name}</h6>
-                              <p className="text-xs text-salon-copper">{item.brand}</p>
-                              <p className="text-xs text-muted-foreground">
-                                Qtd: {item.quantity} • R$ {item.price.toFixed(2)} cada
-                              </p>
-                            </div>
-                            
-                            <div className="text-right">
-                              <p className="text-salon-gold font-medium">
-                                R$ {(item.price * item.quantity).toFixed(2)}
-                              </p>
-                            </div>
-                          </div>
-                        ))}
-                        
-                        <div className="mt-4 p-3 bg-salon-dark/50 rounded-lg">
-                          <div className="flex justify-between text-sm">
-                            <span className="text-white">Pagamento:</span>
-                            <span className="text-salon-gold">{order.metodo_pagamento.toUpperCase()}</span>
-                          </div>
-                          <div className="flex justify-between text-sm mt-1">
-                            <span className="text-white">Entrega:</span>
-                            <span className="text-salon-gold">
-                              {order.modalidade_entrega === 'entrega' ? 'Entrega' : 'Retirada'}
-                            </span>
-                          </div>
-                          {order.observacoes && (
-                            <div className="mt-2 pt-2 border-t border-salon-gold/20">
-                              <p className="text-xs text-muted-foreground">
-                                <strong>Obs:</strong> {order.observacoes}
-                              </p>
-                            </div>
-                          )}
+                      
+                      <div className="space-y-2">
+                        <div className="text-sm">
+                          <span className="text-muted-foreground">Itens: </span>
+                          {order.itens.length} produto(s)
+                        </div>
+                        <div className="text-sm">
+                          <span className="text-muted-foreground">Pagamento: </span>
+                          <span className="capitalize">{order.metodo_pagamento}</span>
+                        </div>
+                        <div className="text-sm">
+                          <span className="text-muted-foreground">Entrega: </span>
+                          <span className="capitalize">{order.modalidade_entrega}</span>
+                        </div>
+                        <div className="text-sm font-medium text-salon-gold">
+                          Total: R$ {(order.total_confirmado || order.total_estimado).toFixed(2)}
                         </div>
                       </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            )}
 
-            {/* Compras Finalizadas Section */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-medium text-salon-copper">Compras Finalizadas</h3>
-              
+                      {/* Detalhes dos itens */}
+                      <div className="mt-3 pt-3 border-t border-salon-gold/20">
+                        <h5 className="text-sm font-medium mb-2">Itens do pedido:</h5>
+                        <div className="space-y-1">
+                          {order.itens.map((item, index) => (
+                            <div key={index} className="flex justify-between text-sm">
+                              <span>{item.quantity}x {item.name}</span>
+                              <span>R$ {(item.price * item.quantity).toFixed(2)}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Compras Finalizadas */}
+          <Card className="glass-card border-salon-gold/20">
+            <CardHeader>
+              <CardTitle className="text-salon-gold flex items-center gap-2">
+                <ShoppingBag size={20} />
+                Compras Finalizadas
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
               {purchasesLoading ? (
-                <div className="text-center py-8">
-                  <p className="text-muted-foreground">Carregando compras...</p>
+                <div className="flex justify-center py-4">
+                  <div className="animate-spin w-6 h-6 border-2 border-salon-gold border-t-transparent rounded-full" />
                 </div>
               ) : purchases.length === 0 ? (
-                <div className="text-center py-8">
-                  <ShoppingCart size={48} className="text-muted-foreground mx-auto mb-4" />
-                  <p className="text-muted-foreground">Você ainda não realizou compras.</p>
-                  <Button 
-                    onClick={() => navigate('/loja')}
-                    className="mt-4 bg-salon-gold hover:bg-salon-copper text-salon-dark"
-                  >
-                    Ir às Compras
-                  </Button>
-                </div>
+                <p className="text-muted-foreground text-center py-4">
+                  Você ainda não fez nenhuma compra.
+                </p>
               ) : (
-                purchases.map((purchase) => (
-                  <Card key={purchase.id} className="glass-card border-salon-gold/20">
-                    <CardContent className="p-4">
-                      <div className="flex items-start justify-between mb-4">
+                <div className="space-y-4">
+                  {purchases.map((purchase) => (
+                    <div key={purchase.id} className="glass-card border-salon-gold/10 p-4 rounded-lg">
+                      <div className="flex justify-between items-start mb-2">
                         <div>
-                          <h3 className="font-semibold text-white">
-                            Compra #{purchase.id.substring(0, 8)}
-                          </h3>
+                          <h4 className="font-medium text-salon-gold">
+                            Compra #{purchase.id.slice(-8)}
+                          </h4>
                           <p className="text-sm text-muted-foreground">
-                            Realizada em {formatPurchaseDate(purchase.data_venda)}
-                          </p>
-                          <p className="text-salon-gold font-bold text-lg">
-                            R$ {purchase.total_final.toFixed(2)}
+                            {formatDate(purchase.data_venda)}
                           </p>
                         </div>
-                        <span className="px-3 py-1 rounded-full text-xs font-medium bg-green-500/20 text-green-400">
-                          Entregue
-                        </span>
+                        <Badge className={getStatusColor(purchase.status)}>
+                          {getStatusLabel(purchase.status)}
+                        </Badge>
                       </div>
-
-                      <div className="space-y-3">
-                        <h4 className="text-sm font-medium text-salon-copper">Produtos:</h4>
-                        {purchase.itens.map((item, index) => (
-                          <div key={index} className="flex items-center space-x-3 bg-salon-dark/30 rounded-lg p-3">
-                            <div className="w-12 h-12 bg-gradient-to-br from-salon-gold/20 to-salon-copper/20 rounded-lg overflow-hidden flex-shrink-0">
-                              {item.produto.imagem ? (
-                                <img 
-                                  src={item.produto.imagem} 
-                                  alt={item.produto.nome}
-                                  className="w-full h-full object-cover"
-                                />
-                              ) : (
-                                <div className="w-full h-full flex items-center justify-center">
-                                  <span className="text-lg">🧴</span>
-                                </div>
-                              )}
-                            </div>
-                            
-                            <div className="flex-1">
-                              <h5 className="font-medium text-white text-sm">{item.produto.nome}</h5>
-                              <p className="text-sm text-salon-copper">{item.produto.marca}</p>
-                              <p className="text-sm text-muted-foreground">
-                                Qtd: {item.quantidade} • R$ {item.preco_unitario.toFixed(2)} cada
-                              </p>
-                            </div>
-                            
-                            <div className="text-right">
-                              <p className="text-salon-gold font-medium">
-                                R$ {item.subtotal.toFixed(2)}
-                              </p>
-                            </div>
+                      
+                      <div className="space-y-2">
+                        <div className="text-sm">
+                          <span className="text-muted-foreground">Itens: </span>
+                          {purchase.itens?.length || 0} produto(s)
+                        </div>
+                        
+                        {purchase.forma_pagamento && (
+                          <div className="text-sm">
+                            <span className="text-muted-foreground">Forma de pagamento: </span>
+                            {purchase.forma_pagamento}
                           </div>
-                        ))}
+                        )}
+                        
+                        <div className="flex justify-between items-center pt-2 border-t border-salon-gold/20">
+                          <span className="font-medium">Total:</span>
+                          <span className="font-bold text-salon-gold">
+                            R$ {purchase.total_final?.toFixed(2)}
+                          </span>
+                        </div>
                       </div>
-                    </CardContent>
-                  </Card>
-                ))
+                    </div>
+                  ))}
+                </div>
               )}
-            </div>
-          </div>
-        </TabsContent>
-      </Tabs>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
     </div>
   );
 };

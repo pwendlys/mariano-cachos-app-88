@@ -57,21 +57,33 @@ export const OrderSaleManager: React.FC<OrderSaleManagerProps> = ({
 
       if (itensError) throw itensError;
 
-      // Update product stock
+      // Update product stock directly
       for (const item of order.itens) {
-        const { error: stockError } = await supabase
-          .rpc('update_product_stock', {
-            product_id: item.id,
-            quantity_sold: item.quantity
-          });
+        const { data: produto, error: fetchError } = await supabase
+          .from('produtos')
+          .select('estoque')
+          .eq('id', item.id)
+          .single();
 
-        if (stockError) {
-          console.error('Erro ao atualizar estoque:', stockError);
+        if (fetchError) {
+          console.error('Erro ao buscar produto:', fetchError);
+          continue;
+        }
+
+        const novoEstoque = Math.max(0, produto.estoque - item.quantity);
+
+        const { error: updateError } = await supabase
+          .from('produtos')
+          .update({ estoque: novoEstoque })
+          .eq('id', item.id);
+
+        if (updateError) {
+          console.error('Erro ao atualizar estoque:', updateError);
           // Continue even if stock update fails
         }
       }
 
-      // Update order status to confirmado (but don't change it to cancelado)
+      // Update order status to confirmado
       const { error: orderError } = await supabase
         .from('pedidos')
         .update({ 
