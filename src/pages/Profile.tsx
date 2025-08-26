@@ -3,7 +3,7 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import CustomerProfileManagement from '@/components/CustomerProfileManagement';
+import UserProfileHeader from '@/components/UserProfileHeader';
 import { useUserPurchases } from '@/hooks/useUserPurchases';
 import { useUserOrders } from '@/hooks/useUserOrders';
 import { Package, Clock, CheckCircle, XCircle, ShoppingBag } from 'lucide-react';
@@ -62,7 +62,7 @@ const Profile = () => {
     <div className="min-h-screen bg-gradient-to-br from-salon-dark via-salon-dark/95 to-salon-dark">
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-4xl mx-auto">
-          <CustomerProfileManagement />
+          <UserProfileHeader />
           
           <Separator className="my-8 bg-salon-gold/20" />
           
