@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { CalendarDays, Users, Package, DollarSign, Receipt, UserCheck, Gallery, Settings, ShoppingCart } from 'lucide-react';
+import { CalendarDays, Users, Package, DollarSign, Receipt, UserCheck, Image as ImageIcon, Settings, ShoppingCart } from 'lucide-react';
 import ServiceManagement from '@/components/ServiceManagement';
 import ProductManagement from '@/components/ProductManagement';
 import ProfessionalsTabManager from '@/components/ProfessionalsTabManager';
@@ -86,7 +86,7 @@ const Dashboard = ({ onEditService }: DashboardProps) => {
             value="gallery" 
             className="data-[state=active]:bg-salon-gold data-[state=active]:text-salon-dark text-salon-gold"
           >
-            <Gallery className="h-4 w-4 mr-2" />
+            <ImageIcon className="h-4 w-4 mr-2" />
             Galeria
           </TabsTrigger>
           <TabsTrigger 
@@ -103,7 +103,7 @@ const Dashboard = ({ onEditService }: DashboardProps) => {
         </TabsContent>
 
         <TabsContent value="services" className="space-y-4">
-          <ServiceManagement onEditService={onEditService} />
+          <ServiceManagement />
         </TabsContent>
 
         <TabsContent value="products" className="space-y-4">
