@@ -10,7 +10,7 @@ import { Package, Grid, List } from 'lucide-react';
 
 const ProductsForSale = () => {
   const { products, loading } = useSupabaseProducts('ecommerce');
-  const { addToCart, toggleFavorite, favorites } = useSharedCart();
+  const { addToCart } = useSharedCart();
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
   const handleAddToCart = (product: any, quantity: number) => {
@@ -18,7 +18,8 @@ const ProductsForSale = () => {
   };
 
   const handleToggleFavorite = (productId: string) => {
-    toggleFavorite(productId);
+    // Favorites functionality not implemented yet
+    console.log('Favorite toggled for product:', productId);
   };
 
   if (loading) {
@@ -95,7 +96,7 @@ const ProductsForSale = () => {
                 viewMode={viewMode}
                 onAddToCart={handleAddToCart}
                 onToggleFavorite={handleToggleFavorite}
-                isFavorite={favorites.includes(product.id)}
+                isFavorite={false}
               />
             ))}
           </div>
