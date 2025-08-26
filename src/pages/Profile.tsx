@@ -3,13 +3,13 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { CustomerProfileManagement } from '@/components/CustomerProfileManagement';
+import CustomerProfileManagement from '@/components/CustomerProfileManagement';
 import { useUserPurchases } from '@/hooks/useUserPurchases';
 import { useUserOrders } from '@/hooks/useUserOrders';
 import { Package, Clock, CheckCircle, XCircle, ShoppingBag } from 'lucide-react';
 
 const Profile = () => {
-  const { purchases, loading: purchasesLoading, getStatusLabel, getStatusColor } = useUserPurchases();
+  const { purchases, loading: purchasesLoading, formatDate } = useUserPurchases();
   const { 
     orders, 
     loading: ordersLoading, 
@@ -17,7 +17,7 @@ const Profile = () => {
     getStatusColor: getOrderStatusColor 
   } = useUserOrders();
 
-  const formatDate = (dateString: string) => {
+  const formatDateTime = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('pt-BR', {
       day: '2-digit',
       month: '2-digit',
@@ -37,6 +37,24 @@ const Profile = () => {
         return <XCircle size={14} />;
       default:
         return <Package size={14} />;
+    }
+  };
+
+  const getPurchaseStatusLabel = (status: string) => {
+    switch (status) {
+      case 'finalizada': return 'Finalizada';
+      case 'pendente': return 'Pendente';
+      case 'cancelada': return 'Cancelada';
+      default: return status;
+    }
+  };
+
+  const getPurchaseStatusColor = (status: string) => {
+    switch (status) {
+      case 'finalizada': return 'bg-green-500/20 text-green-400';
+      case 'pendente': return 'bg-yellow-500/20 text-yellow-400';
+      case 'cancelada': return 'bg-red-500/20 text-red-400';
+      default: return 'bg-gray-500/20 text-gray-400';
     }
   };
 
@@ -75,7 +93,7 @@ const Profile = () => {
                             Pedido #{order.id?.slice(-8)}
                           </h4>
                           <p className="text-sm text-muted-foreground">
-                            {formatDate(order.created_at || '')}
+                            {formatDateTime(order.created_at || '')}
                           </p>
                         </div>
                         <Badge 
@@ -153,8 +171,8 @@ const Profile = () => {
                             {formatDate(purchase.data_venda)}
                           </p>
                         </div>
-                        <Badge className={getStatusColor(purchase.status)}>
-                          {getStatusLabel(purchase.status)}
+                        <Badge className={getPurchaseStatusColor(purchase.status)}>
+                          {getPurchaseStatusLabel(purchase.status)}
                         </Badge>
                       </div>
                       
@@ -163,13 +181,6 @@ const Profile = () => {
                           <span className="text-muted-foreground">Itens: </span>
                           {purchase.itens?.length || 0} produto(s)
                         </div>
-                        
-                        {purchase.forma_pagamento && (
-                          <div className="text-sm">
-                            <span className="text-muted-foreground">Forma de pagamento: </span>
-                            {purchase.forma_pagamento}
-                          </div>
-                        )}
                         
                         <div className="flex justify-between items-center pt-2 border-t border-salon-gold/20">
                           <span className="font-medium">Total:</span>
