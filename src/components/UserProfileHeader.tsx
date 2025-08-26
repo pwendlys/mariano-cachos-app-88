@@ -6,7 +6,7 @@ import { useAuth } from '@/hooks/useAuth';
 import AvatarUpload from '@/components/AvatarUpload';
 
 const UserProfileHeader = () => {
-  const { user } = useAuth();
+  const { user, updateUserAvatar } = useAuth();
 
   if (!user) {
     return null;
@@ -30,12 +30,21 @@ const UserProfileHeader = () => {
     }
   };
 
+  const handleAvatarUpdate = (newAvatarUrl: string) => {
+    updateUserAvatar(newAvatarUrl);
+  };
+
   return (
     <Card className="glass-card border-salon-gold/20 mb-8">
       <CardContent className="p-6">
         <div className="flex flex-col md:flex-row items-center gap-6">
           <div className="flex-shrink-0">
-            <AvatarUpload />
+            <AvatarUpload 
+              currentAvatarUrl={user.avatar_url}
+              userId={user.id}
+              userName={user.nome}
+              onAvatarUpdate={handleAvatarUpdate}
+            />
           </div>
           
           <div className="flex-1 text-center md:text-left">
