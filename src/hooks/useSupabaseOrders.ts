@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { CartItem } from '@/hooks/useSharedCart';
+import { Database } from '@/integrations/supabase/types';
 
 export interface Address {
   cep: string;
@@ -36,6 +37,8 @@ export interface OrderData {
   created_at?: string;
   updated_at?: string;
 }
+
+type DbPedido = Database['public']['Tables']['pedidos']['Row'];
 
 export const useSupabaseOrders = () => {
   const [loading, setLoading] = useState(false);
@@ -113,13 +116,17 @@ export const useSupabaseOrders = () => {
         return null;
       }
 
+      // Prepare data for insertion, casting address to Json if needed
+      const insertData = {
+        ...orderData,
+        cliente_id: clienteId,
+        endereco_entrega: orderData.endereco_entrega ? JSON.stringify(orderData.endereco_entrega) as any : null,
+        itens: JSON.stringify(orderData.itens) as any
+      };
+
       const { data: order, error } = await supabase
         .from('pedidos')
-        .insert({
-          ...orderData,
-          cliente_id: clienteId,
-          user_email: user.email
-        })
+        .insert(insertData)
         .select()
         .single();
 
@@ -134,7 +141,18 @@ export const useSupabaseOrders = () => {
       }
 
       console.log('Pedido criado com sucesso:', order);
-      return order;
+      
+      // Convert the database response back to OrderData format
+      const orderResponse: OrderData = {
+        ...order,
+        status: order.status as 'aguardando_confirmacao' | 'confirmado' | 'cancelado',
+        metodo_pagamento: order.metodo_pagamento as 'pix' | 'cartao' | 'dinheiro',
+        modalidade_entrega: order.modalidade_entrega as 'retirada' | 'entrega',
+        endereco_entrega: order.endereco_entrega ? JSON.parse(order.endereco_entrega as string) : undefined,
+        itens: JSON.parse(order.itens as string)
+      };
+      
+      return orderResponse;
     } catch (error) {
       console.error('Erro ao criar pedido:', error);
       toast({
@@ -161,7 +179,17 @@ export const useSupabaseOrders = () => {
         return [];
       }
 
-      return orders || [];
+      // Convert database responses to OrderData format
+      const orderResponses: OrderData[] = (orders || []).map((order: DbPedido) => ({
+        ...order,
+        status: order.status as 'aguardando_confirmacao' | 'confirmado' | 'cancelado',
+        metodo_pagamento: order.metodo_pagamento as 'pix' | 'cartao' | 'dinheiro',
+        modalidade_entrega: order.modalidade_entrega as 'retirada' | 'entrega',
+        endereco_entrega: order.endereco_entrega ? JSON.parse(order.endereco_entrega as string) : undefined,
+        itens: JSON.parse(order.itens as string)
+      }));
+
+      return orderResponses;
     } catch (error) {
       console.error('Erro ao buscar pedidos pendentes:', error);
       return [];

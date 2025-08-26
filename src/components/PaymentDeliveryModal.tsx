@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { X, CreditCard, Banknote, Smartphone, MapPin, Home } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -12,7 +11,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { CartItem } from '@/hooks/useSharedCart';
-import { Address } from '@/hooks/useSupabaseOrders';
+import { Address, useSupabaseOrders } from '@/hooks/useSupabaseOrders';
 
 interface PaymentDeliveryModalProps {
   isOpen: boolean;
@@ -53,6 +52,7 @@ const PaymentDeliveryModal = ({
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
+  const { createOrder } = useSupabaseOrders();
 
   // Buscar endereço do cliente se existir
   useEffect(() => {
@@ -128,10 +128,17 @@ const PaymentDeliveryModal = ({
     setLoading(true);
 
     try {
-      const { useSupabaseOrders } = await import('@/hooks/useSupabaseOrders');
-      const { createOrder } = useSupabaseOrders();
+      if (!user?.email) {
+        toast({
+          title: "Erro de autenticação",
+          description: "É necessário estar logado para criar um pedido.",
+          variant: "destructive",
+        });
+        return;
+      }
 
       const orderData = {
+        user_email: user.email,
         metodo_pagamento: paymentMethod,
         modalidade_entrega: deliveryMode,
         endereco_entrega: deliveryMode === 'entrega' ? address : undefined,
