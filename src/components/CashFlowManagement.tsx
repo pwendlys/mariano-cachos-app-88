@@ -182,7 +182,7 @@ const CashFlowManagement = () => {
     }
   };
 
-  const isAdmin = user?.user_metadata?.tipo === 'admin';
+  const isAdmin = user?.user_metadata?.tipo === 'admin' || user?.app_metadata?.tipo === 'admin';
 
   if (loading && entries.length === 0) {
     return (
