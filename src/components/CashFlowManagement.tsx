@@ -1,10 +1,10 @@
-
 import React, { useState } from 'react';
-import { Plus, TrendingUp, TrendingDown, DollarSign, Eye, Filter, Calendar, CreditCard } from 'lucide-react';
+import { Plus, TrendingUp, TrendingDown, DollarSign, Eye, Filter, Calendar, CreditCard, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
@@ -14,6 +14,8 @@ import { useSupabaseCashFlow, CashFlowFilters as CashFlowFiltersType } from '@/h
 import CashFlowFilters from '@/components/CashFlowFilters';
 import AppointmentsTab from '@/components/AppointmentsTab';
 import { format } from 'date-fns';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
 
 const CashFlowManagement = () => {
   const { 
@@ -27,10 +29,13 @@ const CashFlowManagement = () => {
     updateAppointmentCollectionStatus 
   } = useSupabaseCashFlow();
   const { toast } = useToast();
+  const { user } = useAuth();
   
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [selectedEntry, setSelectedEntry] = useState<any>(null);
   const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [deletingEntry, setDeletingEntry] = useState(false);
   const [filters, setFilters] = useState<CashFlowFiltersType>({
     filterType: 'all'
   });
@@ -137,6 +142,47 @@ const CashFlowManagement = () => {
   const getTotalSaidas = () => {
     return entries.filter(e => e.tipo === 'saida').reduce((sum, e) => sum + Number(e.valor), 0);
   };
+
+  const handleDeleteEntry = async (entryId: string) => {
+    try {
+      setDeletingEntry(true);
+      
+      const { error } = await supabase
+        .from('fluxo_caixa')
+        .delete()
+        .eq('id', entryId);
+
+      if (error) {
+        console.error('Erro ao excluir lançamento:', error);
+        toast({
+          title: "Erro",
+          description: "Erro ao excluir o lançamento. Tente novamente.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      toast({
+        title: "Sucesso",
+        description: "Lançamento excluído com sucesso.",
+      });
+
+      setIsDetailsDialogOpen(false);
+      setIsDeleteDialogOpen(false);
+      fetchEntries(filters);
+    } catch (error) {
+      console.error('Erro ao excluir lançamento:', error);
+      toast({
+        title: "Erro",
+        description: "Erro inesperado ao excluir o lançamento.",
+        variant: "destructive"
+      });
+    } finally {
+      setDeletingEntry(false);
+    }
+  };
+
+  const isAdmin = user?.user_metadata?.tipo === 'admin';
 
   if (loading && entries.length === 0) {
     return (
@@ -500,14 +546,39 @@ const CashFlowManagement = () => {
                 </div>
               )}
               
-              {selectedEntry.metadata && Object.keys(selectedEntry.metadata).length > 0 && (
-                <div>
-                  <p className="text-sm text-salon-copper">Informações Adicionais</p>
-                  <div className="bg-salon-gold/10 p-3 rounded text-sm">
-                    <pre className="text-white whitespace-pre-wrap">
-                      {JSON.stringify(selectedEntry.metadata, null, 2)}
-                    </pre>
-                  </div>
+              {isAdmin && (
+                <div className="pt-4 border-t border-salon-gold/20">
+                  <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+                    <AlertDialogTrigger asChild>
+                      <Button 
+                        variant="destructive" 
+                        className="w-full bg-red-600 hover:bg-red-700"
+                      >
+                        <Trash2 className="mr-2" size={16} />
+                        Apagar Lançamento
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent className="glass-card border-salon-gold/30 text-white">
+                      <AlertDialogHeader>
+                        <AlertDialogTitle className="text-salon-gold">Confirmar Exclusão</AlertDialogTitle>
+                        <AlertDialogDescription className="text-salon-copper">
+                          Tem certeza que deseja excluir este lançamento? Esta ação não pode ser desfeita.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel className="border-salon-gold/30 text-salon-gold hover:bg-salon-gold/10">
+                          Cancelar
+                        </AlertDialogCancel>
+                        <AlertDialogAction 
+                          onClick={() => handleDeleteEntry(selectedEntry.id)}
+                          disabled={deletingEntry}
+                          className="bg-red-600 hover:bg-red-700 text-white"
+                        >
+                          {deletingEntry ? 'Excluindo...' : 'Excluir'}
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
                 </div>
               )}
             </div>
