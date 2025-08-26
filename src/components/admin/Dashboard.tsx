@@ -79,9 +79,9 @@ const Dashboard = () => {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="7">Últimos 7 dias</SelectItem>
-              <SelectItem value="30">Últimos 30 dias</SelectItem>
-              <SelectItem value="90">Últimos 90 dias</SelectItem>
+              <SelectItem value="30">Último mês</SelectItem>
+              <SelectItem value="90">Últimos 3 meses</SelectItem>
+              <SelectItem value="180">Últimos 6 meses</SelectItem>
               <SelectItem value="365">Último ano</SelectItem>
             </SelectContent>
           </Select>

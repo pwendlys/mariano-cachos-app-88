@@ -62,30 +62,42 @@ export const useAdvancedDashboardMetrics = (timeframe: string = '30') => {
         .select('*', { count: 'exact', head: true })
         .gte('data', daysAgo.toISOString().split('T')[0]);
 
-      // Buscar dados mensais dos últimos 6 meses
+      // Buscar dados mensais dos últimos 6 meses com dados reais
       const sixMonthsAgo = new Date();
       sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
 
-      const { data: monthlyRevenueData } = await supabase
+      const { data: monthlyFluxoData } = await supabase
         .from('fluxo_caixa')
         .select('valor, data, tipo')
         .gte('data', sixMonthsAgo.toISOString().split('T')[0]);
 
+      // Criar mapa dos últimos 6 meses
       const monthlyDataMap = new Map();
-      monthlyRevenueData?.forEach(item => {
+      
+      // Inicializar os últimos 6 meses com valor 0
+      for (let i = 5; i >= 0; i--) {
+        const date = new Date();
+        date.setMonth(date.getMonth() - i);
+        const monthKey = date.toLocaleDateString('pt-BR', { 
+          year: 'numeric', 
+          month: 'short' 
+        });
+        monthlyDataMap.set(monthKey, { revenue: 0, expenses: 0 });
+      }
+
+      // Preencher com dados reais
+      monthlyFluxoData?.forEach(item => {
         const monthKey = new Date(item.data).toLocaleDateString('pt-BR', { 
           year: 'numeric', 
           month: 'short' 
         });
         
-        if (!monthlyDataMap.has(monthKey)) {
-          monthlyDataMap.set(monthKey, { revenue: 0, expenses: 0 });
-        }
-        
-        if (item.tipo === 'entrada') {
-          monthlyDataMap.get(monthKey).revenue += Number(item.valor);
-        } else {
-          monthlyDataMap.get(monthKey).expenses += Number(item.valor);
+        if (monthlyDataMap.has(monthKey)) {
+          if (item.tipo === 'entrada') {
+            monthlyDataMap.get(monthKey).revenue += Number(item.valor);
+          } else {
+            monthlyDataMap.get(monthKey).expenses += Number(item.valor);
+          }
         }
       });
 
@@ -128,19 +140,41 @@ export const useAdvancedDashboardMetrics = (timeframe: string = '30') => {
         .sort((a, b) => b.total_appointments - a.total_appointments)
         .slice(0, 5);
 
-      // Buscar produtos mais vendidos (simulação baseada no estoque)
+      // Buscar produtos mais vendidos com dados reais das vendas
       const { data: topProductsData } = await supabase
-        .from('produtos')
-        .select('id, nome, categoria, estoque')
-        .eq('ativo', true)
-        .order('estoque', { ascending: false })
-        .limit(5);
+        .from('itens_venda')
+        .select(`
+          produto_id,
+          quantidade,
+          preco_unitario,
+          subtotal,
+          produtos!inner(nome, categoria)
+        `)
+        .gte('created_at', daysAgo.toISOString());
 
-      const topProducts = topProductsData?.map(product => ({
-        ...product,
-        vendas: Math.floor(Math.random() * 50) + 10,
-        revenue: (Math.floor(Math.random() * 50) + 10) * Math.floor(Math.random() * 100) + 50
-      })) || [];
+      const productsMap = new Map();
+      topProductsData?.forEach(item => {
+        const productId = item.produto_id;
+        const productName = item.produtos.nome;
+        const productCategory = item.produtos.categoria;
+        
+        if (!productsMap.has(productId)) {
+          productsMap.set(productId, {
+            id: productId,
+            nome: productName,
+            categoria: productCategory,
+            vendas: 0,
+            revenue: 0
+          });
+        }
+        
+        productsMap.get(productId).vendas += item.quantidade;
+        productsMap.get(productId).revenue += Number(item.subtotal);
+      });
+
+      const topProducts = Array.from(productsMap.values())
+        .sort((a, b) => b.vendas - a.vendas)
+        .slice(0, 5);
 
       setMetrics({
         totalRevenue,

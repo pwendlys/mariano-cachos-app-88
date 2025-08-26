@@ -2,7 +2,7 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
-import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Legend } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, ResponsiveContainer, Legend, CartesianGrid } from 'recharts';
 import type { AdvancedDashboardMetrics } from '@/hooks/useAdvancedDashboardMetrics';
 
 interface RevenueExpensesChartProps {
@@ -21,6 +21,14 @@ const RevenueExpensesChart = ({ monthlyData }: RevenueExpensesChartProps) => {
     }
   };
 
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency: 'BRL',
+      minimumFractionDigits: 0
+    }).format(value);
+  };
+
   return (
     <Card className="glass-card border-salon-gold/20">
       <CardHeader>
@@ -29,7 +37,8 @@ const RevenueExpensesChart = ({ monthlyData }: RevenueExpensesChartProps) => {
       <CardContent>
         <ChartContainer config={chartConfig} className="h-[300px]">
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={monthlyData}>
+            <LineChart data={monthlyData}>
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--salon-gold))" opacity={0.1} />
               <XAxis 
                 dataKey="month" 
                 stroke="hsl(var(--salon-gold))"
@@ -38,20 +47,34 @@ const RevenueExpensesChart = ({ monthlyData }: RevenueExpensesChartProps) => {
               <YAxis 
                 stroke="hsl(var(--salon-gold))"
                 tick={{ fill: 'hsl(var(--salon-gold))' }}
+                tickFormatter={formatCurrency}
               />
-              <ChartTooltip content={<ChartTooltipContent />} />
-              <Legend />
-              <Bar
+              <ChartTooltip 
+                content={<ChartTooltipContent />}
+                formatter={(value: number) => [formatCurrency(value)]}
+              />
+              <Legend 
+                wrapperStyle={{ color: 'hsl(var(--salon-gold))' }}
+              />
+              <Line
+                type="monotone"
                 dataKey="revenue"
-                fill="hsl(var(--salon-gold))"
+                stroke="hsl(var(--salon-gold))"
+                strokeWidth={3}
                 name="Receita"
+                dot={{ fill: 'hsl(var(--salon-gold))', strokeWidth: 2, r: 4 }}
+                activeDot={{ r: 6, stroke: 'hsl(var(--salon-gold))', strokeWidth: 2 }}
               />
-              <Bar
+              <Line
+                type="monotone"
                 dataKey="expenses"
-                fill="hsl(0, 84%, 60%)"
+                stroke="hsl(0, 84%, 60%)"
+                strokeWidth={3}
                 name="Despesas"
+                dot={{ fill: 'hsl(0, 84%, 60%)', strokeWidth: 2, r: 4 }}
+                activeDot={{ r: 6, stroke: 'hsl(0, 84%, 60%)', strokeWidth: 2 }}
               />
-            </BarChart>
+            </LineChart>
           </ResponsiveContainer>
         </ChartContainer>
       </CardContent>
