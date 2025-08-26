@@ -721,6 +721,87 @@ export type Database = {
           },
         ]
       }
+      pedidos: {
+        Row: {
+          cliente_id: string | null
+          created_at: string
+          cupom_id: string | null
+          desconto: number
+          endereco_entrega: Json | null
+          frete_valor: number | null
+          id: string
+          itens: Json
+          juros_percentual: number | null
+          juros_valor: number | null
+          metodo_pagamento: string
+          modalidade_entrega: string
+          observacoes: string | null
+          status: string
+          subtotal: number
+          total_confirmado: number | null
+          total_estimado: number
+          updated_at: string
+          user_email: string
+        }
+        Insert: {
+          cliente_id?: string | null
+          created_at?: string
+          cupom_id?: string | null
+          desconto?: number
+          endereco_entrega?: Json | null
+          frete_valor?: number | null
+          id?: string
+          itens?: Json
+          juros_percentual?: number | null
+          juros_valor?: number | null
+          metodo_pagamento: string
+          modalidade_entrega: string
+          observacoes?: string | null
+          status?: string
+          subtotal?: number
+          total_confirmado?: number | null
+          total_estimado?: number
+          updated_at?: string
+          user_email: string
+        }
+        Update: {
+          cliente_id?: string | null
+          created_at?: string
+          cupom_id?: string | null
+          desconto?: number
+          endereco_entrega?: Json | null
+          frete_valor?: number | null
+          id?: string
+          itens?: Json
+          juros_percentual?: number | null
+          juros_valor?: number | null
+          metodo_pagamento?: string
+          modalidade_entrega?: string
+          observacoes?: string | null
+          status?: string
+          subtotal?: number
+          total_confirmado?: number | null
+          total_estimado?: number
+          updated_at?: string
+          user_email?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pedidos_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pedidos_cupom_id_fkey"
+            columns: ["cupom_id"]
+            isOneToOne: false
+            referencedRelation: "cupons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       produtos: {
         Row: {
           ativo: boolean | null

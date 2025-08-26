@@ -1,16 +1,18 @@
+
 import React, { useState } from 'react';
 import { ShoppingCart, Minus, Plus, Trash2, Receipt } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useSharedCart } from '@/hooks/useSharedCart';
-import { useSupabaseSales } from '@/hooks/useSupabaseSales';
 import { useCoupons } from '@/hooks/useCoupons';
-import { useAbacatePayment } from '@/hooks/useAbacatePayment';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 import CouponInput from '@/components/CouponInput';
 import PIXPaymentFormModal from '@/components/PIXPaymentFormModal';
+import PaymentDeliveryModal from '@/components/PaymentDeliveryModal';
+import { useSupabaseSales } from '@/hooks/useSupabaseSales';
+import { useAbacatePayment } from '@/hooks/useAbacatePayment';
 
 const SupabaseCart = () => {
   const { cart, updateQuantity, removeFromCart, clearCart, getTotalItems, getTotalPrice } = useSharedCart();
@@ -22,6 +24,7 @@ const SupabaseCart = () => {
   const navigate = useNavigate();
   
   const [showPixModal, setShowPixModal] = useState(false);
+  const [showPaymentDeliveryModal, setShowPaymentDeliveryModal] = useState(false);
 
   const totalPrice = getTotalPrice();
   const discountAmount = calculateDiscount(totalPrice, appliedCoupon);
@@ -49,7 +52,21 @@ const SupabaseCart = () => {
       return;
     }
 
+    // Abrir modal de escolha de pagamento e entrega
+    setShowPaymentDeliveryModal(true);
+  };
+
+  const handlePixPayment = () => {
+    // Usar o fluxo antigo do PIX (direto)
     setShowPixModal(true);
+  };
+
+  const handleOrderCreated = () => {
+    // Limpar carrinho e cupom após criar pedido
+    clearCart();
+    removeCoupon();
+    // Redirecionar para a loja
+    navigate('/loja');
   };
 
   const handlePaymentConfirmed = async (pixKey: string, qrCodeData?: string, transactionId?: string): Promise<boolean> => {
@@ -201,23 +218,6 @@ const SupabaseCart = () => {
         onCouponApply={() => {}} // Handled internally by the hook
       />
 
-      {/* Payment Method - Only PIX */}
-      <Card className="glass-card border-salon-gold/20">
-        <CardHeader>
-          <CardTitle className="text-salon-gold">Forma de Pagamento</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="bg-salon-gold/10 border border-salon-gold/30 rounded-lg p-4 text-center">
-            <div className="text-salon-gold font-bold text-lg mb-2">
-              💳 Pagamento via PIX
-            </div>
-            <p className="text-sm text-salon-copper">
-              Método seguro e instantâneo através da API AbacatePay
-            </p>
-          </div>
-        </CardContent>
-      </Card>
-
       {/* Summary */}
       <Card className="glass-card border-salon-gold/20">
         <CardContent className="p-4">
@@ -236,7 +236,7 @@ const SupabaseCart = () => {
             
             <div className="border-t border-salon-gold/20 pt-2">
               <div className="flex justify-between text-salon-gold font-bold text-lg">
-                <span>Total Final:</span>
+                <span>Total:</span>
                 <span>R$ {finalTotal.toFixed(2)}</span>
               </div>
             </div>
@@ -256,7 +256,7 @@ const SupabaseCart = () => {
           ) : (
             <Receipt className="mr-2" size={20} />
           )}
-          {(saleLoading || pixLoading) ? 'Processando...' : `Pagar com PIX - R$ ${finalTotal.toFixed(2)}`}
+          {(saleLoading || pixLoading) ? 'Processando...' : 'Escolher Pagamento e Entrega'}
         </Button>
 
         <Button
@@ -267,6 +267,19 @@ const SupabaseCart = () => {
           Continuar Comprando
         </Button>
       </div>
+
+      {/* Payment & Delivery Modal */}
+      <PaymentDeliveryModal
+        isOpen={showPaymentDeliveryModal}
+        onClose={() => setShowPaymentDeliveryModal(false)}
+        cartItems={cart}
+        totalAmount={totalPrice}
+        discountAmount={discountAmount}
+        finalTotal={finalTotal}
+        appliedCoupon={appliedCoupon}
+        onPixPayment={handlePixPayment}
+        onOrderCreated={handleOrderCreated}
+      />
 
       {/* PIX Payment Form Modal */}
       <PIXPaymentFormModal
