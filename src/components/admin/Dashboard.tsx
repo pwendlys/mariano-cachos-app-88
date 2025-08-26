@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -6,7 +5,7 @@ import { CalendarDays, Users, Package, DollarSign, Receipt, UserCheck, Image as 
 import ServiceManagement from '@/components/ServiceManagement';
 import ProductManagement from '@/components/ProductManagement';
 import ProfessionalsTabManager from '@/components/ProfessionalsTabManager';
-import AppointmentsTab from '@/components/AppointmentsTab';
+import AppointmentsTabWrapper from '@/components/admin/AppointmentsTabWrapper';
 import CashFlowManagement from '@/components/CashFlowManagement';
 import GalleryManagement from '@/components/GalleryManagement';
 import BannerManagement from '@/components/BannerManagement';
@@ -99,7 +98,7 @@ const Dashboard = ({ onEditService }: DashboardProps) => {
         </TabsList>
 
         <TabsContent value="appointments" className="space-y-4">
-          <AppointmentsTab />
+          <AppointmentsTabWrapper />
         </TabsContent>
 
         <TabsContent value="services" className="space-y-4">
