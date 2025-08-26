@@ -7,13 +7,13 @@ const AppointmentsTabWrapper = () => {
   const { 
     appointments, 
     loading, 
-    updateCollectionStatus 
+    updateAppointmentCollectionStatus 
   } = useSupabaseCashFlow();
 
   return (
     <AppointmentsTab
       appointments={appointments}
-      onUpdateCollectionStatus={updateCollectionStatus}
+      onUpdateCollectionStatus={updateAppointmentCollectionStatus}
       loading={loading}
     />
   );
