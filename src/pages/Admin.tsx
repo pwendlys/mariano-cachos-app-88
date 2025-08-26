@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import AppSidebar from '@/components/admin/AppSidebar';
@@ -19,6 +18,7 @@ import Dashboard from '@/components/admin/Dashboard';
 import { useAuth } from '@/hooks/useAuth';
 import { useQuery } from '@tanstack/react-query';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import OrdersManagement from '@/components/admin/OrdersManagement';
 
 const Admin = () => {
   const { user } = useAuth();
@@ -75,19 +75,13 @@ const Admin = () => {
         return <ProductManagement />;
       case 'vendas':
         return (
-          <Tabs defaultValue="vendas" className="w-full">
+          <Tabs defaultValue="pedidos" className="w-full">
             <TabsList className="grid w-full grid-cols-2 glass-card border-salon-gold/20">
-              <TabsTrigger value="vendas">Vendas</TabsTrigger>
+              <TabsTrigger value="pedidos">Pedidos Pendentes</TabsTrigger>
               <TabsTrigger value="comissoes">Comissões</TabsTrigger>
             </TabsList>
-            <TabsContent value="vendas" className="space-y-6 mt-6">
-              <div className="text-center">
-                <h2 className="text-2xl font-bold text-gradient-gold mb-2 font-playfair">Vendas</h2>
-                <p className="text-muted-foreground">Gerencie as vendas do salão</p>
-              </div>
-              <div className="text-center p-8">
-                <p className="text-muted-foreground">Funcionalidade de vendas em desenvolvimento</p>
-              </div>
+            <TabsContent value="pedidos" className="space-y-6 mt-6">
+              <OrdersManagement />
             </TabsContent>
             <TabsContent value="comissoes" className="space-y-6 mt-6">
               <CommissionManagement />

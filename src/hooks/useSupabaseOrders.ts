@@ -1,9 +1,9 @@
-
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { CartItem } from '@/hooks/useSharedCart';
+import { useSharedCart } from '@/hooks/useSharedCart';
 import { Database } from '@/integrations/supabase/types';
 
 export interface Address {
@@ -44,6 +44,7 @@ export const useSupabaseOrders = () => {
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
+  const { clearCart } = useSharedCart();
 
   const findOrCreateCliente = async (userEmail: string, userName: string): Promise<string | null> => {
     try {
@@ -142,6 +143,9 @@ export const useSupabaseOrders = () => {
 
       console.log('Pedido criado com sucesso:', order);
       
+      // Clear the cart after successful order creation
+      clearCart();
+      
       // Convert the database response back to OrderData format
       const orderResponse: OrderData = {
         ...order,
@@ -151,6 +155,11 @@ export const useSupabaseOrders = () => {
         endereco_entrega: order.endereco_entrega ? JSON.parse(order.endereco_entrega as string) : undefined,
         itens: JSON.parse(order.itens as string)
       };
+      
+      toast({
+        title: "Pedido criado com sucesso! 🎉",
+        description: "Seu pedido foi enviado e está aguardando confirmação.",
+      });
       
       return orderResponse;
     } catch (error) {

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Package, Eye, Check, X, MapPin, CreditCard, Truck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -9,6 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { useSupabaseOrders, OrderData } from '@/hooks/useSupabaseOrders';
+import OrderSaleManager from '@/components/admin/OrderSaleManager';
 
 const OrdersManagement = () => {
   const [orders, setOrders] = useState<OrderData[]>([]);
@@ -32,7 +32,30 @@ const OrdersManagement = () => {
     try {
       setLoading(true);
       const pendingOrders = await getPendingOrders();
-      setOrders(pendingOrders);
+      
+      // Get both pending confirmation and confirmed orders for admin management
+      const { data: confirmedOrders, error } = await supabase
+        .from('pedidos')
+        .select('*')
+        .eq('status', 'confirmado')
+        .order('created_at', { ascending: false });
+
+      let allOrders = pendingOrders;
+      
+      if (!error && confirmedOrders) {
+        const formattedConfirmedOrders = confirmedOrders.map((order) => ({
+          ...order,
+          status: order.status as 'aguardando_confirmacao' | 'confirmado' | 'cancelado',
+          metodo_pagamento: order.metodo_pagamento as 'pix' | 'cartao' | 'dinheiro',
+          modalidade_entrega: order.modalidade_entrega as 'retirada' | 'entrega',
+          endereco_entrega: order.endereco_entrega ? JSON.parse(order.endereco_entrega as string) : undefined,
+          itens: JSON.parse(order.itens as string)
+        }));
+        
+        allOrders = [...pendingOrders, ...formattedConfirmedOrders];
+      }
+      
+      setOrders(allOrders);
     } catch (error) {
       console.error('Erro ao carregar pedidos:', error);
       toast({
@@ -157,7 +180,7 @@ const OrdersManagement = () => {
     <div className="space-y-6">
       <div className="flex items-center gap-2">
         <Package className="text-salon-gold" size={24} />
-        <h2 className="text-xl font-bold text-salon-gold">Pedidos Pendentes</h2>
+        <h2 className="text-xl font-bold text-salon-gold">Gestão de Pedidos</h2>
         <Badge variant="secondary" className="bg-salon-gold/20 text-salon-gold">
           {orders.length}
         </Badge>
@@ -167,7 +190,7 @@ const OrdersManagement = () => {
         <Card className="glass-card border-salon-gold/20">
           <CardContent className="p-8 text-center">
             <Package className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-            <p className="text-muted-foreground">Nenhum pedido pendente de confirmação.</p>
+            <p className="text-muted-foreground">Nenhum pedido para gerenciar.</p>
           </CardContent>
         </Card>
       ) : (
@@ -181,8 +204,16 @@ const OrdersManagement = () => {
                       <span className="text-salon-gold font-medium">
                         Pedido #{order.id?.slice(-8)}
                       </span>
-                      <Badge className="bg-yellow-500/20 text-yellow-400">
-                        Aguardando confirmação
+                      <Badge className={
+                        order.status === 'aguardando_confirmacao' 
+                          ? "bg-yellow-500/20 text-yellow-400"
+                          : order.status === 'confirmado'
+                          ? "bg-green-500/20 text-green-400"
+                          : "bg-red-500/20 text-red-400"
+                      }>
+                        {order.status === 'aguardando_confirmacao' ? 'Aguardando confirmação' : 
+                         order.status === 'confirmado' ? 'Confirmado - Pronto para venda' :
+                         'Cancelado'}
                       </Badge>
                     </div>
                     
@@ -201,7 +232,10 @@ const OrdersManagement = () => {
                     </div>
                     
                     <div className="text-lg font-bold text-salon-gold">
-                      Total estimado: R$ {order.total_estimado.toFixed(2)}
+                      {order.status === 'confirmado' && order.total_confirmado 
+                        ? `Total confirmado: R$ ${order.total_confirmado.toFixed(2)}`
+                        : `Total estimado: R$ ${order.total_estimado.toFixed(2)}`
+                      }
                     </div>
                     
                     <div className="text-xs text-muted-foreground">
@@ -209,15 +243,22 @@ const OrdersManagement = () => {
                     </div>
                   </div>
 
-                  <Button
-                    onClick={() => handleViewOrder(order)}
-                    variant="outline"
-                    size="sm"
-                    className="border-salon-gold/30 text-salon-gold hover:bg-salon-gold/10"
-                  >
-                    <Eye size={16} className="mr-1" />
-                    Ver Detalhes
-                  </Button>
+                  <div className="flex flex-col gap-2">
+                    <Button
+                      onClick={() => handleViewOrder(order)}
+                      variant="outline"
+                      size="sm"
+                      className="border-salon-gold/30 text-salon-gold hover:bg-salon-gold/10"
+                    >
+                      <Eye size={16} className="mr-1" />
+                      Ver Detalhes
+                    </Button>
+                    
+                    <OrderSaleManager 
+                      order={order}
+                      onOrderUpdated={loadPendingOrders}
+                    />
+                  </div>
                 </div>
               </CardContent>
             </Card>

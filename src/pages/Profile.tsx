@@ -9,6 +9,7 @@ import { useNavigate } from 'react-router-dom';
 import { useSupabaseProducts } from '@/hooks/useSupabaseProducts';
 import { useUserAppointments } from '@/hooks/useUserAppointments';
 import { useUserPurchases } from '@/hooks/useUserPurchases';
+import { useUserOrders } from '@/hooks/useUserOrders';
 import AvatarUpload from '@/components/AvatarUpload';
 
 const Profile = () => {
@@ -18,6 +19,7 @@ const Profile = () => {
   const { products, loading: productsLoading } = useSupabaseProducts();
   const { appointments, loading: appointmentsLoading, getStatusLabel, getStatusColor, formatDate } = useUserAppointments();
   const { purchases, loading: purchasesLoading, formatDate: formatPurchaseDate } = useUserPurchases();
+  const { orders, loading: ordersLoading, getStatusLabel, getStatusColor } = useUserOrders();
   const [activeTab, setActiveTab] = useState('info');
 
   const handleLogout = async () => {
@@ -340,83 +342,183 @@ Obrigado(a)! 😊`;
         </TabsContent>
 
         <TabsContent value="purchases">
-          <div className="space-y-4">
+          <div className="space-y-6">
             <h2 className="text-xl font-semibold text-salon-gold mb-4">Minhas Compras</h2>
             
-            {purchasesLoading ? (
-              <div className="text-center py-8">
-                <p className="text-muted-foreground">Carregando compras...</p>
+            {/* Pedidos em Andamento Section */}
+            {ordersLoading ? (
+              <div className="text-center py-4">
+                <p className="text-muted-foreground">Carregando pedidos...</p>
               </div>
-            ) : purchases.length === 0 ? (
-              <div className="text-center py-8">
-                <ShoppingCart size={48} className="text-muted-foreground mx-auto mb-4" />
-                <p className="text-muted-foreground">Você ainda não realizou compras.</p>
-                <Button 
-                  onClick={() => navigate('/loja')}
-                  className="mt-4 bg-salon-gold hover:bg-salon-copper text-salon-dark"
-                >
-                  Ir às Compras
-                </Button>
-              </div>
-            ) : (
-              purchases.map((purchase) => (
-                <Card key={purchase.id} className="glass-card border-salon-gold/20">
-                  <CardContent className="p-4">
-                    <div className="flex items-start justify-between mb-4">
-                      <div>
-                        <h3 className="font-semibold text-white">
-                          Compra #{purchase.id.substring(0, 8)}
-                        </h3>
-                        <p className="text-sm text-muted-foreground">
-                          Realizada em {formatPurchaseDate(purchase.data_venda)}
-                        </p>
-                        <p className="text-salon-gold font-bold text-lg">
-                          R$ {purchase.total_final.toFixed(2)}
-                        </p>
-                      </div>
-                      <span className="px-3 py-1 rounded-full text-xs font-medium bg-green-500/20 text-green-400">
-                        Entregue
-                      </span>
-                    </div>
-
-                    <div className="space-y-3">
-                      <h4 className="text-sm font-medium text-salon-copper">Produtos:</h4>
-                      {purchase.itens.map((item, index) => (
-                        <div key={index} className="flex items-center space-x-3 bg-salon-dark/30 rounded-lg p-3">
-                          <div className="w-12 h-12 bg-gradient-to-br from-salon-gold/20 to-salon-copper/20 rounded-lg overflow-hidden flex-shrink-0">
-                            {item.produto.imagem ? (
-                              <img 
-                                src={item.produto.imagem} 
-                                alt={item.produto.nome}
-                                className="w-full h-full object-cover"
-                              />
-                            ) : (
-                              <div className="w-full h-full flex items-center justify-center">
-                                <span className="text-lg">🧴</span>
-                              </div>
+            ) : orders.length > 0 && (
+              <div className="space-y-4">
+                <h3 className="text-lg font-medium text-salon-copper">Pedidos em Andamento</h3>
+                {orders.map((order) => (
+                  <Card key={order.id} className="glass-card border-salon-gold/20">
+                    <CardContent className="p-4">
+                      <div className="flex items-start justify-between mb-4">
+                        <div>
+                          <h4 className="font-semibold text-white">
+                            Pedido #{order.id?.substring(0, 8)}
+                          </h4>
+                          <p className="text-sm text-muted-foreground">
+                            Realizado em {new Date(order.created_at!).toLocaleDateString('pt-BR')}
+                          </p>
+                          <div className="flex items-center gap-2 mt-2">
+                            <span className="text-salon-gold font-bold text-lg">
+                              R$ {(order.total_confirmado || order.total_estimado).toFixed(2)}
+                            </span>
+                            {order.frete_valor && order.frete_valor > 0 && (
+                              <span className="text-xs text-muted-foreground">
+                                (inclui frete: R$ {order.frete_valor.toFixed(2)})
+                              </span>
                             )}
                           </div>
-                          
-                          <div className="flex-1">
-                            <h5 className="font-medium text-white text-sm">{item.produto.nome}</h5>
-                            <p className="text-xs text-salon-copper">{item.produto.marca}</p>
-                            <p className="text-xs text-muted-foreground">
-                              Qtd: {item.quantidade} • R$ {item.preco_unitario.toFixed(2)} cada
-                            </p>
-                          </div>
-                          
-                          <div className="text-right">
-                            <p className="text-salon-gold font-medium">
-                              R$ {item.subtotal.toFixed(2)}
-                            </p>
-                          </div>
                         </div>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-              ))
+                        <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(order.status)}`}>
+                          {getStatusLabel(order.status)}
+                        </span>
+                      </div>
+
+                      <div className="space-y-3">
+                        <h5 className="text-sm font-medium text-salon-copper">Itens:</h5>
+                        {order.itens.map((item, index) => (
+                          <div key={index} className="flex items-center space-x-3 bg-salon-dark/30 rounded-lg p-3">
+                            <div className="w-12 h-12 bg-gradient-to-br from-salon-gold/20 to-salon-copper/20 rounded-lg overflow-hidden flex-shrink-0">
+                              {item.image ? (
+                                <img 
+                                  src={item.image} 
+                                  alt={item.name}
+                                  className="w-full h-full object-cover"
+                                />
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center">
+                                  <span className="text-lg">🧴</span>
+                                </div>
+                              )}
+                            </div>
+                            
+                            <div className="flex-1">
+                              <h6 className="font-medium text-white text-sm">{item.name}</h6>
+                              <p className="text-xs text-salon-copper">{item.brand}</p>
+                              <p className="text-xs text-muted-foreground">
+                                Qtd: {item.quantity} • R$ {item.price.toFixed(2)} cada
+                              </p>
+                            </div>
+                            
+                            <div className="text-right">
+                              <p className="text-salon-gold font-medium">
+                                R$ {(item.price * item.quantity).toFixed(2)}
+                              </p>
+                            </div>
+                          </div>
+                        ))}
+                        
+                        <div className="mt-4 p-3 bg-salon-dark/50 rounded-lg">
+                          <div className="flex justify-between text-sm">
+                            <span className="text-white">Pagamento:</span>
+                            <span className="text-salon-gold">{order.metodo_pagamento.toUpperCase()}</span>
+                          </div>
+                          <div className="flex justify-between text-sm mt-1">
+                            <span className="text-white">Entrega:</span>
+                            <span className="text-salon-gold">
+                              {order.modalidade_entrega === 'entrega' ? 'Entrega' : 'Retirada'}
+                            </span>
+                          </div>
+                          {order.observacoes && (
+                            <div className="mt-2 pt-2 border-t border-salon-gold/20">
+                              <p className="text-xs text-muted-foreground">
+                                <strong>Obs:</strong> {order.observacoes}
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
             )}
+
+            {/* Compras Finalizadas Section */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-medium text-salon-copper">Compras Finalizadas</h3>
+              
+              {purchasesLoading ? (
+                <div className="text-center py-8">
+                  <p className="text-muted-foreground">Carregando compras...</p>
+                </div>
+              ) : purchases.length === 0 ? (
+                <div className="text-center py-8">
+                  <ShoppingCart size={48} className="text-muted-foreground mx-auto mb-4" />
+                  <p className="text-muted-foreground">Você ainda não realizou compras.</p>
+                  <Button 
+                    onClick={() => navigate('/loja')}
+                    className="mt-4 bg-salon-gold hover:bg-salon-copper text-salon-dark"
+                  >
+                    Ir às Compras
+                  </Button>
+                </div>
+              ) : (
+                purchases.map((purchase) => (
+                  <Card key={purchase.id} className="glass-card border-salon-gold/20">
+                    <CardContent className="p-4">
+                      <div className="flex items-start justify-between mb-4">
+                        <div>
+                          <h3 className="font-semibold text-white">
+                            Compra #{purchase.id.substring(0, 8)}
+                          </h3>
+                          <p className="text-sm text-muted-foreground">
+                            Realizada em {formatPurchaseDate(purchase.data_venda)}
+                          </p>
+                          <p className="text-salon-gold font-bold text-lg">
+                            R$ {purchase.total_final.toFixed(2)}
+                          </p>
+                        </div>
+                        <span className="px-3 py-1 rounded-full text-xs font-medium bg-green-500/20 text-green-400">
+                          Entregue
+                        </span>
+                      </div>
+
+                      <div className="space-y-3">
+                        <h4 className="text-sm font-medium text-salon-copper">Produtos:</h4>
+                        {purchase.itens.map((item, index) => (
+                          <div key={index} className="flex items-center space-x-3 bg-salon-dark/30 rounded-lg p-3">
+                            <div className="w-12 h-12 bg-gradient-to-br from-salon-gold/20 to-salon-copper/20 rounded-lg overflow-hidden flex-shrink-0">
+                              {item.produto.imagem ? (
+                                <img 
+                                  src={item.produto.imagem} 
+                                  alt={item.produto.nome}
+                                  className="w-full h-full object-cover"
+                                />
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center">
+                                  <span className="text-lg">🧴</span>
+                                </div>
+                              )}
+                            </div>
+                            
+                            <div className="flex-1">
+                              <h5 className="font-medium text-white text-sm">{item.produto.nome}</h5>
+                              <p className="text-sm text-salon-copper">{item.produto.marca}</p>
+                              <p className="text-sm text-muted-foreground">
+                                Qtd: {item.quantidade} • R$ {item.preco_unitario.toFixed(2)} cada
+                              </p>
+                            </div>
+                            
+                            <div className="text-right">
+                              <p className="text-salon-gold font-medium">
+                                R$ {item.subtotal.toFixed(2)}
+                              </p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))
+              )}
+            </div>
           </div>
         </TabsContent>
       </Tabs>
