@@ -138,9 +138,6 @@ const Profile = () => {
                                 <span className="text-muted-foreground">Entrega: </span>
                                 <span className="capitalize">{order.modalidade_entrega}</span>
                               </div>
-                              <div className="text-sm font-medium text-salon-gold">
-                                Total: R$ {(order.total_confirmado || order.total_estimado).toFixed(2)}
-                              </div>
                             </div>
 
                             {/* Detalhes dos itens */}
@@ -153,6 +150,34 @@ const Profile = () => {
                                     <span>R$ {(item.price * item.quantity).toFixed(2)}</span>
                                   </div>
                                 ))}
+                              </div>
+                            </div>
+
+                            {/* Resumo Financeiro */}
+                            <div className="mt-3 pt-3 border-t border-salon-gold/20">
+                              <h5 className="text-sm font-medium mb-2 text-salon-gold">Resumo Financeiro:</h5>
+                              <div className="space-y-1">
+                                <div className="flex justify-between text-sm">
+                                  <span className="text-muted-foreground">Subtotal:</span>
+                                  <span>R$ {(order.subtotal || 0).toFixed(2)}</span>
+                                </div>
+                                <div className="flex justify-between text-sm">
+                                  <span className="text-muted-foreground">Frete:</span>
+                                  <span>R$ {(order.frete_valor || 0).toFixed(2)}</span>
+                                </div>
+                                {((order.juros_percentual && order.juros_percentual > 0) || (order.juros_valor && order.juros_valor > 0)) && (
+                                  <div className="flex justify-between text-sm">
+                                    <span className="text-muted-foreground">
+                                      Juros ({order.juros_percentual || 0}%):
+                                    </span>
+                                    <span>R$ {(order.juros_valor || 0).toFixed(2)}</span>
+                                  </div>
+                                )}
+                                <Separator className="my-2 bg-salon-gold/20" />
+                                <div className="flex justify-between text-sm font-medium text-salon-gold">
+                                  <span>Total:</span>
+                                  <span>R$ {(order.total_confirmado || order.total_estimado).toFixed(2)}</span>
+                                </div>
                               </div>
                             </div>
                           </div>
