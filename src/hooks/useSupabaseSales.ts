@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -130,18 +129,20 @@ export const useSupabaseSales = () => {
       const total = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
       const finalTotal = total - discount;
 
-      // Criar a venda com cliente_id
+      console.log('Criando venda com RLS policies atualizadas...');
+
+      // Criar a venda com cliente_id - agora funcionará com RLS atualizada
       const { data: sale, error: saleError } = await supabase
         .from('vendas')
         .insert({
-          cliente_id: clienteId, // Agora sempre incluímos o cliente_id
+          cliente_id: clienteId,
           total,
           desconto: discount,
           total_final: finalTotal,
           forma_pagamento: paymentMethod,
           cupom_id: couponId,
           profissional_id: professionalId,
-          status: 'pendente',
+          status: 'pendente', // Será atualizado para 'finalizada' depois
           status_pagamento: 'pendente',
           chave_pix: pixData?.chave_pix,
           chave_pix_abacate: pixData?.chave_pix_abacate,
@@ -163,7 +164,7 @@ export const useSupabaseSales = () => {
 
       console.log('Venda criada com sucesso:', sale);
 
-      // Criar os itens da venda
+      // Criar os itens da venda - agora funcionará com RLS atualizada
       const saleItems = cartItems.map(item => ({
         venda_id: sale.id,
         produto_id: item.id,
@@ -259,7 +260,8 @@ export const useSupabaseSales = () => {
         }
       }
 
-      // Finalizar a venda
+      // Finalizar a venda - agora os triggers executarão automaticamente
+      console.log('Finalizando venda - triggers executarão automaticamente...');
       const { error: updateError } = await supabase
         .from('vendas')
         .update({ status: 'finalizada' })
@@ -275,7 +277,7 @@ export const useSupabaseSales = () => {
         throw updateError;
       }
 
-      console.log('Venda finalizada com sucesso');
+      console.log('Venda finalizada com sucesso - fluxo de caixa registrado automaticamente');
 
       toast({
         title: "Compra finalizada! 🎉",

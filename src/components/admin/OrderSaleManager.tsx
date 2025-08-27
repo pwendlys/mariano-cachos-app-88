@@ -5,7 +5,7 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { OrderData } from '@/hooks/useSupabaseOrders';
 import { useSupabaseSales } from '@/hooks/useSupabaseSales';
-import { Check } from 'lucide-react';
+import { Check, Loader2 } from 'lucide-react';
 
 interface OrderSaleManagerProps {
   order: OrderData;
@@ -30,22 +30,28 @@ export const OrderSaleManager: React.FC<OrderSaleManagerProps> = ({
         name: item.name,
         price: item.price,
         quantity: item.quantity,
-        image: '', // Not needed for sale creation
-        category: '', // Not needed for sale creation
-        brand: '' // Not needed for sale creation
+        image: item.image || '',
+        category: item.category || '',
+        brand: item.brand || ''
       }));
 
       // Calculate discount from order
       const discount = order.desconto || 0;
 
-      // Use the existing createSale hook which handles:
-      // - Client creation/lookup
-      // - Sale record creation
+      console.log('Converting order to sale:', {
+        orderId: order.id,
+        cartItems,
+        paymentMethod: order.metodo_pagamento,
+        discount
+      });
+
+      // Use the existing createSale hook which now handles:
+      // - Client creation/lookup with proper RLS
+      // - Sale record creation with triggers for cash flow
       // - Items insertion
       // - Stock updates
-      // - Cash flow registration
-      // - Commission calculations
-      // - Notifications
+      // - Commission calculations (via trigger)
+      // - Notifications (via trigger)
       const sale = await createSale(
         cartItems,
         order.metodo_pagamento,
@@ -58,19 +64,24 @@ export const OrderSaleManager: React.FC<OrderSaleManagerProps> = ({
           .from('pedidos')
           .update({ 
             status: 'finalizado', // Different from 'confirmado' to indicate completion
+            total_confirmado: order.total_estimado, // Set confirmed total
             updated_at: new Date().toISOString()
           })
           .eq('id', order.id);
 
         if (orderError) {
           console.error('Erro ao atualizar status do pedido:', orderError);
-          // Don't throw here as the sale was created successfully
+          toast({
+            title: "Aviso",
+            description: "Venda criada com sucesso, mas houve problema ao atualizar o pedido.",
+            variant: "default",
+          });
+        } else {
+          toast({
+            title: "Venda criada com sucesso! 🎉",
+            description: `Pedido #${order.id?.slice(-8)} foi convertido em venda e registrado no sistema.`,
+          });
         }
-
-        toast({
-          title: "Venda criada com sucesso! 🎉",
-          description: `Pedido #${order.id?.slice(-8)} foi convertido em venda e registrado no fluxo de caixa.`,
-        });
 
         onOrderUpdated();
       }
@@ -79,7 +90,7 @@ export const OrderSaleManager: React.FC<OrderSaleManagerProps> = ({
       console.error('Erro ao criar venda:', error);
       toast({
         title: "Erro ao criar venda",
-        description: "Não foi possível converter o pedido em venda. Tente novamente.",
+        description: "Não foi possível converter o pedido em venda. Verifique os logs para mais detalhes.",
         variant: "destructive",
       });
     } finally {
@@ -98,7 +109,7 @@ export const OrderSaleManager: React.FC<OrderSaleManagerProps> = ({
       className="bg-salon-gold hover:bg-salon-copper text-salon-dark font-medium"
     >
       {creating ? (
-        <div className="animate-spin w-4 h-4 border-2 border-salon-dark border-t-transparent rounded-full mr-2" />
+        <Loader2 size={16} className="mr-2 animate-spin" />
       ) : (
         <Check size={16} className="mr-2" />
       )}
