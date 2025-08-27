@@ -31,8 +31,7 @@ export const OrderSaleManager: React.FC<OrderSaleManagerProps> = ({
         price: item.price,
         quantity: item.quantity,
         image: item.image || '',
-        category: item.category || '',
-        brand: item.brand || ''
+        brand: item.brand // This property exists in order items but not in CartItem interface
       }));
 
       // Calculate discount from order
