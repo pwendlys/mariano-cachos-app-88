@@ -5,7 +5,7 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { OrderData } from '@/hooks/useSupabaseOrders';
 import { useSupabaseSales } from '@/hooks/useSupabaseSales';
-import { Check, Loader2 } from 'lucide-react';
+import { Check, Loader2, DollarSign } from 'lucide-react';
 
 interface OrderSaleManagerProps {
   order: OrderData;
@@ -17,8 +17,65 @@ export const OrderSaleManager: React.FC<OrderSaleManagerProps> = ({
   onOrderUpdated 
 }) => {
   const [creating, setCreating] = useState(false);
+  const [registering, setRegistering] = useState(false);
   const { toast } = useToast();
   const { createSale } = useSupabaseSales();
+
+  const registerInCashFlow = async () => {
+    try {
+      setRegistering(true);
+      
+      console.log('Registrando pedido no fluxo de caixa:', {
+        orderId: order.id,
+        total: order.total_confirmado || order.total_estimado
+      });
+
+      const totalValue = order.total_confirmado || order.total_estimado;
+
+      // Registrar apenas uma entrada no fluxo de caixa com o valor total do pedido
+      const { error } = await supabase
+        .from('fluxo_caixa')
+        .insert({
+          data: new Date().toISOString().split('T')[0], // Data atual
+          tipo: 'entrada',
+          categoria: 'Produtos',
+          descricao: `Pedido #${order.id?.slice(-8)} - Registro manual no caixa`,
+          valor: totalValue,
+          origem_tipo: 'pedido',
+          origem_id: order.id,
+          metadata: {
+            pedido_id: order.id,
+            tipo_registro: 'manual',
+            valor_original: totalValue
+          }
+        });
+
+      if (error) {
+        console.error('Erro ao registrar no fluxo de caixa:', error);
+        toast({
+          title: "Erro ao registrar no caixa",
+          description: "Não foi possível registrar o pedido no fluxo de caixa.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      toast({
+        title: "Registrado no caixa! 💰",
+        description: `Pedido #${order.id?.slice(-8)} foi registrado no fluxo de caixa com valor de R$ ${totalValue.toFixed(2)}.`,
+      });
+
+    } catch (error) {
+      console.error('Erro ao registrar no fluxo de caixa:', error);
+      toast({
+        title: "Erro ao registrar no caixa",
+        description: "Não foi possível registrar o pedido no fluxo de caixa.",
+        variant: "destructive",
+      });
+    } finally {
+      setRegistering(false);
+    }
+  };
 
   const createSaleFromOrder = async () => {
     try {
@@ -59,11 +116,11 @@ export const OrderSaleManager: React.FC<OrderSaleManagerProps> = ({
 
       if (sale) {
         // Update order status to indicate it has been converted to a sale
+        // Do not overwrite total_confirmado, only update status
         const { error: orderError } = await supabase
           .from('pedidos')
           .update({ 
             status: 'finalizado', // Different from 'confirmado' to indicate completion
-            total_confirmado: order.total_estimado, // Set confirmed total
             updated_at: new Date().toISOString()
           })
           .eq('id', order.id);
@@ -97,23 +154,40 @@ export const OrderSaleManager: React.FC<OrderSaleManagerProps> = ({
     }
   };
 
-  // Only show button for confirmed orders that haven't been converted to sales yet
+  // Only show buttons for confirmed orders that haven't been converted to sales yet
   if (order.status !== 'confirmado') return null;
 
   return (
-    <Button
-      onClick={createSaleFromOrder}
-      disabled={creating}
-      size="sm"
-      className="bg-salon-gold hover:bg-salon-copper text-salon-dark font-medium"
-    >
-      {creating ? (
-        <Loader2 size={16} className="mr-2 animate-spin" />
-      ) : (
-        <Check size={16} className="mr-2" />
-      )}
-      {creating ? 'Processando...' : 'Finalizar Venda'}
-    </Button>
+    <div className="flex gap-2">
+      <Button
+        onClick={createSaleFromOrder}
+        disabled={creating || registering}
+        size="sm"
+        className="bg-salon-gold hover:bg-salon-copper text-salon-dark font-medium"
+      >
+        {creating ? (
+          <Loader2 size={16} className="mr-2 animate-spin" />
+        ) : (
+          <Check size={16} className="mr-2" />
+        )}
+        {creating ? 'Processando...' : 'Finalizar Venda'}
+      </Button>
+      
+      <Button
+        onClick={registerInCashFlow}
+        disabled={creating || registering}
+        size="sm"
+        variant="outline"
+        className="border-salon-gold/30 text-salon-gold hover:bg-salon-gold/10 font-medium"
+      >
+        {registering ? (
+          <Loader2 size={16} className="mr-2 animate-spin" />
+        ) : (
+          <DollarSign size={16} className="mr-2" />
+        )}
+        {registering ? 'Registrando...' : 'Registrar no Caixa'}
+      </Button>
+    </div>
   );
 };
 
