@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { OrderData } from '@/hooks/useSupabaseOrders';
+import { useSupabaseSales } from '@/hooks/useSupabaseSales';
 import { Check } from 'lucide-react';
 
 interface OrderSaleManagerProps {
@@ -17,89 +18,62 @@ export const OrderSaleManager: React.FC<OrderSaleManagerProps> = ({
 }) => {
   const [creating, setCreating] = useState(false);
   const { toast } = useToast();
+  const { createSale } = useSupabaseSales();
 
   const createSaleFromOrder = async () => {
     try {
       setCreating(true);
       
-      // Calculate final total (already calculated in order)
-      const totalFinal = order.total_confirmado || order.total_estimado;
-
-      // Create the sale record
-      const { data: venda, error: vendaError } = await supabase
-        .from('vendas')
-        .insert({
-          cliente_id: order.cliente_id,
-          total: order.subtotal,
-          desconto: order.desconto,
-          total_final: totalFinal,
-          data_venda: new Date().toISOString(),
-          status: 'finalizada',
-          forma_pagamento: order.metodo_pagamento
-        })
-        .select()
-        .single();
-
-      if (vendaError) throw vendaError;
-
-      // Create sale items
-      const itensVenda = order.itens.map(item => ({
-        venda_id: venda.id,
-        produto_id: item.id,
-        quantidade: item.quantity,
-        preco_unitario: item.price,
-        subtotal: item.price * item.quantity
+      // Convert order items to cart items format expected by useSupabaseSales
+      const cartItems = order.itens.map(item => ({
+        id: item.id,
+        name: item.name,
+        price: item.price,
+        quantity: item.quantity,
+        image: '', // Not needed for sale creation
+        category: '', // Not needed for sale creation
+        brand: '' // Not needed for sale creation
       }));
 
-      const { error: itensError } = await supabase
-        .from('itens_venda')
-        .insert(itensVenda);
+      // Calculate discount from order
+      const discount = order.desconto || 0;
 
-      if (itensError) throw itensError;
+      // Use the existing createSale hook which handles:
+      // - Client creation/lookup
+      // - Sale record creation
+      // - Items insertion
+      // - Stock updates
+      // - Cash flow registration
+      // - Commission calculations
+      // - Notifications
+      const sale = await createSale(
+        cartItems,
+        order.metodo_pagamento,
+        discount
+      );
 
-      // Update product stock directly
-      for (const item of order.itens) {
-        const { data: produto, error: fetchError } = await supabase
-          .from('produtos')
-          .select('estoque')
-          .eq('id', item.id)
-          .single();
+      if (sale) {
+        // Update order status to indicate it has been converted to a sale
+        const { error: orderError } = await supabase
+          .from('pedidos')
+          .update({ 
+            status: 'finalizado', // Different from 'confirmado' to indicate completion
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', order.id);
 
-        if (fetchError) {
-          console.error('Erro ao buscar produto:', fetchError);
-          continue;
+        if (orderError) {
+          console.error('Erro ao atualizar status do pedido:', orderError);
+          // Don't throw here as the sale was created successfully
         }
 
-        const novoEstoque = Math.max(0, produto.estoque - item.quantity);
+        toast({
+          title: "Venda criada com sucesso! 🎉",
+          description: `Pedido #${order.id?.slice(-8)} foi convertido em venda e registrado no fluxo de caixa.`,
+        });
 
-        const { error: updateError } = await supabase
-          .from('produtos')
-          .update({ estoque: novoEstoque })
-          .eq('id', item.id);
-
-        if (updateError) {
-          console.error('Erro ao atualizar estoque:', updateError);
-          // Continue even if stock update fails
-        }
+        onOrderUpdated();
       }
-
-      // Update order status to confirmado
-      const { error: orderError } = await supabase
-        .from('pedidos')
-        .update({ 
-          status: 'confirmado',
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', order.id);
-
-      if (orderError) throw orderError;
-
-      toast({
-        title: "Venda criada com sucesso! 🎉",
-        description: `Pedido #${order.id?.slice(-8)} foi convertido em venda e registrado no fluxo de caixa.`,
-      });
-
-      onOrderUpdated();
 
     } catch (error) {
       console.error('Erro ao criar venda:', error);
