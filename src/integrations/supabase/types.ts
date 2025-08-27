@@ -1083,6 +1083,7 @@ export type Database = {
           total: number
           total_final: number
           transaction_id: string | null
+          updated_at: string
         }
         Insert: {
           chave_pix?: string | null
@@ -1101,6 +1102,7 @@ export type Database = {
           total: number
           total_final: number
           transaction_id?: string | null
+          updated_at?: string
         }
         Update: {
           chave_pix?: string | null
@@ -1119,6 +1121,7 @@ export type Database = {
           total?: number
           total_final?: number
           transaction_id?: string | null
+          updated_at?: string
         }
         Relationships: [
           {
