@@ -26,8 +26,8 @@ const OrnateHeading = ({
       
       
       {/* Additional image below ornament */}
-      <div className="mb-4">
-        <img src="/lovable-uploads/b68af8a8-1e97-42b6-8846-7e2f0c39952d.png" alt="Agende Seu Horário" className="mx-auto block h-12 md:h-16 w-auto" />
+      <div className="mb-4 px-4">
+        <img src="/lovable-uploads/b68af8a8-1e97-42b6-8846-7e2f0c39952d.png" alt="Agende Seu Horário" className="w-full h-auto object-contain max-w-sm md:max-w-md lg:max-w-lg mx-auto" />
       </div>
       
       {/* Title - either image, hidden, or text */}
