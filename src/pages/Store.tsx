@@ -37,7 +37,7 @@ const Store = () => {
     { id: 'shampoo', name: 'Shampoos', count: products.filter(p => p.category === 'shampoo').length },
     { id: 'mascara', name: 'Máscaras', count: products.filter(p => p.category === 'mascara').length },
     { id: 'oleo', name: 'Óleos', count: products.filter(p => p.category === 'oleo').length },
-    { id: 'creme', name: 'Cremes', count: products.filter(p => p.category === 'creme').length },
+    { id: 'creme', name: 'Finalização', count: products.filter(p => p.category === 'creme').length },
     { id: 'condicionador', name: 'Condicionadores', count: products.filter(p => p.category === 'condicionador').length },
   ];
 
