@@ -32,20 +32,30 @@ const Store = () => {
   // Add real-time stock alerts
   useRealtimeStockUpdate();
 
+  // Helper function to match categories
+  const matchesCategory = (productCategory: string, selectedCategory: string) => {
+    if (selectedCategory === 'all') return true;
+    if (selectedCategory === 'finalizacao') {
+      // Map "Finalização" to styling-related categories in the database
+      return ['styling', 'finalizacao', 'creme', 'leave-in'].includes(productCategory.toLowerCase());
+    }
+    return productCategory === selectedCategory;
+  };
+
   const categories = [
     { id: 'all', name: 'Todos', count: products.length },
-    { id: 'shampoo', name: 'Shampoos', count: products.filter(p => p.category === 'shampoo').length },
-    { id: 'mascara', name: 'Máscaras', count: products.filter(p => p.category === 'mascara').length },
-    { id: 'oleo', name: 'Óleos', count: products.filter(p => p.category === 'oleo').length },
-    { id: 'creme', name: 'Finalização', count: products.filter(p => p.category === 'creme').length },
-    { id: 'condicionador', name: 'Condicionadores', count: products.filter(p => p.category === 'condicionador').length },
+    { id: 'shampoo', name: 'Shampoos', count: products.filter(p => matchesCategory(p.category, 'shampoo')).length },
+    { id: 'mascara', name: 'Máscaras', count: products.filter(p => matchesCategory(p.category, 'mascara')).length },
+    { id: 'oleo', name: 'Óleos', count: products.filter(p => matchesCategory(p.category, 'oleo')).length },
+    { id: 'finalizacao', name: 'Finalização', count: products.filter(p => matchesCategory(p.category, 'finalizacao')).length },
+    { id: 'condicionador', name: 'Condicionadores', count: products.filter(p => matchesCategory(p.category, 'condicionador')).length },
   ];
 
   const filteredProducts = products.filter(product => {
     const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          product.brand.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = selectedCategory === 'all' || product.category === selectedCategory;
-    return matchesSearch && matchesCategory;
+    const categoryMatch = matchesCategory(product.category, selectedCategory);
+    return matchesSearch && categoryMatch;
   });
 
   const recommendedProducts = filteredProducts.slice(0, 4);
