@@ -118,7 +118,9 @@ const SupabaseStore = () => {
         <OrnateHeading 
           title="Produtos Especializados" 
           subtitle="Cuide dos seus cachos com produtos de qualidade"
-          showLogo={true}
+          ornamentImageSrc="/lovable-uploads/f3d12063-8130-4783-bbdb-e45a4df789fe.png"
+          hideTitle={true}
+          showLogo={false}
         />
 
         {/* Banner de Produtos em Destaque */}
