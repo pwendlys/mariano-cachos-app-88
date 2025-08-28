@@ -199,7 +199,7 @@ const SupabaseScheduling = () => {
         <OrnateHeading 
           title="Agende Seu Horário" 
           subtitle="Carregando serviços..."
-          ornamentImageSrc="/lovable-uploads/328ffbf5-f557-438b-aef8-93e1fc7b7dfb.png"
+          ornamentImageSrc="/lovable-uploads/a4a5dcbf-8b9b-4ade-b44e-b255f2bbb6b1.png"
           hideTitle={true}
         />
       </div>
@@ -211,7 +211,7 @@ const SupabaseScheduling = () => {
       <OrnateHeading 
         title="Agende Seu Horário" 
         subtitle="Escolha múltiplos serviços para um cuidado completo"
-        ornamentImageSrc="/lovable-uploads/328ffbf5-f557-438b-aef8-93e1fc7b7dfb.png"
+        ornamentImageSrc="/lovable-uploads/a4a5dcbf-8b9b-4ade-b44e-b255f2bbb6b1.png"
         hideTitle={true}
       />
 
