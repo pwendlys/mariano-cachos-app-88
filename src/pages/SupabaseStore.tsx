@@ -118,7 +118,7 @@ const SupabaseStore = () => {
         <OrnateHeading 
           title="Produtos Especializados" 
           subtitle="Cuide dos seus cachos com produtos de qualidade"
-          ornamentImageSrc="/lovable-uploads/f3d12063-8130-4783-bbdb-e45a4df789fe.png"
+          ornamentImageSrc="/lovable-uploads/a87d6225-ccf0-45c2-b4a2-2ce8d788ba9e.png"
           hideTitle={true}
           showLogo={false}
         />
