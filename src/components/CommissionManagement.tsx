@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectTrigger, SelectValue, SelectItem } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
 import { useSupabaseCommissions } from '@/hooks/useSupabaseCommissions';
 import { useSupabaseProfessionals } from '@/hooks/useSupabaseProfessionals';
@@ -80,6 +81,23 @@ const CommissionManagement = () => {
   const showDetails = (commission: any) => {
     setSelectedCommission(commission);
     setIsDetailsDialogOpen(true);
+  };
+
+  const handleDeleteCommission = async (commissionId: string) => {
+    try {
+      await deleteCommission(commissionId);
+      setIsDetailsDialogOpen(false);
+      toast({
+        title: "Comissão excluída",
+        description: "A comissão foi excluída com sucesso.",
+      });
+    } catch (error) {
+      toast({
+        title: "Erro ao excluir",
+        description: "Não foi possível excluir a comissão. Tente novamente.",
+        variant: "destructive"
+      });
+    }
   };
 
   const getProfessionalName = (professionalId: string) => {
@@ -365,6 +383,40 @@ const CommissionManagement = () => {
                   <p className="text-white">{selectedCommission.observacoes}</p>
                 </div>
               )}
+              
+              {/* Delete Button */}
+              <div className="pt-4 border-t border-salon-gold/20">
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button
+                      variant="destructive"
+                      className="w-full bg-red-600 hover:bg-red-700 text-white"
+                    >
+                      <Trash2 className="mr-2" size={16} />
+                      Excluir Comissão
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent className="glass-card border-salon-gold/30 text-white">
+                    <AlertDialogHeader>
+                      <AlertDialogTitle className="text-salon-gold">Confirmar Exclusão</AlertDialogTitle>
+                      <AlertDialogDescription className="text-salon-copper">
+                        Tem certeza que deseja excluir esta comissão? Esta ação não pode ser desfeita.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel className="border-salon-gold/30 text-salon-gold hover:bg-salon-gold/10">
+                        Cancelar
+                      </AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={() => handleDeleteCommission(selectedCommission.id)}
+                        className="bg-red-600 hover:bg-red-700 text-white"
+                      >
+                        Excluir
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </div>
             </div>
           )}
         </DialogContent>
