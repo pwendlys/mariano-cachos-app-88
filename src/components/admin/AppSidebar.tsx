@@ -28,6 +28,7 @@ import {
   UserCheck
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
+import ClientAvatar from '@/components/ClientAvatar';
 
 interface AppSidebarProps {
   activeTab: string;
@@ -128,9 +129,18 @@ const AppSidebar: React.FC<AppSidebarProps> = ({ activeTab, onTabChange }) => {
     <Sidebar variant="inset">
       <SidebarHeader className="border-b border-salon-gold/20 p-4">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-salon-gold rounded-md flex items-center justify-center">
-            <Scissors className="w-4 h-4 text-salon-dark" />
-          </div>
+          {user?.tipo === 'admin' || user?.tipo === 'convidado' ? (
+            <ClientAvatar 
+              avatar_url={user?.avatar_url} 
+              nome={user?.nome || 'Usuário'} 
+              size="sm"
+              className="border-2 border-salon-gold"
+            />
+          ) : (
+            <div className="w-8 h-8 bg-salon-gold rounded-md flex items-center justify-center">
+              <Scissors className="w-4 h-4 text-salon-dark" />
+            </div>
+          )}
           <div>
             <h2 className="font-semibold text-salon-gold">Admin Panel</h2>
             <p className="text-xs text-salon-copper capitalize">
